@@ -12,7 +12,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       (SELECT COUNT(*) FROM project_group_members WHERE group_id=pg.id) as member_count,
       (SELECT COUNT(*) FROM tasks WHERE group_id=pg.id AND parent_task_id IS NULL) as task_count
      FROM project_groups pg JOIN users u ON u.id=pg.created_by
-     WHERE pg.project_id=? ORDER BY pg.created_at ASC`, [project_id]
+     WHERE pg.project_id=? AND pg.deleted_at IS NULL ORDER BY pg.created_at ASC`, [project_id]
   );
   return apiResponse(rows);
 });
@@ -45,10 +45,12 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
 export const DELETE = withAuth(async (req: NextRequest, user) => {
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return apiError('id required');
-  const grp = await query<{ project_id: number }[]>('SELECT project_id FROM project_groups WHERE id=?', [id]);
+  const grp = await query<{ project_id: number }[]>('SELECT project_id FROM project_groups WHERE id=? AND deleted_at IS NULL', [id]);
   if (!grp.length) return apiError('Group not found', 404);
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [grp[0].project_id, user.id]);
   if (!member.length || !['owner','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
-  await query('DELETE FROM project_groups WHERE id=?', [id]);
+  await query('UPDATE project_groups SET deleted_at=NOW() WHERE id=?', [id]);
+  // Soft delete tasks in this group
+  await query('UPDATE tasks SET deleted_at=NOW() WHERE group_id=? AND deleted_at IS NULL', [id]);
   return apiResponse({ message: 'Group deleted' });
 });

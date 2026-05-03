@@ -31,15 +31,15 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const params: (string | number)[] = [];
 
   if (parent_task_id) {
-    sql += 't.parent_task_id = ?';
+    sql += 't.parent_task_id = ? AND t.deleted_at IS NULL';
     params.push(parent_task_id);
   } else if (group_id) {
-    sql += 't.group_id = ? AND t.parent_task_id IS NULL';
+    sql += 't.group_id = ? AND t.parent_task_id IS NULL AND t.deleted_at IS NULL';
     params.push(group_id);
   } else {
     const member = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [project_id!, user.id]);
     if (!member.length) return apiError('Not a project member', 403);
-    sql += 't.project_id = ? AND t.parent_task_id IS NULL';
+    sql += 't.project_id = ? AND t.parent_task_id IS NULL AND t.deleted_at IS NULL';
     params.push(project_id!);
   }
 
@@ -118,12 +118,14 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return apiError('Task id required');
 
-  const tasks = await query<TaskRow[]>('SELECT * FROM tasks WHERE id=?', [id]);
+  const tasks = await query<TaskRow[]>('SELECT * FROM tasks WHERE id=? AND deleted_at IS NULL', [id]);
   if (!tasks.length) return apiError('Task not found', 404);
 
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [tasks[0].project_id, user.id]);
   if (!member.length || !['owner','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
 
-  await query('DELETE FROM tasks WHERE id=?', [id]);
+  await query('UPDATE tasks SET deleted_at=NOW() WHERE id=?', [id]);
+  // Also soft delete subtasks
+  await query('UPDATE tasks SET deleted_at=NOW() WHERE parent_task_id=? AND deleted_at IS NULL', [id]);
   return apiResponse({ message: 'Task deleted' });
 });

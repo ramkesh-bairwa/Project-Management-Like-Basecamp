@@ -135,6 +135,38 @@ export async function POST(req: NextRequest) {
         FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE CASCADE
       )`
     },
+    {
+      name: 'document_folders table',
+      sql: `CREATE TABLE IF NOT EXISTS document_folders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        project_id INT NOT NULL,
+        name VARCHAR(200) NOT NULL,
+        created_by INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+      )`
+    },
+    {
+      name: 'documents.folder_id column',
+      sql: `ALTER TABLE documents ADD COLUMN IF NOT EXISTS folder_id INT NULL AFTER project_id`
+    },
+    {
+      name: 'documents.folder_id foreign key',
+      sql: `ALTER TABLE documents ADD CONSTRAINT fk_doc_folder FOREIGN KEY (folder_id) REFERENCES document_folders(id) ON DELETE SET NULL`
+    },
+    {
+      name: 'projects.deleted_at column',
+      sql: `ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL`
+    },
+    {
+      name: 'tasks.deleted_at column',
+      sql: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL`
+    },
+    {
+      name: 'project_groups.deleted_at column',
+      sql: `ALTER TABLE project_groups ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL`
+    },
   ];
 
   for (const step of steps) {

@@ -26,32 +26,35 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const member = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
   if (!member.length) return apiError('Not a project member', 403);
 
+  const folder_id = searchParams.get('folder_id');
+  const folderFilter = folder_id ? 'd.folder_id = ?' : 'd.folder_id IS NULL';
+  const params = folder_id ? [project_id, folder_id] : [project_id];
   const rows = await query<unknown[]>(
     `SELECT d.*, u.name as created_by_name,
       dv.version_number as latest_version, dv.change_summary as latest_change,
       dv.created_at as last_updated_at, uv.name as last_updated_by_name,
+      dv.file_url, dv.file_name,
       (SELECT COUNT(*) FROM comments WHERE entity_type='document' AND entity_id=d.id) as comment_count
      FROM documents d
      JOIN users u ON u.id = d.created_by
      LEFT JOIN document_versions dv ON dv.document_id = d.id AND dv.version_number = d.current_version
      LEFT JOIN users uv ON uv.id = dv.uploaded_by
-     WHERE d.project_id = ? AND d.status != 'archived'
-     ORDER BY d.updated_at DESC`, [project_id]
+     WHERE d.project_id = ? AND d.status != 'archived' AND ${folderFilter}
+     ORDER BY d.updated_at DESC`, params
   );
   return apiResponse(rows);
 });
 
 export const POST = withAuth(async (req: NextRequest, user) => {
-  const { project_id, title, description, type, content, file_url, file_name, file_size } = await req.json();
+  const { project_id, title, description, type, content, file_url, file_name, file_size, folder_id } = await req.json();
   if (!project_id || !title) return apiError('project_id and title required');
 
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
   if (!member.length) return apiError('Not a project member', 403);
-  if (!['owner','manager'].includes(member[0].role)) return apiError('Only owner or manager can create documents', 403);
 
   const result = await query<{ insertId: number }>(
-    'INSERT INTO documents (project_id, created_by, title, description, type) VALUES (?,?,?,?,?)',
-    [project_id, user.id, title, description || null, type || 'doc']
+    'INSERT INTO documents (project_id, folder_id, created_by, title, description, type) VALUES (?,?,?,?,?,?)',
+    [project_id, folder_id || null, user.id, title, description || null, type || 'doc']
   );
 
   // Create version 1
