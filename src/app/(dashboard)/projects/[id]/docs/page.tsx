@@ -16,6 +16,27 @@ interface Toast { msg: string; type: 'success' | 'error'; }
 const typeIcon: Record<string, string> = { doc: '📄', file: '📎', spreadsheet: '📊', design: '🎨', other: '📁' };
 const typeColors: Record<string, string> = { doc: '#457b9d', file: '#6d6875', spreadsheet: '#2a9d8f', design: '#e9c46a', other: '#94a3b8' };
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function ProjectDocsPage() {
   const { id } = useParams();
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -322,7 +343,7 @@ export default function ProjectDocsPage() {
               <div className="flex items-center justify-between text-xs" style={{ color: '#94a3b8' }}>
                 <div className="flex items-center gap-3">
                   {doc.comment_count > 0 && <span>💬 {doc.comment_count}</span>}
-                  {doc.last_updated_at && <span>{new Date(doc.last_updated_at).toLocaleDateString()}</span>}
+                  {doc.last_updated_at && <span>{fmtD(doc.last_updated_at)}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                     <button

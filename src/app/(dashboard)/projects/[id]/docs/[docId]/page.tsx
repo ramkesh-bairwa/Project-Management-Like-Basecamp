@@ -18,6 +18,27 @@ interface Version {
 const typeIcon: Record<string, string> = { doc: '📄', file: '📎', spreadsheet: '📊', design: '🎨', other: '📁' };
 const typeColors: Record<string, string> = { doc: '#457b9d', file: '#6d6875', spreadsheet: '#2a9d8f', design: '#e9c46a', other: '#94a3b8' };
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function DocDetailPage() {
   const { id, docId } = useParams();
   const router = useRouter();
@@ -242,7 +263,7 @@ export default function DocDetailPage() {
                 </span>
                 {doc.last_updated_at && (
                   <span className="text-xs" style={{ color: '#6b7a8d' }}>
-                    Updated {new Date(doc.last_updated_at).toLocaleDateString()} by <strong>{doc.last_updated_by_name}</strong>
+                    Updated {fmtD(doc.last_updated_at)} by <strong>{doc.last_updated_by_name}</strong>
                   </span>
                 )}
               </div>
@@ -284,7 +305,7 @@ export default function DocDetailPage() {
             <div className="font-black text-sm" style={{ color: '#1d3557' }}>{currentVersion.file_name}</div>
             <div className="text-xs mt-0.5" style={{ color: '#6b7a8d' }}>
               {currentVersion.file_size ? `${(currentVersion.file_size / 1024).toFixed(1)} KB · ` : ''}
-              Uploaded by <strong>{currentVersion.uploaded_by_name}</strong> · {new Date(currentVersion.created_at).toLocaleDateString()}
+              Uploaded by <strong>{currentVersion.uploaded_by_name}</strong> · {fmtD(currentVersion.created_at)}
             </div>
           </div>
           <button onClick={() => downloadFile(currentVersion.version_number, currentVersion.file_name)}
@@ -402,7 +423,7 @@ export default function DocDetailPage() {
                     {i === 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf9', color: '#0f766e' }}>Current</span>}
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: '#6b7a8d' }}>
-                    by {v.uploaded_by_name} · {new Date(v.created_at).toLocaleString()}
+                    by {v.uploaded_by_name} · {fmtDT(v.created_at)}
                     {v.file_size ? ` · ${(v.file_size / 1024).toFixed(1)} KB` : ''}
                   </div>
                   {v.content && (

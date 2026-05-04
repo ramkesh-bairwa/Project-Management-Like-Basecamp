@@ -23,6 +23,27 @@ const statusCfg: Record<string, { label: string; bg: string; border: string; hea
 };
 const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function ProjectTasksPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -286,7 +307,7 @@ export default function ProjectTasksPage() {
                     </td>
                     <td className="px-4 py-3 text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: '#6b7a8d' }}>{task.assignee_name || '—'}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: '#6b7a8d' }}>{task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color: '#6b7a8d' }}>{task.due_date ? fmtD(task.due_date) : '—'}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: '#94a3b8' }}>{task.subtask_count || 0}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: '#94a3b8' }}>{task.comment_count || 0}</td>
                     <td className="px-4 py-3">

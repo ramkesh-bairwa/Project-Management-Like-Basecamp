@@ -2,6 +2,15 @@ import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
 
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+
 async function ensureGroupChat(groupId: number, userId: number): Promise<number> {
   const grp = await query<{ chat_id: number | null; name: string }[]>(
     'SELECT chat_id, name FROM `groups` WHERE id=?', [groupId]
@@ -45,8 +54,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const chatId = await ensureGroupChat(groupId, user.id);
 
   const timeStr = is_instant
-    ? `Now (${meetingTime.toLocaleString()})`
-    : meetingTime.toLocaleString();
+    ? `Now (${fmtDT(meetingTime)})`
+    : fmtDT(meetingTime);
 
   const chatMessage =
     `📅 MEETING SCHEDULED\n` +

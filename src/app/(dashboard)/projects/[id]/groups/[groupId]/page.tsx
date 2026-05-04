@@ -35,6 +35,27 @@ const statusLabels: Record<string, string> = { todo: 'To Do', in_progress: 'In P
 const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
 const priorityOptions = ['low', 'medium', 'high', 'critical'];
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function GroupDetailPage() {
   const { id, groupId } = useParams();
   const router = useRouter();
@@ -507,7 +528,7 @@ export default function GroupDetailPage() {
                 {task.due_date && (
                   <span className="text-xs px-2 py-0.5 rounded-full hidden md:block"
                     style={{ background: '#fef9c3', color: '#854d0e' }}>
-                    📅 {new Date(task.due_date).toLocaleDateString()}
+                    📅 {fmtD(task.due_date)}
                   </span>
                 )}
 
@@ -912,7 +933,7 @@ export default function GroupDetailPage() {
                         style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-bold text-[#1d3557] truncate">{inv.email}</div>
-                          <div className="text-xs text-[#6b7a8d]">{new Date(inv.created_at).toLocaleDateString()}</div>
+                          <div className="text-xs text-[#6b7a8d]">{fmtD(inv.created_at)}</div>
                         </div>
                         <button onClick={() => cancelInvite(inv.id)}
                           className="text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition flex-shrink-0"
@@ -1026,7 +1047,7 @@ export default function GroupDetailPage() {
                       </div>
                       <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>{msg}</span>
                       <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
-                        {new Date(item.created_at).toLocaleString()}
+                        {fmtDT(item.created_at)}
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
                         className="flex-shrink-0 transition-transform duration-200"
@@ -1130,7 +1151,7 @@ export default function GroupDetailPage() {
                       )}
                     </span>
                     <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
-                      {new Date(item.created_at).toLocaleString()}
+                      {fmtDT(item.created_at)}
                     </span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
                       className="flex-shrink-0 transition-transform duration-200"

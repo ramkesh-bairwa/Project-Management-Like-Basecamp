@@ -30,7 +30,7 @@ function timeAgo(dateStr: string) {
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d ago`;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return fmtD(dateStr);
 }
 
 function groupByDate(notifications: Notification[]) {
@@ -44,11 +44,27 @@ function groupByDate(notifications: Notification[]) {
     let label: string;
     if (d.getTime() === today.getTime()) label = 'Today';
     else if (d.getTime() === yesterday.getTime()) label = 'Yesterday';
-    else label = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    else label = fmtD(d);
     if (!map[label]) { map[label] = []; groups.push({ label, items: map[label] }); }
     map[label].push(n);
   }
   return groups;
+}
+
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
 }
 
 export default function NotificationsPage() {

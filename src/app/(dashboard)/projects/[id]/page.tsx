@@ -17,6 +17,27 @@ const statusCfg: Record<string, { bg: string; text: string; label: string }> = {
 };
 const avatarColors = ['#e63946','#457b9d','#2a9d8f','#f4a261','#6d6875','#e9c46a'];
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function ProjectOverviewPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -106,8 +127,8 @@ export default function ProjectOverviewPage() {
             </div>
             {project.description && <p className="text-sm" style={{ color: '#6b7a8d' }}>{project.description}</p>}
             <div className="flex items-center gap-4 mt-3 text-xs" style={{ color: '#94a3b8' }}>
-              {project.due_date && <span>📅 Due {new Date(project.due_date).toLocaleDateString()}</span>}
-              <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
+              {project.due_date && <span>📅 Due {fmtD(project.due_date)}</span>}
+              <span>Created {fmtD(project.created_at)}</span>
             </div>
           </div>
           {canManage && (

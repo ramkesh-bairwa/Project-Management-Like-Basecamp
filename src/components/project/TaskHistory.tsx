@@ -28,6 +28,27 @@ const actionConfig: Record<string, { icon: string; color: string; label: string 
   document_attached:   { icon: '📎', color: '#6d6875', label: 'Document attached' },
 };
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
   if (!entries.length) {
     return (
@@ -72,7 +93,7 @@ export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
                   <p className="text-xs mt-1 italic" style={{ color: '#6b7a8d' }}>{entry.note}</p>
                 )}
                 <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>
-                  {new Date(entry.created_at).toLocaleString()}
+                  {fmtDT(entry.created_at)}
                 </div>
               </div>
             </div>

@@ -3,6 +3,22 @@ import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
 
 // GET /api/meetings?group_id=X
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+
 export const GET = withAuth(async (req: NextRequest, user) => {
   const group_id = new URL(req.url).searchParams.get('group_id');
   if (!group_id) return apiError('group_id required');
@@ -67,8 +83,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
   // Format and post the meeting message to group chat
   const timeStr = is_instant
-    ? `Now (${meetingTime.toLocaleString()})`
-    : meetingTime.toLocaleString();
+    ? `Now (${fmtDT(meetingTime)})`
+    : fmtDT(meetingTime);
 
   const chatMessage =
     `📅 MEETING SCHEDULED\n` +

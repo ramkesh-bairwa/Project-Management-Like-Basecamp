@@ -66,6 +66,27 @@ type FeedItem =
   | { kind: 'history'; entry: HistoryEntry; time: number }
   | { kind: 'comment'; comment: CommentNode; time: number };
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function TaskDetailPage() {
   const { id, taskId } = useParams();
   const router = useRouter();
@@ -328,7 +349,7 @@ export default function TaskDetailPage() {
               {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
             </select>
           </div>
-          {task.due_date && <span className="text-xs" style={{ color: '#6b7a8d' }}>📅 {new Date(task.due_date).toLocaleDateString()}</span>}
+          {task.due_date && <span className="text-xs" style={{ color: '#6b7a8d' }}>📅 {fmtD(task.due_date)}</span>}
           {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
           {saveError && <span className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {saveError}</span>}
         </div>
@@ -396,7 +417,7 @@ export default function TaskDetailPage() {
                       </div>
                       <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>{msg}</span>
                       <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
-                        {new Date(item.entry.created_at).toLocaleString()}
+                        {fmtDT(item.entry.created_at)}
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
                         className="flex-shrink-0 transition-transform duration-200"
@@ -512,7 +533,7 @@ export default function TaskDetailPage() {
                       )}
                     </div>
                     <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
-                      {new Date(item.comment.created_at).toLocaleString()}
+                      {fmtDT(item.comment.created_at)}
                     </span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
                       className="flex-shrink-0 transition-transform duration-200"

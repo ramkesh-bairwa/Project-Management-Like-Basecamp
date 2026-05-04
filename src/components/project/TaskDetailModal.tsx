@@ -44,6 +44,27 @@ const actionConfig: Record<string, { icon: string; color: string; label: string 
   document_attached:   { icon: '📎', color: '#6d6875', label: 'attached document' },
 };
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function TaskDetailModal({ task, projectId, userRole, currentUserId, members, onClose, onTaskUpdated }: Props) {
   const [activeTab, setActiveTab] = useState<'subtasks'|'activity'>('subtasks');
   const [subtasks, setSubtasks] = useState<Task[]>([]);
@@ -224,7 +245,7 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
 
           {task.due_date && (
             <div className="flex items-center gap-1 text-xs" style={{ color: '#6b7a8d' }}>
-              <span>📅</span><span>{new Date(task.due_date).toLocaleDateString()}</span>
+              <span>📅</span><span>{fmtD(task.due_date)}</span>
             </div>
           )}
           {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
@@ -344,7 +365,7 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
                                   <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f0fdf9', color: '#0f766e' }}>{item.entry.new_value}</span>
                                 )}
                               </div>
-                              <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{item.time.toLocaleString()}</div>
+                              <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{fmtDT(item.time)}</div>
                             </div>
                           </div>
                         );

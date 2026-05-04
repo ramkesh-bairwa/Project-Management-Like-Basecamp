@@ -16,6 +16,27 @@ const statusCfg: Record<string, { dot: string; label: string; bg: string; text: 
 
 const accentColors = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#6d6875'];
 
+
+function fmtDT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  const mon = dt.toLocaleString('en',{month:'short'});
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${day}${s} ${mon} ${dt.getFullYear()} ${h}:${m} ${ap}`;
+}
+function fmtD(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const day = dt.getDate();
+  const s = day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';
+  return `${day}${s} ${dt.toLocaleString('en',{month:'short'})} ${dt.getFullYear()}`;
+}
+function fmtT(d: string | Date): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const h = dt.getHours()%12||12, m = String(dt.getMinutes()).padStart(2,'0'), ap = dt.getHours()>=12?'PM':'AM';
+  return `${h}:${m} ${ap}`;
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -100,7 +121,7 @@ export default function ProjectsPage() {
                 <div className="flex items-center justify-between text-xs text-[#6b7a8d]">
                   <span className="font-semibold capitalize" style={{ color: accent }}>{p.priority}</span>
                   <div className="flex items-center gap-3">
-                    {p.due_date && <span>{new Date(p.due_date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</span>}
+                    {p.due_date && <span>{fmtD(p.due_date)}</span>}
                     {p.org_id && <span style={{ color: '#2a9d8f' }}>🏢 Org</span>}
                   </div>
                 </div>
