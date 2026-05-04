@@ -1,35 +1,38 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 
-interface Group { id: number; name: string; description: string; color: string; task_count: number; member_count: number }
-interface Task { id: number; title: string; status: string; priority: string; assignee_name: string; subtask_count: number; comment_count: number; description: string; due_date: string; group_name: string; group_color: string; created_at: string }
-interface Member { id: number; name: string; role: string }
+interface Group { id: number; uuid: string; slug: string; name: string; description: string; color: string; task_count: number; member_count: number; created_by_name: string; created_at: string; }
+interface Member { id: number; name: string; role: string; email: string }
 
-const statusColors: Record<string, string> = { todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946' };
-const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
+const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
 
 export default function ProjectGroupsPage() {
   const { id } = useParams();
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [myRole, setMyRole] = useState('');
   const [token, setToken] = useState('');
   const [loaded, setLoaded] = useState(false);
-  const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
-  const [groupTasks, setGroupTasks] = useState<Record<number, Task[]>>({});
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', description: '', color: '#457b9d' });
+  const [saving, setSaving] = useState(false);
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projectMembers, setProjectMembers] = useState<Member[]>([]);
+  const [myId, setMyId] = useState(0);
 
-  // inline create group form
-  const [showGroupForm, setShowGroupForm] = useState(false);
-  const [groupForm, setGroupForm] = useState({ name: '', description: '', color: '#457b9d' });
-  const [groupSaving, setGroupSaving] = useState(false);
+  // member dropdown
+  const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
 
-  // inline add task form per group
-  const [showTaskForm, setShowTaskForm] = useState<number | null>(null);
-  const [taskForm, setTaskForm] = useState({ title: '', priority: 'medium', assignee_id: '' });
+  // invite by email
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [inviteInput, setInviteInput] = useState('');
+  const [inviteError, setInviteError] = useState('');
 
   useEffect(() => {
     const t = getToken();
@@ -37,61 +40,126 @@ export default function ProjectGroupsPage() {
     setToken(t);
     if (!id) return;
     const auth = { Authorization: `Bearer ${t}` };
-    fetch(`/api/project-groups?project_id=${id}`, { headers: auth })
-      .then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
-    fetch(`/api/projects/members?project_id=${id}`, { headers: auth })
-      .then(r => r.json()).then(d => {
-        if (!Array.isArray(d)) return;
-        setMembers(d);
-        const me = d.find((m: Member) => m.id === uid);
-        if (me) setMyRole(me.role);
-        setLoaded(true);
+    fetch(`/api/projects?id=${id}`, { headers: auth })
+      .then(r => r.json()).then(proj => {
+        if (!proj?.id) return;
+        const pid = proj.id;
+        setProjectId(pid);
+        fetch(`/api/project-groups?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
+        fetch(`/api/projects/members?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => {
+            if (!Array.isArray(d)) return;
+            setProjectMembers(d);
+            const me = d.find((m: Member) => m.id === uid);
+            if (me) setMyRole(me.role);
+            setMyId(uid);
+            setLoaded(true);
+          });
       });
   }, [id]);
 
-  const h = (t = token) => ({ Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' });
+  // close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   function loadGroups() {
-    fetch(`/api/project-groups?project_id=${id}`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!projectId) return;
+    fetch(`/api/project-groups?project_id=${projectId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
   }
 
-  function loadGroupTasks(gid: number) {
-    fetch(`/api/tasks?group_id=${gid}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => Array.isArray(d) && setGroupTasks(p => ({ ...p, [gid]: d })));
+  function toggleMember(m: Member) {
+    setSelectedMembers(prev =>
+      prev.find(x => x.id === m.id) ? prev.filter(x => x.id !== m.id) : [...prev, m]
+    );
+    setMemberSearch('');
   }
 
-  function toggleGroup(gid: number) {
-    if (expandedGroup === gid) { setExpandedGroup(null); return; }
-    setExpandedGroup(gid);
-    loadGroupTasks(gid);
+  function removeMember(uid: number) {
+    setSelectedMembers(prev => prev.filter(x => x.id !== uid));
+  }
+
+  function addInviteEmail() {
+    const email = inviteInput.trim().toLowerCase();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setInviteError('Invalid email address'); return; }
+    if (inviteEmails.includes(email)) { setInviteError('Already added'); return; }
+    setInviteEmails(prev => [...prev, email]);
+    setInviteInput('');
+    setInviteError('');
+  }
+
+  function removeInviteEmail(email: string) {
+    setInviteEmails(prev => prev.filter(e => e !== email));
   }
 
   async function createGroup(e: React.FormEvent) {
     e.preventDefault();
-    setGroupSaving(true);
-    const res = await fetch('/api/project-groups', { method: 'POST', headers: h(), body: JSON.stringify({ ...groupForm, project_id: Number(id) }) });
-    setGroupSaving(false);
-    if (res.ok) { loadGroups(); setShowGroupForm(false); setGroupForm({ name: '', description: '', color: '#457b9d' }); }
+    if (!projectId) return;
+    setSaving(true);
+    const res = await fetch('/api/project-groups', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, project_id: projectId })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      // Add selected members
+      for (const m of selectedMembers) {
+        await fetch('/api/project-groups/members', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ group_id: data.id, user_id: m.id, role: 'member' })
+        });
+      }
+      // Send email invitations
+      for (const email of inviteEmails) {
+        await fetch('/api/project-groups/invite', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ group_id: data.id, email })
+        });
+      }
+      loadGroups();
+      setShowForm(false);
+      setForm({ name: '', description: '', color: '#457b9d' });
+      setSelectedMembers([]);
+      setInviteEmails([]);
+      setInviteInput('');
+      setSaving(false);
+      router.push(`/projects/${id}/groups/${data.slug || data.id}`);
+    } else {
+      setSaving(false);
+    }
   }
 
-  async function deleteGroup(gid: number) {
-    if (!confirm('Delete this group?')) return;
-    await fetch(`/api/project-groups?id=${gid}`, { method: 'DELETE', headers: h() });
-    loadGroups(); setExpandedGroup(null);
-  }
-
-  async function createTask(e: React.FormEvent, gid: number) {
-    e.preventDefault();
-    const res = await fetch('/api/tasks', { method: 'POST', headers: h(), body: JSON.stringify({
-      project_id: Number(id), group_id: gid,
-      title: taskForm.title, priority: taskForm.priority,
-      assignee_id: taskForm.assignee_id ? Number(taskForm.assignee_id) : null
-    })});
-    if (res.ok) { loadGroupTasks(gid); setShowTaskForm(null); setTaskForm({ title: '', priority: 'medium', assignee_id: '' }); }
+  async function deleteGroup(e: React.MouseEvent, gid: number) {
+    e.stopPropagation();
+    if (!confirm('Delete this group? All tasks inside will be soft deleted.')) return;
+    await fetch(`/api/project-groups?id=${gid}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    loadGroups();
   }
 
   const canManage = !loaded || ['owner', 'manager'].includes(myRole);
+
+  // filtered members for dropdown (exclude self + already selected)
+  const selectedIds = new Set(selectedMembers.map(m => m.id));
+  const filteredMembers = projectMembers.filter(m =>
+    m.id !== myId &&
+    !selectedIds.has(m.id) &&
+    (memberSearch === '' ||
+      m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+      m.email.toLowerCase().includes(memberSearch.toLowerCase()))
+  );
 
   return (
     <div>
@@ -105,144 +173,237 @@ export default function ProjectGroupsPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>Groups ({groups.length})</h2>
         {canManage && (
-          <button onClick={() => setShowGroupForm(v => !v)}
+          <button onClick={() => { setShowForm(v => !v); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
             className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-            style={{ background: showGroupForm ? '#6b7a8d' : '#e63946' }}>
-            {showGroupForm ? '✕ Cancel' : '+ New Group'}
+            style={{ background: showForm ? '#6b7a8d' : '#e63946' }}>
+            {showForm ? '✕ Cancel' : '+ New Group'}
           </button>
         )}
       </div>
 
-      {/* Inline create group form */}
-      {showGroupForm && (
+      {/* Create group form */}
+      {showForm && (
         <div className="rounded-2xl p-5 mb-5" style={{ background: '#f8fafc', border: '1.5px solid #d0dce8' }}>
           <h3 className="font-black text-base mb-4" style={{ color: '#1d3557' }}>Create New Group</h3>
-          <form onSubmit={createGroup}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-              <input value={groupForm.name} onChange={e => setGroupForm(p => ({ ...p, name: e.target.value }))} required placeholder="Group name *"
+          <form onSubmit={createGroup} className="space-y-4">
+
+            {/* Basic fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
+                placeholder="Group name *" autoFocus
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-              <input value={groupForm.description} onChange={e => setGroupForm(p => ({ ...p, description: e.target.value }))} placeholder="Description (optional)"
+              <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                placeholder="Description (optional)"
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
               <div className="flex items-center gap-3 rounded-xl px-4 py-2" style={{ background: '#fff', border: '1.5px solid #d0dce8' }}>
                 <label className="text-sm font-bold flex-shrink-0" style={{ color: '#6b7a8d' }}>Color</label>
-                <input type="color" value={groupForm.color} onChange={e => setGroupForm(p => ({ ...p, color: e.target.value }))}
+                <input type="color" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))}
                   className="w-8 h-8 rounded cursor-pointer border-0 flex-shrink-0" />
-                <span className="text-xs font-mono" style={{ color: '#6b7a8d' }}>{groupForm.color}</span>
+                <span className="text-xs font-mono" style={{ color: '#6b7a8d' }}>{form.color}</span>
               </div>
             </div>
-            <button type="submit" disabled={groupSaving}
-              className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-50"
-              style={{ background: '#e63946' }}>
-              {groupSaving ? 'Creating...' : 'Create Group'}
-            </button>
-          </form>
-        </div>
-      )}
 
-      {/* Groups list */}
-      {groups.length === 0 ? (
-        <div className="rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8', background: '#fff' }}>
-          <div className="text-5xl mb-3">🗂</div>
-          <div className="font-black text-lg mb-1" style={{ color: '#1d3557' }}>No groups yet</div>
-          <div className="text-sm" style={{ color: '#6b7a8d' }}>Groups help organize tasks by team or feature</div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {groups.map(group => (
-            <div key={group.id} className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid #d0dce8' }}>
-
-              {/* Group row */}
-              <div className="flex items-center gap-4 px-5 py-4 cursor-pointer select-none"
-                style={{ borderLeft: `4px solid ${group.color}` }}
-                onClick={() => toggleGroup(group.id)}>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-black text-base" style={{ color: '#1d3557' }}>{group.name}</span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: group.color + '20', color: group.color }}>
-                      {group.task_count} tasks
+            {/* Add members — custom searchable dropdown */}
+            {projectMembers.filter(m => m.id !== myId).length > 0 && (
+              <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>
+                  Add Members
+                  {selectedMembers.length > 0 && (
+                    <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#457b9d' }}>
+                      {selectedMembers.length} selected
                     </span>
-                    <span className="text-xs" style={{ color: '#94a3b8' }}>{group.member_count} members</span>
+                  )}
+                </label>
+
+                {/* Selected chips */}
+                {selectedMembers.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {selectedMembers.map((m, i) => (
+                      <span key={m.id} className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full text-xs font-bold text-white"
+                        style={{ background: avatarBgs[i % avatarBgs.length] }}>
+                        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center font-black text-xs">
+                          {m.name[0].toUpperCase()}
+                        </span>
+                        {m.name}
+                        <button type="button" onClick={() => removeMember(m.id)}
+                          className="ml-0.5 opacity-70 hover:opacity-100 leading-none">×</button>
+                      </span>
+                    ))}
                   </div>
-                  {group.description && <p className="text-xs mt-0.5" style={{ color: '#6b7a8d' }}>{group.description}</p>}
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  {canManage && (
-                    <button onClick={e => { e.stopPropagation(); deleteGroup(group.id); }}
-                      className="text-xs font-bold px-3 py-1 rounded-lg transition"
-                      style={{ color: '#e63946', background: '#fef2f2', border: '1px solid #fecaca' }}>
-                      Delete
-                    </button>
-                  )}
-                  <span className="text-sm font-bold" style={{ color: '#94a3b8' }}>{expandedGroup === group.id ? '▲' : '▼'}</span>
-                </div>
-              </div>
+                )}
 
-              {/* Expanded section */}
-              {expandedGroup === group.id && (
-                <div className="px-5 pb-5 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                {/* Dropdown trigger */}
+                <div className="relative" ref={dropRef}>
+                  <div
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-text"
+                    style={{ background: '#fff', border: `1.5px solid ${dropdownOpen ? '#457b9d' : '#d0dce8'}` }}
+                    onClick={() => { setDropdownOpen(true); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      value={memberSearch}
+                      onChange={e => { setMemberSearch(e.target.value); setDropdownOpen(true); }}
+                      onFocus={() => setDropdownOpen(true)}
+                      placeholder="Search project members…"
+                      className="flex-1 text-sm bg-transparent focus:outline-none"
+                      style={{ color: '#1d3557' }}
+                    />
+                    {memberSearch && (
+                      <button type="button" onClick={() => { setMemberSearch(''); setDropdownOpen(false); }}
+                        className="text-[#94a3b8] hover:text-[#1d3557] text-base leading-none">×</button>
+                    )}
+                  </div>
 
-                  {/* Inline add task */}
-                  {showTaskForm === group.id ? (
-                    <form onSubmit={e => createTask(e, group.id)} className="flex gap-2 mb-4 flex-wrap">
-                      <input value={taskForm.title} onChange={e => setTaskForm(p => ({ ...p, title: e.target.value }))}
-                        placeholder="Task title..." required autoFocus
-                        className="flex-1 min-w-48 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                        style={{ background: '#f1faee', border: '1.5px solid #a8dadc', color: '#1d3557' }} />
-                      <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
-                        className="rounded-xl px-3 py-2 text-sm focus:outline-none"
-                        style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
-                        {['low','medium','high','critical'].map(v => <option key={v} value={v}>{v}</option>)}
-                      </select>
-                      <select value={taskForm.assignee_id} onChange={e => setTaskForm(p => ({ ...p, assignee_id: e.target.value }))}
-                        className="rounded-xl px-3 py-2 text-sm focus:outline-none"
-                        style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
-                        <option value="">Unassigned</option>
-                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
-                      <button type="submit" className="px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ background: '#2a9d8f' }}>Add</button>
-                      <button type="button" onClick={() => setShowTaskForm(null)} className="px-3 py-2 rounded-xl text-sm font-bold" style={{ color: '#6b7a8d', background: '#f1f5f9' }}>✕</button>
-                    </form>
-                  ) : (
-                    <button onClick={() => { setShowTaskForm(group.id); setTaskForm({ title: '', priority: 'medium', assignee_id: '' }); }}
-                      className="text-sm font-bold mb-4 flex items-center gap-1 hover:opacity-70 transition"
-                      style={{ color: group.color }}>
-                      + Add Task
-                    </button>
-                  )}
-
-                  {/* Task rows */}
-                  {!groupTasks[group.id] ? (
-                    <div className="text-sm text-center py-6" style={{ color: '#94a3b8' }}>Loading...</div>
-                  ) : groupTasks[group.id].length === 0 ? (
-                    <div className="text-sm text-center py-8 rounded-xl" style={{ border: '2px dashed #e2e8f0', color: '#94a3b8' }}>No tasks yet</div>
-                  ) : (
-                    <div className="space-y-1">
-                      {groupTasks[group.id].map(task => (
-                        <div key={task.id}
-                          onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
-                          className="flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer hover:shadow-sm transition group"
-                          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColors[task.status] }} />
-                          <span className="flex-1 text-sm font-semibold group-hover:text-[#e63946] transition" style={{ color: '#1d3557' }}>{task.title}</span>
-                          {task.assignee_name && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#eff6ff', color: '#1d4ed8' }}>{task.assignee_name}</span>}
-                          <span className="text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: statusColors[task.status] + '20', color: statusColors[task.status] }}>
-                            {task.status.replace('_', ' ')}
-                          </span>
-                          {task.subtask_count > 0 && <span className="text-xs" style={{ color: '#94a3b8' }}>✅{task.subtask_count}</span>}
-                          {task.comment_count > 0 && <span className="text-xs" style={{ color: '#94a3b8' }}>💬{task.comment_count}</span>}
-                          <span className="text-xs" style={{ color: '#94a3b8' }}>→</span>
+                  {/* Dropdown list */}
+                  {dropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl z-30 overflow-hidden"
+                      style={{ border: '1.5px solid #d0dce8', maxHeight: 220, overflowY: 'auto' }}>
+                      {filteredMembers.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-sm text-[#94a3b8]">
+                          {memberSearch ? `No members matching "${memberSearch}"` : 'All members already added'}
                         </div>
+                      ) : filteredMembers.map((m, i) => (
+                        <button type="button" key={m.id}
+                          onClick={() => { toggleMember(m); setDropdownOpen(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] transition text-left"
+                          style={{ borderBottom: i < filteredMembers.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                            style={{ background: avatarBgs[i % avatarBgs.length] }}>
+                            {m.name[0].toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-[#1d3557] truncate">{m.name}</div>
+                            <div className="text-xs text-[#6b7a8d] truncate">{m.email}</div>
+                          </div>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0"
+                            style={{ background: '#eff6ff', color: '#457b9d' }}>{m.role}</span>
+                        </button>
                       ))}
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Invite by email */}
+            <div>
+              <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>
+                Invite by Email
+                {inviteEmails.length > 0 && (
+                  <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#2a9d8f' }}>
+                    {inviteEmails.length} invite{inviteEmails.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </label>
+
+              {/* Email chips */}
+              {inviteEmails.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {inviteEmails.map(email => (
+                    <span key={email} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                      style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}>
+                      ✉️ {email}
+                      <button type="button" onClick={() => removeInviteEmail(email)}
+                        className="opacity-60 hover:opacity-100 leading-none">×</button>
+                    </span>
+                  ))}
+                </div>
               )}
+
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={inviteInput}
+                  onChange={e => { setInviteInput(e.target.value); setInviteError(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addInviteEmail(); } }}
+                  placeholder="Enter email and press Enter or Add"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                  style={{ background: '#fff', border: `1.5px solid ${inviteError ? '#e63946' : '#d0dce8'}`, color: '#1d3557' }}
+                />
+                <button type="button" onClick={addInviteEmail}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition flex-shrink-0"
+                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                  + Add
+                </button>
+              </div>
+              {inviteError && <p className="text-xs mt-1 font-bold" style={{ color: '#e63946' }}>{inviteError}</p>}
+              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Invitations will be sent after the group is created.</p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button type="submit" disabled={saving}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-50"
+                style={{ background: '#e63946' }}>
+                {saving ? 'Creating…' : `Create Group${selectedMembers.length + inviteEmails.length > 0 ? ` (${selectedMembers.length + inviteEmails.length} member${selectedMembers.length + inviteEmails.length > 1 ? 's' : ''})` : ''}`}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold transition hover:bg-[#e2e8f0]"
+                style={{ color: '#6b7a8d' }}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Groups grid */}
+      {groups.length === 0 ? (
+        <div className="rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8', background: '#fff' }}>
+          <div className="text-5xl mb-3">🗂</div>
+          <div className="font-black text-lg mb-1" style={{ color: '#1d3557' }}>No groups yet</div>
+          <div className="text-sm mb-4" style={{ color: '#6b7a8d' }}>Groups help organize tasks by team or feature</div>
+          {canManage && (
+            <button onClick={() => setShowForm(true)}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90"
+              style={{ background: '#e63946' }}>
+              + Create First Group
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {groups.map(group => (
+            <div key={group.id}
+              onClick={() => router.push(`/projects/${id}/groups/${group.slug || group.id}`)}
+              className="bg-white rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
+              style={{ border: '1px solid #d0dce8', borderTop: `4px solid ${group.color}` }}>
+
+              {canManage && (
+                <button onClick={e => deleteGroup(e, group.id)}
+                  className="absolute top-3 right-3 w-7 h-7 rounded-lg items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition hover:bg-red-50 hidden group-hover:flex"
+                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+              )}
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg flex-shrink-0"
+                  style={{ background: group.color }}>
+                  {group.name[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-black text-base truncate" style={{ color: '#1d3557' }}>{group.name}</div>
+                  {group.description && <div className="text-xs truncate mt-0.5" style={{ color: '#6b7a8d' }}>{group.description}</div>}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: group.color }} />
+                  <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{group.task_count}</span>
+                  <span className="text-xs" style={{ color: '#6b7a8d' }}>tasks</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs" style={{ color: '#94a3b8' }}>👥</span>
+                  <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{group.member_count}</span>
+                  <span className="text-xs" style={{ color: '#6b7a8d' }}>members</span>
+                </div>
+                <div className="ml-auto text-xs font-bold" style={{ color: group.color }}>Open →</div>
+              </div>
             </div>
           ))}
         </div>

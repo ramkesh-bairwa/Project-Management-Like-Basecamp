@@ -30,6 +30,7 @@ export default function ProjectTasksPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [myRole, setMyRole] = useState('');
   const [token, setToken] = useState('');
+  const [projectId, setProjectId] = useState<number | null>(null);
   const [view, setView] = useState<'board' | 'list'>('board');
   const [filterGroup, setFilterGroup] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -46,18 +47,26 @@ export default function ProjectTasksPage() {
     setToken(t);
     if (!id) return;
     const auth = { Authorization: `Bearer ${t}` };
-    fetch(`/api/tasks?project_id=${id}`, { headers: auth }).then(r => r.json()).then(d => Array.isArray(d) && setTasks(d));
-    fetch(`/api/project-groups?project_id=${id}`, { headers: auth }).then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
-    fetch(`/api/projects/members?project_id=${id}`, { headers: auth }).then(r => r.json()).then(d => {
-      if (!Array.isArray(d)) return;
-      setMembers(d);
-      const me = d.find((m: Member) => m.id === uid);
-      if (me) setMyRole(me.role);
-    });
+    fetch(`/api/projects?id=${id}`, { headers: auth })
+      .then(r => r.json()).then(proj => {
+        if (!proj?.id) return;
+        const pid = proj.id;
+        setProjectId(pid);
+        fetch(`/api/tasks?project_id=${pid}`, { headers: auth }).then(r => r.json()).then(d => Array.isArray(d) && setTasks(d));
+        fetch(`/api/project-groups?project_id=${pid}`, { headers: auth }).then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
+        fetch(`/api/projects/members?project_id=${pid}`, { headers: auth }).then(r => r.json()).then(d => {
+          if (!Array.isArray(d)) return;
+          setMembers(d);
+          const me = d.find((m: Member) => m.id === uid);
+          if (me) setMyRole(me.role);
+          else router.replace('/projects');
+        });
+      });
   }, [id]);
 
   function loadTasks(t = token) {
-    fetch(`/api/tasks?project_id=${id}`, { headers: { Authorization: `Bearer ${t}` } })
+    if (!projectId) return;
+    fetch(`/api/tasks?project_id=${projectId}`, { headers: { Authorization: `Bearer ${t}` } })
       .then(r => r.json()).then(d => Array.isArray(d) && setTasks(d));
   }
 
@@ -69,7 +78,7 @@ export default function ProjectTasksPage() {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        project_id: Number(id),
+        project_id: projectId,
         group_id: form.group_id ? Number(form.group_id) : null,
         assignee_id: form.assignee_id ? Number(form.assignee_id) : null,
         title: form.title, description: form.description,

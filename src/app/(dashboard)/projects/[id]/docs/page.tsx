@@ -21,6 +21,7 @@ export default function ProjectDocsPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [activeFolderId, setActiveFolderId] = useState<number | null>(null);
   const [myRole, setMyRole] = useState('member');
+  const [projectId, setProjectId] = useState<number | null>(null);
   const router = useRouter();
   const [showDocForm, setShowDocForm] = useState(false);
   const [showFolderForm, setShowFolderForm] = useState(false);
@@ -42,36 +43,48 @@ export default function ProjectDocsPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch('/api/users/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(user => {
-        if (user?.id) {
-          fetch(`/api/projects/members?project_id=${id}`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.json()).then(d => {
-              if (!Array.isArray(d)) return;
-              const me = d.find((m: { id: number; role: string }) => m.id === user.id);
-              if (me) setMyRole(me.role);
-            });
-        }
+    const auth = { Authorization: `Bearer ${token}` };
+    // Resolve numeric project id from slug/uuid/id
+    fetch(`/api/projects?id=${id}`, { headers: auth })
+      .then(r => r.json()).then(proj => {
+        if (!proj?.id) return;
+        const pid = proj.id;
+        setProjectId(pid);
+        fetch('/api/users/me', { headers: auth })
+          .then(r => r.json()).then(user => {
+            if (!user?.id) return;
+            fetch(`/api/projects/members?project_id=${pid}`, { headers: auth })
+              .then(r => r.json()).then(d => {
+                if (!Array.isArray(d)) return;
+                const me = d.find((m: { id: number; role: string }) => m.id === user.id);
+                if (me) setMyRole(me.role);
+                else router.replace('/projects');
+              });
+          });
+        fetch(`/api/document-folders?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => Array.isArray(d) && setFolders(d));
+        fetch(`/api/documents?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => Array.isArray(d) && setDocs(d));
       });
-    loadFolders();
   }, [id]);
 
-  useEffect(() => {
-    loadDocs();
-  }, [id, activeFolderId]);
-
   function loadFolders() {
-    fetch(`/api/document-folders?project_id=${id}`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!projectId) return;
+    fetch(`/api/document-folders?project_id=${projectId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => Array.isArray(d) && setFolders(d));
   }
 
   function loadDocs() {
+    if (!projectId) return;
     const url = activeFolderId
-      ? `/api/documents?project_id=${id}&folder_id=${activeFolderId}`
-      : `/api/documents?project_id=${id}`;
+      ? `/api/documents?project_id=${projectId}&folder_id=${activeFolderId}`
+      : `/api/documents?project_id=${projectId}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => Array.isArray(d) && setDocs(d));
   }
+
+  // Reload docs when folder selection or projectId changes
+  useEffect(() => { loadDocs(); }, [projectId, activeFolderId]);
 
   function downloadFile(url: string, name: string) {
     const a = document.createElement('a');
@@ -81,7 +94,8 @@ export default function ProjectDocsPage() {
 
   async function createFolder(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch('/api/document-folders', { method: 'POST', headers: h, body: JSON.stringify({ project_id: Number(id), name: folderName }) });
+    if (!projectId) return;
+    const res = await fetch('/api/document-folders', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, name: folderName }) });
     if (res.ok) {
       showToast('📁 Folder created successfully!', 'success');
       setFolderName(''); setShowFolderForm(false); loadFolders();
@@ -122,7 +136,7 @@ export default function ProjectDocsPage() {
     try {
       const res = await fetch('/api/documents', {
         method: 'POST', headers: h,
-        body: JSON.stringify({ ...form, project_id: Number(id), folder_id: activeFolderId || null, ...(file_url ? { file_url, file_name, file_size } : {}) })
+        body: JSON.stringify({ ...form, project_id: projectId, folder_id: activeFolderId || null, ...(file_url ? { file_url, file_name, file_size } : {}) })
       });
       const data = await res.json();
       setUploading(false);

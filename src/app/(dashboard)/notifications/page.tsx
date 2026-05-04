@@ -1,19 +1,22 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Notification { id: number; type: string; title: string; body: string; link: string; is_read: boolean; created_at: string }
 
 const typeCfg: Record<string, { icon: string; bg: string; border: string; iconBg: string }> = {
-  connection:   { icon: '🔗', bg: '#fff7ed', border: '#fed7aa', iconBg: '#ffedd5' },
-  project:      { icon: '📋', bg: '#f0fdf9', border: '#99f6e4', iconBg: '#ccfbf1' },
-  task:         { icon: '✅', bg: '#eff6ff', border: '#bfdbfe', iconBg: '#dbeafe' },
-  message:      { icon: '💬', bg: '#f0f9ff', border: '#bae6fd', iconBg: '#e0f2fe' },
-  organization: { icon: '🏢', bg: '#faf5ff', border: '#e9d5ff', iconBg: '#f3e8ff' },
-  default:      { icon: '🔔', bg: '#f1faee', border: '#d0dce8', iconBg: '#e8f4f8' },
+  connection:        { icon: '🔗', bg: '#fff7ed', border: '#fed7aa', iconBg: '#ffedd5' },
+  project:           { icon: '📋', bg: '#f0fdf9', border: '#99f6e4', iconBg: '#ccfbf1' },
+  task:              { icon: '✅', bg: '#eff6ff', border: '#bfdbfe', iconBg: '#dbeafe' },
+  message:           { icon: '💬', bg: '#f0f9ff', border: '#bae6fd', iconBg: '#e0f2fe' },
+  group_invitation:  { icon: '✉️', bg: '#faf5ff', border: '#e9d5ff', iconBg: '#f3e8ff' },
+  organization:      { icon: '🏢', bg: '#faf5ff', border: '#e9d5ff', iconBg: '#f3e8ff' },
+  default:           { icon: '🔔', bg: '#f1faee', border: '#d0dce8', iconBg: '#e8f4f8' },
 };
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const router = useRouter();
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -27,9 +30,12 @@ export default function NotificationsPage() {
     setNotifications(n => n.map(notif => ({ ...notif, is_read: true })));
   }
 
-  async function markOne(id: number) {
-    await fetch('/api/notifications', { method: 'PUT', headers, body: JSON.stringify({ id }) });
-    setNotifications(n => n.map(notif => notif.id === id ? { ...notif, is_read: true } : notif));
+  async function handleClick(n: Notification) {
+    if (!n.is_read) {
+      await fetch('/api/notifications', { method: 'PUT', headers, body: JSON.stringify({ id: n.id }) });
+      setNotifications(ns => ns.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+    }
+    if (n.link) router.push(n.link);
   }
 
   const unread = notifications.filter(n => !n.is_read).length;
@@ -50,7 +56,7 @@ export default function NotificationsPage() {
         {notifications.map(n => {
           const cfg = typeCfg[n.type] || typeCfg.default;
           return (
-            <div key={n.id} onClick={() => !n.is_read && markOne(n.id)}
+            <div key={n.id} onClick={() => handleClick(n)}
               className="rounded-2xl p-5 cursor-pointer transition hover:shadow-sm"
               style={{ background: n.is_read ? '#fff' : cfg.bg, border: `1.5px solid ${n.is_read ? '#d0dce8' : cfg.border}`, opacity: n.is_read ? 0.65 : 1 }}>
               <div className="flex items-start gap-4">

@@ -1,9 +1,23 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { createNotification } from '@/app/api/notifications/route';
+import { generateUUID, uniqueSlug } from '@/lib/slug';
 
 export const GET = withAuth(async (req: NextRequest, user) => {
-  const project_id = new URL(req.url).searchParams.get('project_id');
+  const { searchParams } = new URL(req.url);
+  const project_id = searchParams.get('project_id');
+  const id = searchParams.get('id'); // uuid or slug lookup for single group
+
+  if (id) {
+    const rows = await query<unknown[]>(
+      `SELECT pg.*, u.name as created_by_name FROM project_groups pg JOIN users u ON u.id=pg.created_by
+       WHERE pg.deleted_at IS NULL AND (pg.id=? OR pg.uuid=? OR pg.slug=?)`, [id, id, id]
+    );
+    if (!rows.length) return apiError('Group not found', 404);
+    return apiResponse(rows[0]);
+  }
+
   if (!project_id) return apiError('project_id required');
   const member = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
   if (!member.length) return apiError('Not a project member', 403);
@@ -27,8 +41,23 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     'INSERT INTO project_groups (project_id, name, description, color, created_by) VALUES (?,?,?,?,?)',
     [project_id, name, description || null, color || '#457b9d', user.id]
   );
+  const uuid = generateUUID();
+  const slug = await uniqueSlug('project_groups', 'slug', name);
+  await query('UPDATE project_groups SET uuid=?, slug=? WHERE id=?', [uuid, slug, result.insertId]);
   await query('INSERT INTO project_group_members (group_id, user_id, role) VALUES (?,?,?)', [result.insertId, user.id, 'lead']);
-  return apiResponse({ id: result.insertId, name }, 201);
+
+  // Notify all project members
+  const projectMembers = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [project_id, user.id]);
+  const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+  for (const m of projectMembers) {
+    await createNotification(m.user_id, 'project',
+      `New group created: "${name}"`,
+      `Created by ${creator[0]?.name || 'someone'} in your project.`,
+      `/projects/${project_id}/groups/${slug}`
+    );
+  }
+
+  return apiResponse({ id: result.insertId, uuid, slug, name }, 201);
 });
 
 export const PUT = withAuth(async (req: NextRequest, user) => {

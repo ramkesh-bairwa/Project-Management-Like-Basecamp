@@ -12,6 +12,75 @@ export async function POST(req: NextRequest) {
 
   const steps: { name: string; sql: string }[] = [
     {
+      name: 'projects.uuid column',
+      sql: `ALTER TABLE projects ADD COLUMN IF NOT EXISTS uuid VARCHAR(36) NULL AFTER id`
+    },
+    {
+      name: 'projects.slug column',
+      sql: `ALTER TABLE projects ADD COLUMN IF NOT EXISTS slug VARCHAR(120) NULL AFTER uuid`
+    },
+    {
+      name: 'projects.uuid unique index',
+      sql: `ALTER TABLE projects ADD UNIQUE INDEX IF NOT EXISTS uq_projects_uuid (uuid)`
+    },
+    {
+      name: 'projects.slug unique index',
+      sql: `ALTER TABLE projects ADD UNIQUE INDEX IF NOT EXISTS uq_projects_slug (slug)`
+    },
+    {
+      name: 'project_groups.uuid column',
+      sql: `ALTER TABLE project_groups ADD COLUMN IF NOT EXISTS uuid VARCHAR(36) NULL AFTER id`
+    },
+    {
+      name: 'project_groups.slug column',
+      sql: `ALTER TABLE project_groups ADD COLUMN IF NOT EXISTS slug VARCHAR(120) NULL AFTER uuid`
+    },
+    {
+      name: 'project_groups.uuid unique index',
+      sql: `ALTER TABLE project_groups ADD UNIQUE INDEX IF NOT EXISTS uq_pg_uuid (uuid)`
+    },
+    {
+      name: 'project_groups.slug unique index',
+      sql: `ALTER TABLE project_groups ADD UNIQUE INDEX IF NOT EXISTS uq_pg_slug (slug)`
+    },
+    {
+      name: 'tasks.uuid column',
+      sql: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS uuid VARCHAR(36) NULL AFTER id`
+    },
+    {
+      name: 'tasks.slug column',
+      sql: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS slug VARCHAR(120) NULL AFTER uuid`
+    },
+    {
+      name: 'tasks.uuid unique index',
+      sql: `ALTER TABLE tasks ADD UNIQUE INDEX IF NOT EXISTS uq_tasks_uuid (uuid)`
+    },
+    {
+      name: 'tasks.slug unique index',
+      sql: `ALTER TABLE tasks ADD UNIQUE INDEX IF NOT EXISTS uq_tasks_slug (slug)`
+    },
+    {
+      name: 'backfill projects uuid+slug',
+      sql: `UPDATE projects SET
+        uuid = IF(uuid IS NULL, UUID(), uuid),
+        slug = IF(slug IS NULL, CONCAT(LOWER(REGEXP_REPLACE(TRIM(name), '[^a-zA-Z0-9]+', '-')), '-', id), slug)
+        WHERE uuid IS NULL OR slug IS NULL`
+    },
+    {
+      name: 'backfill project_groups uuid+slug',
+      sql: `UPDATE project_groups SET
+        uuid = IF(uuid IS NULL, UUID(), uuid),
+        slug = IF(slug IS NULL, CONCAT(LOWER(REGEXP_REPLACE(TRIM(name), '[^a-zA-Z0-9]+', '-')), '-', id), slug)
+        WHERE uuid IS NULL OR slug IS NULL`
+    },
+    {
+      name: 'backfill tasks uuid+slug',
+      sql: `UPDATE tasks SET
+        uuid = IF(uuid IS NULL, UUID(), uuid),
+        slug = IF(slug IS NULL, CONCAT(LOWER(REGEXP_REPLACE(TRIM(title), '[^a-zA-Z0-9]+', '-')), '-', id), slug)
+        WHERE uuid IS NULL OR slug IS NULL`
+    },
+    {
       name: 'project_groups table',
       sql: `CREATE TABLE IF NOT EXISTS project_groups (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -166,6 +235,44 @@ export async function POST(req: NextRequest) {
     {
       name: 'project_groups.deleted_at column',
       sql: `ALTER TABLE project_groups ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL`
+    },
+    {
+      name: 'project_groups.chat_id column',
+      sql: `ALTER TABLE project_groups ADD COLUMN IF NOT EXISTS chat_id INT NULL`
+    },
+    {
+      name: 'project_groups.chat_id foreign key',
+      sql: `ALTER TABLE project_groups ADD CONSTRAINT fk_pg_chat FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE SET NULL`
+    },
+    {
+      name: 'group_invitations table',
+      sql: `CREATE TABLE IF NOT EXISTS group_invitations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        group_id INT NOT NULL,
+        invited_by INT NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        token VARCHAR(100) NOT NULL UNIQUE,
+        status ENUM('pending','accepted','declined','expired') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (group_id) REFERENCES project_groups(id) ON DELETE CASCADE,
+        FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE CASCADE
+      )`
+    },
+    {
+      name: 'meetings table',
+      sql: `CREATE TABLE IF NOT EXISTS meetings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        group_id INT NOT NULL,
+        created_by INT NOT NULL,
+        purpose TEXT NOT NULL,
+        scheduled_at TIMESTAMP NOT NULL,
+        is_instant BOOLEAN DEFAULT FALSE,
+        meeting_link VARCHAR(500) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES project_groups(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+      )`
     },
   ];
 

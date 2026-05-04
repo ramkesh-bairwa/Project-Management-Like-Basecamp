@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Group { id: number; name: string; description: string; is_private: boolean; org_id: number | null }
 
-const groupPalette = [
+const palette = [
   { bg: '#457b9d', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
   { bg: '#2a9d8f', light: '#f0fdf9', border: '#99f6e4', text: '#0f766e' },
   { bg: '#6d6875', light: '#faf5ff', border: '#e9d5ff', text: '#7c3aed' },
@@ -13,99 +14,128 @@ const groupPalette = [
 ];
 
 export default function GroupsPage() {
+  const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', is_private: false });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   useEffect(() => {
-    fetch('/api/groups', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
+    fetch('/api/groups', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
   }, []);
 
   async function createGroup(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch('/api/groups', { method: 'POST', headers, body: JSON.stringify(form) });
+    const res = await fetch('/api/groups', { method: 'POST', headers: authHeader, body: JSON.stringify(form) });
     const data = await res.json();
-    if (res.ok) { setGroups(g => [...g, { ...form, id: data.id, org_id: null }]); setShowForm(false); setForm({ name: '', description: '', is_private: false }); }
+    if (res.ok) {
+      setShowForm(false);
+      setForm({ name: '', description: '', is_private: false });
+      router.push(`/groups/${data.id}`);
+    }
   }
 
   return (
     <div>
-      <div className="flex justify-end mb-6">
-        <button onClick={() => setShowForm(true)} className="px-4 py-2 rounded-xl font-bold text-sm text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>
+      <div className="flex justify-end mb-5">
+        <button onClick={() => setShowForm(true)}
+          className="px-4 py-2 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
+          style={{ background: '#457b9d' }}>
           + New Group
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {groups.map((g, i) => {
-          const p = groupPalette[i % groupPalette.length];
+          const p = palette[i % palette.length];
           return (
-            <div key={g.id} className="rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all" style={{ background: p.light, border: `1.5px solid ${p.border}` }}>
+            <div key={g.id} className="rounded-2xl overflow-hidden hover:shadow-lg transition-all"
+              style={{ background: p.light, border: `1.5px solid ${p.border}` }}>
               <div className="h-1.5" style={{ background: p.bg }} />
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl font-black flex-shrink-0" style={{ background: p.bg }}>
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-black flex-shrink-0"
+                    style={{ background: p.bg }}>
                     {g.name[0].toUpperCase()}
                   </div>
-                  <div>
-                    <div className="font-black" style={{ color: p.text }}>{g.name}</div>
-                    <div className="text-xs text-[#6b7a8d] flex items-center gap-1 mt-0.5">
-                      {g.is_private ? '🔒 Private' : '🌐 Public'}
-                    </div>
+                  <div className="min-w-0">
+                    <div className="font-black text-sm truncate" style={{ color: p.text }}>{g.name}</div>
+                    <div className="text-xs text-[#6b7a8d] mt-0.5">{g.is_private ? '🔒 Private' : '🌐 Public'}</div>
                   </div>
                 </div>
-                {g.description && <p className="text-sm text-[#6b7a8d] line-clamp-2 mb-4">{g.description}</p>}
-                <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${p.border}` }}>
-                  <span className="text-xs text-[#6b7a8d]">👥 Group</span>
-                  <button className="text-xs font-bold hover:underline" style={{ color: p.text }}>View →</button>
+                {g.description && <p className="text-xs text-[#6b7a8d] line-clamp-2 mb-3">{g.description}</p>}
+                <div className="flex gap-2 pt-3" style={{ borderTop: `1px solid ${p.border}` }}>
+                  <button onClick={() => router.push(`/groups/${g.id}`)}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition text-white"
+                    style={{ background: p.bg }}>
+                    View Group
+                  </button>
+                  <button onClick={() => router.push(`/groups/${g.id}?tab=chat`)}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition"
+                    style={{ background: p.light, color: p.text, border: `1.5px solid ${p.border}` }}>
+                    💬 Chat
+                  </button>
                 </div>
               </div>
             </div>
           );
         })}
+
         {groups.length === 0 && (
           <div className="col-span-3 bg-white rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8' }}>
             <div className="text-5xl mb-4">👥</div>
             <div className="font-black text-[#1d3557] mb-2">No groups yet</div>
             <div className="text-[#6b7a8d] text-sm mb-6">Create a group to collaborate with your team</div>
-            <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>Create Group</button>
+            <button onClick={() => setShowForm(true)}
+              className="px-6 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90"
+              style={{ background: '#457b9d' }}>Create Group</button>
           </div>
         )}
       </div>
 
+      {/* Create Group Modal */}
       {showForm && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>
           <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-black text-[#1d3557]">New Group</h2>
-              <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee] transition">✕</button>
+              <button onClick={() => setShowForm(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee]">✕</button>
             </div>
             <form onSubmit={createGroup} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Group name *</label>
-                <input placeholder="e.g. Design Team" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
+                <input placeholder="e.g. Design Team" value={form.name}
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
                   className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
               </div>
               <div>
                 <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Description</label>
-                <textarea placeholder="What is this group for?" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
+                <textarea placeholder="What is this group for?" value={form.description}
+                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
                   className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none resize-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
               </div>
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
-                <input type="checkbox" checked={form.is_private} onChange={e => setForm(p => ({ ...p, is_private: e.target.checked }))} className="w-4 h-4" />
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl"
+                style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                <input type="checkbox" checked={form.is_private}
+                  onChange={e => setForm(p => ({ ...p, is_private: e.target.checked }))} className="w-4 h-4" />
                 <div>
                   <div className="text-sm font-bold text-[#1d3557]">Private group</div>
                   <div className="text-xs text-[#6b7a8d]">Only invited members can join</div>
                 </div>
               </label>
               <div className="flex gap-3 pt-2">
-                <button type="submit" className="flex-1 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>Create Group</button>
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] hover:bg-[#f1faee] transition" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+                <button type="submit"
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90"
+                  style={{ background: '#457b9d' }}>Create Group</button>
+                <button type="button" onClick={() => setShowForm(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557]"
+                  style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
               </div>
             </form>
           </div>

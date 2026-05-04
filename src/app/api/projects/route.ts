@@ -1,17 +1,20 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { generateUUID, uniqueSlug } from '@/lib/slug';
 
 export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url);
   const org_id = searchParams.get('org_id');
-  const id = searchParams.get('id');
+  const id = searchParams.get('id');       // numeric id OR uuid OR slug
 
   if (id) {
     const rows = await query<unknown[]>(
       `SELECT p.* FROM projects p
        LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
-       WHERE p.id = ? AND p.deleted_at IS NULL AND (p.owner_id = ? OR pm.user_id = ?)`, [user.id, id, user.id, user.id]
+       WHERE p.deleted_at IS NULL AND (p.owner_id = ? OR pm.user_id = ?)
+         AND (p.id = ? OR p.uuid = ? OR p.slug = ?)`,
+      [user.id, user.id, user.id, id, id, id]
     );
     if (!rows.length) return apiError('Project not found', 404);
     return apiResponse(rows[0]);
@@ -47,8 +50,11 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     'INSERT INTO projects (owner_id, org_id, name, description, status, priority, visibility, start_date, due_date) VALUES (?,?,?,?,?,?,?,?,?)',
     [user.id, org_id || null, name, description || null, status || 'planning', priority || 'medium', visibility || 'private', start_date || null, due_date || null]
   );
+  const uuid = generateUUID();
+  const slug = await uniqueSlug('projects', 'slug', name);
+  await query('UPDATE projects SET uuid=?, slug=? WHERE id=?', [uuid, slug, result.insertId]);
   await query('INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?)', [result.insertId, user.id, 'owner']);
-  return apiResponse({ id: result.insertId, name }, 201);
+  return apiResponse({ id: result.insertId, uuid, slug, name }, 201);
 });
 
 export const DELETE = withAuth(async (req: NextRequest, user) => {

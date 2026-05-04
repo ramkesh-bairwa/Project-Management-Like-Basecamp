@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { createNotification } from '@/app/api/notifications/route';
 
 export const GET = withAuth(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
@@ -37,6 +38,19 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       'INSERT INTO task_history (task_id, changed_by, action, new_value) VALUES (?,?,?,?)',
       [entity_id, user.id, 'comment_added', content.substring(0, 100)]
     );
+    // Notify task assignee and project members
+    const task = await query<{ project_id: number; assignee_id: number | null; title: string }[]>('SELECT project_id, assignee_id, title FROM tasks WHERE id=?', [entity_id]);
+    if (task.length) {
+      const commenter = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+      const targets = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [task[0].project_id, user.id]);
+      for (const t of targets) {
+        await createNotification(t.user_id, 'task',
+          `New comment on task "${task[0].title}"`,
+          `${commenter[0]?.name || 'Someone'}: ${content.substring(0, 80)}`,
+          `/projects/${task[0].project_id}/tasks/${entity_id}`
+        );
+      }
+    }
   }
 
   return apiResponse({ id: result.insertId, content }, 201);

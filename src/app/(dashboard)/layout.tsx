@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const nav = [
   { href: '/dashboard', label: 'Home' },
@@ -17,6 +17,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+    if (!token) return;
+    function fetchUnread() {
+      fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => Array.isArray(d) && setUnread(d.filter((n: { is_read: boolean }) => !n.is_read).length))
+        .catch(() => {});
+    }
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [pathname]);
 
   function logout() {
     fetch('/api/auth/logout', { method: 'POST' });
@@ -53,8 +68,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Right actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/notifications"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition text-base">
+              className="relative w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition text-base">
               🔔
+              {unread > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white font-black"
+                  style={{ background: '#e63946', fontSize: '9px' }}>
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
             </Link>
             <div className="relative">
               <button onClick={() => setMenuOpen(o => !o)}

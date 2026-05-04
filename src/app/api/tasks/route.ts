@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { createNotification } from '@/app/api/notifications/route';
+import { generateUUID, uniqueSlug } from '@/lib/slug';
 
 type TaskRow = { id: number; project_id: number; title: string; status: string; priority: string; assignee_id: number | null; group_id: number | null };
 
@@ -16,8 +18,26 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const project_id = searchParams.get('project_id');
   const group_id = searchParams.get('group_id');
   const parent_task_id = searchParams.get('parent_task_id');
+  const task_id = searchParams.get('task_id'); // single task by id/uuid/slug
 
-  if (!project_id && !group_id && !parent_task_id) return apiError('project_id, group_id, or parent_task_id required');
+  if (!project_id && !group_id && !parent_task_id && !task_id) return apiError('project_id, group_id, parent_task_id, or task_id required');
+
+  // Single task lookup by id, uuid, or slug
+  if (task_id) {
+    const rows = await query<unknown[]>(
+      `SELECT t.*, u.name as assignee_name, u.avatar as assignee_avatar,
+        pg.name as group_name, pg.color as group_color,
+        (SELECT COUNT(*) FROM tasks WHERE parent_task_id = t.id) as subtask_count,
+        (SELECT COUNT(*) FROM comments WHERE entity_type='task' AND entity_id = t.id) as comment_count
+       FROM tasks t
+       LEFT JOIN users u ON u.id = t.assignee_id
+       LEFT JOIN project_groups pg ON pg.id = t.group_id
+       WHERE (t.id = ? OR t.uuid = ? OR t.slug = ?) AND t.deleted_at IS NULL`,
+      [task_id, task_id, task_id]
+    );
+    if (!rows.length) return apiError('Task not found', 404);
+    return apiResponse(rows[0]);
+  }
 
   let sql = `SELECT t.*, u.name as assignee_name, u.avatar as assignee_avatar,
     pg.name as group_name, pg.color as group_color,
@@ -34,8 +54,13 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     sql += 't.parent_task_id = ? AND t.deleted_at IS NULL';
     params.push(parent_task_id);
   } else if (group_id) {
+    // group_id can be numeric id, uuid, or slug — resolve to numeric id first
+    const grp = await query<{ id: number }[]>(
+      'SELECT id FROM project_groups WHERE id=? OR uuid=? OR slug=?', [group_id, group_id, group_id]
+    );
+    if (!grp.length) return apiError('Group not found', 404);
     sql += 't.group_id = ? AND t.parent_task_id IS NULL AND t.deleted_at IS NULL';
-    params.push(group_id);
+    params.push(grp[0].id);
   } else {
     const member = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [project_id!, user.id]);
     if (!member.length) return apiError('Not a project member', 403);
@@ -59,11 +84,35 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     'INSERT INTO tasks (project_id, group_id, created_by, assignee_id, parent_task_id, title, description, status, priority, due_date, estimated_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
     [project_id, group_id || null, user.id, assignee_id || null, parent_task_id || null, title, description || null, status || 'todo', priority || 'medium', due_date || null, estimated_hours || null]
   );
+  const uuid = generateUUID();
+  const slug = await uniqueSlug('tasks', 'slug', title);
+  await query('UPDATE tasks SET uuid=?, slug=? WHERE id=?', [uuid, slug, result.insertId]);
 
   await logHistory(result.insertId, user.id, 'created', null, title);
   if (assignee_id) await logHistory(result.insertId, user.id, 'assigned', null, String(assignee_id));
 
-  return apiResponse({ id: result.insertId, title }, 201);
+  // Notify assignee
+  if (assignee_id && assignee_id !== user.id) {
+    const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+    await createNotification(assignee_id, 'task',
+      `You were assigned a new task: "${title}"`,
+      `Assigned by ${creator[0]?.name || 'someone'}.`,
+      `/projects/${project_id}/tasks/${slug}`
+    );
+  }
+
+  const projectMembers = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [project_id, user.id]);
+  const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+  for (const m of projectMembers) {
+    if (m.user_id === assignee_id) continue;
+    await createNotification(m.user_id, 'task',
+      `New task created: "${title}"`,
+      `Created by ${creator[0]?.name || 'someone'}.`,
+      `/projects/${project_id}/tasks/${slug}`
+    );
+  }
+
+  return apiResponse({ id: result.insertId, uuid, slug, title }, 201);
 });
 
 export const PUT = withAuth(async (req: NextRequest, user) => {
@@ -101,6 +150,16 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
   if (status && status !== old.status) {
     const action = status === 'done' ? 'closed' : old.status === 'done' ? 'reopened' : 'status_changed';
     await logHistory(id, user.id, action, old.status, status);
+    const updater = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+    const taskSlug = await query<{ slug: string }[]>('SELECT slug FROM tasks WHERE id=?', [id]);
+    const targets = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [old.project_id, user.id]);
+    for (const t of targets) {
+      await createNotification(t.user_id, 'task',
+        `Task "${old.title}" status changed to ${status}`,
+        `Updated by ${updater[0]?.name || 'someone'}.`,
+        `/projects/${old.project_id}/tasks/${taskSlug[0]?.slug || id}`
+      );
+    }
   }
   if (title && title !== old.title) await logHistory(id, user.id, 'title_changed', old.title, title);
   if (priority && priority !== old.priority) await logHistory(id, user.id, 'priority_changed', old.priority, priority);

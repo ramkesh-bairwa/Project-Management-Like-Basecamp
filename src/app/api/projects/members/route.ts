@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { createNotification } from '@/app/api/notifications/route';
 
 export const GET = withAuth(async (req: NextRequest) => {
   const project_id = new URL(req.url).searchParams.get('project_id');
@@ -21,6 +22,17 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
   await query('INSERT INTO project_members (project_id, user_id, role) VALUES (?,?,?) ON DUPLICATE KEY UPDATE role=VALUES(role)',
     [project_id, user_id, role || 'developer']);
+
+  const [proj, adder] = await Promise.all([
+    query<{ name: string }[]>('SELECT name FROM projects WHERE id=?', [project_id]),
+    query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]),
+  ]);
+  await createNotification(user_id, 'project',
+    `You were added to project "${proj[0]?.name || 'a project'}"`,
+    `Added by ${adder[0]?.name || 'someone'} as ${role || 'developer'}.`,
+    `/projects/${project_id}`
+  );
+
   return apiResponse({ message: 'Member added' }, 201);
 });
 

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 
@@ -19,11 +19,13 @@ const avatarColors = ['#e63946','#457b9d','#2a9d8f','#f4a261','#6d6875','#e9c46a
 
 export default function ProjectOverviewPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [stats, setStats] = useState<Stats>({ groups: 0, tasks: 0, docs: 0, members: 0 });
   const [myRole, setMyRole] = useState('');
   const [token, setToken] = useState('');
+  const [projectId, setProjectId] = useState<number | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState('developer');
@@ -36,21 +38,27 @@ export default function ProjectOverviewPage() {
     if (!id) return;
     const auth = { Authorization: `Bearer ${t}` };
     fetch(`/api/projects?id=${id}`, { headers: auth })
-      .then(r => r.json()).then(d => d && !d.error && setProject(d));
-    fetch(`/api/projects/members?project_id=${id}`, { headers: auth })
       .then(r => r.json()).then(d => {
-        if (!Array.isArray(d)) return;
-        setMembers(d);
-        setStats(s => ({ ...s, members: d.length }));
-        const me = d.find((m: Member) => m.id === uid);
-        if (me) setMyRole(me.role);
+        if (!d || d.error) return;
+        setProject(d);
+        setProjectId(d.id);
+        const pid = d.id;
+        fetch(`/api/projects/members?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => {
+            if (!Array.isArray(d)) return;
+            setMembers(d);
+            setStats(s => ({ ...s, members: d.length }));
+            const me = d.find((m: Member) => m.id === uid);
+            if (me) setMyRole(me.role);
+            else router.replace('/projects'); // not a member
+          });
+        fetch(`/api/project-groups?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => Array.isArray(d) && setStats(s => ({ ...s, groups: d.length })));
+        fetch(`/api/tasks?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => Array.isArray(d) && setStats(s => ({ ...s, tasks: d.length })));
+        fetch(`/api/documents?project_id=${pid}`, { headers: auth })
+          .then(r => r.json()).then(d => Array.isArray(d) && setStats(s => ({ ...s, docs: d.length })));
       });
-    fetch(`/api/project-groups?project_id=${id}`, { headers: auth })
-      .then(r => r.json()).then(d => Array.isArray(d) && setStats(s => ({ ...s, groups: d.length })));
-    fetch(`/api/tasks?project_id=${id}`, { headers: auth })
-      .then(r => r.json()).then(d => Array.isArray(d) && setStats(s => ({ ...s, tasks: d.length })));
-    fetch(`/api/documents?project_id=${id}`, { headers: auth })
-      .then(r => r.json()).then(d => Array.isArray(d) && setStats(s => ({ ...s, docs: d.length })));
   }, [id]);
 
   async function addMember(e: React.FormEvent) {
@@ -60,7 +68,7 @@ export default function ProjectOverviewPage() {
     const res = await fetch(`/api/users?email=${encodeURIComponent(memberEmail)}`, { headers: { Authorization: `Bearer ${token}` } });
     const data = await res.json();
     if (!res.ok || !data.id) { setAddError('User not found'); return; }
-    const r2 = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: Number(id), user_id: data.id, role: memberRole }) });
+    const r2 = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: data.id, role: memberRole }) });
     if (r2.ok) {
       setMembers(m => [...m, { id: data.id, name: data.name, email: data.email, role: memberRole }]);
       setStats(s => ({ ...s, members: s.members + 1 }));

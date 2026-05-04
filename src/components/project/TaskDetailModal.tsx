@@ -358,6 +358,19 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
                             💬
                           </div>
                           <div className="flex-1">
+                            {/* Task context header */}
+                            <div className="flex items-center gap-2 flex-wrap mb-1 px-1">
+                              {task.group_name && (
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>
+                                  {task.group_name}
+                                </span>
+                              )}
+                              <span className="text-xs font-semibold" style={{ color: '#1d3557' }}>#{task.id} {task.title}</span>
+                              <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: statusColors[task.status] + '20', color: statusColors[task.status] }}>
+                                {task.status.replace('_', ' ')}
+                              </span>
+                              <span className="text-xs font-bold" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
+                            </div>
                             <CommentThread
                               comment={item.comment}
                               currentUserId={currentUserId}

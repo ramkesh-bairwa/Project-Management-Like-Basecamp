@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { createNotification } from '@/app/api/notifications/route';
 
 export const GET = withAuth(async (_req, user) => {
   const rows = await query<unknown[]>(
@@ -29,5 +30,13 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const result = await query<{ insertId: number }>(
     'INSERT INTO connections (requester_id, receiver_id) VALUES (?, ?)', [user.id, receiver_id]
   );
+
+  const sender = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+  await createNotification(receiver_id, 'connection',
+    `${sender[0]?.name || 'Someone'} sent you a connection request`,
+    'Go to Connections to accept or decline.',
+    '/connections'
+  );
+
   return apiResponse({ id: result.insertId, status: 'pending' }, 201);
 });

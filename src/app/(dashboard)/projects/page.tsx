@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getToken } from '@/lib/client-auth';
 
-interface Project { id: number; name: string; description: string; status: string; priority: string; due_date: string; org_id: number | null }
+interface Project { id: number; uuid: string; slug: string; name: string; description: string; status: string; priority: string; due_date: string; org_id: number | null }
 
 const statusCfg: Record<string, { dot: string; label: string; bg: string; text: string }> = {
   planning:  { dot: '#94a3b8', label: 'Planning',  bg: '#f1f5f9', text: '#475569' },
@@ -34,7 +34,7 @@ export default function ProjectsPage() {
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const res = await fetch('/api/projects', { method: 'POST', headers, body: JSON.stringify(form) });
     const data = await res.json();
-    if (res.ok) { setProjects(p => [...p, { ...form, id: data.id, org_id: null }]); setShowForm(false); setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' }); }
+    if (res.ok) { setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]); setShowForm(false); setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' }); }
   }
 
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
@@ -63,7 +63,7 @@ export default function ProjectsPage() {
           const sc = statusCfg[p.status] || statusCfg.planning;
           const accent = accentColors[i % accentColors.length];
           return (
-            <Link key={p.id} href={`/projects/${p.id}`}
+            <Link key={p.id} href={`/projects/${p.slug || p.id}`}
               className="bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group"
               style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
               <div className="h-1.5" style={{ background: accent }} />
