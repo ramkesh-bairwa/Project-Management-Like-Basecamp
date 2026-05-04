@@ -19,6 +19,6 @@ export async function POST(req: NextRequest) {
   const token = signToken({ id: result.insertId, email, role: 'user', is_org: false });
 
   const res = apiResponse({ user: { id: result.insertId, name, email, role: 'user', is_org: false }, token }, 201);
-  res.cookies.set('token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7 });
+  res.cookies.set('token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'lax' });
   return res;
 }

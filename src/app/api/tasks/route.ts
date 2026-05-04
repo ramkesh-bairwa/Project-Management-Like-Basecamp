@@ -24,7 +24,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 
   // Single task lookup by id, uuid, or slug
   if (task_id) {
-    const rows = await query<unknown[]>(
+    const rows = await query<{ project_id: number; group_id: number | null } & Record<string, unknown>[]>(
       `SELECT t.*, u.name as assignee_name, u.avatar as assignee_avatar,
         pg.name as group_name, pg.color as group_color,
         (SELECT COUNT(*) FROM tasks WHERE parent_task_id = t.id) as subtask_count,
@@ -36,6 +36,14 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       [task_id, task_id, task_id]
     );
     if (!rows.length) return apiError('Task not found', 404);
+    const task = rows[0] as { project_id: number; group_id: number | null };
+    if (task.group_id) {
+      const grpMember = await query<unknown[]>('SELECT id FROM project_group_members WHERE group_id=? AND user_id=?', [task.group_id, user.id]);
+      if (!grpMember.length) return apiError('Task not found', 404);
+    } else {
+      const member = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [task.project_id, user.id]);
+      if (!member.length) return apiError('Task not found', 404);
+    }
     return apiResponse(rows[0]);
   }
 
@@ -51,14 +59,24 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const params: (string | number)[] = [];
 
   if (parent_task_id) {
+    const parent = await query<{ group_id: number | null; project_id: number }[]>('SELECT group_id, project_id FROM tasks WHERE id=? AND deleted_at IS NULL', [parent_task_id]);
+    if (!parent.length) return apiError('Parent task not found', 404);
+    if (parent[0].group_id) {
+      const grpMember = await query<unknown[]>('SELECT id FROM project_group_members WHERE group_id=? AND user_id=?', [parent[0].group_id, user.id]);
+      if (!grpMember.length) return apiError('Not authorized', 403);
+    } else {
+      const projMember = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [parent[0].project_id, user.id]);
+      if (!projMember.length) return apiError('Not authorized', 403);
+    }
     sql += 't.parent_task_id = ? AND t.deleted_at IS NULL';
     params.push(parent_task_id);
   } else if (group_id) {
-    // group_id can be numeric id, uuid, or slug — resolve to numeric id first
     const grp = await query<{ id: number }[]>(
       'SELECT id FROM project_groups WHERE id=? OR uuid=? OR slug=?', [group_id, group_id, group_id]
     );
     if (!grp.length) return apiError('Group not found', 404);
+    const grpMember = await query<unknown[]>('SELECT id FROM project_group_members WHERE group_id=? AND user_id=?', [grp[0].id, user.id]);
+    if (!grpMember.length) return apiError('Not authorized', 403);
     sql += 't.group_id = ? AND t.parent_task_id IS NULL AND t.deleted_at IS NULL';
     params.push(grp[0].id);
   } else {
@@ -91,25 +109,43 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   await logHistory(result.insertId, user.id, 'created', null, title);
   if (assignee_id) await logHistory(result.insertId, user.id, 'assigned', null, String(assignee_id));
 
-  // Notify assignee
+  const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+  const creatorName = creator[0]?.name || 'someone';
+
+  // Notify assignee directly (always, if they are a group/project member)
   if (assignee_id && assignee_id !== user.id) {
-    const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
     await createNotification(assignee_id, 'task',
       `You were assigned a new task: "${title}"`,
-      `Assigned by ${creator[0]?.name || 'someone'}.`,
+      `Assigned by ${creatorName}.`,
       `/projects/${project_id}/tasks/${slug}`
     );
   }
 
-  const projectMembers = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [project_id, user.id]);
-  const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
-  for (const m of projectMembers) {
-    if (m.user_id === assignee_id) continue;
-    await createNotification(m.user_id, 'task',
-      `New task created: "${title}"`,
-      `Created by ${creator[0]?.name || 'someone'}.`,
-      `/projects/${project_id}/tasks/${slug}`
+  // Notify only group members if task belongs to a group, otherwise project members
+  if (group_id) {
+    const groupMembers = await query<{ user_id: number }[]>(
+      'SELECT user_id FROM project_group_members WHERE group_id=? AND user_id != ?', [group_id, user.id]
     );
+    for (const m of groupMembers) {
+      if (m.user_id === assignee_id) continue;
+      await createNotification(m.user_id, 'task',
+        `New task in your group: "${title}"`,
+        `Created by ${creatorName}.`,
+        `/projects/${project_id}/tasks/${slug}`
+      );
+    }
+  } else {
+    const projectMembers = await query<{ user_id: number }[]>(
+      'SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [project_id, user.id]
+    );
+    for (const m of projectMembers) {
+      if (m.user_id === assignee_id) continue;
+      await createNotification(m.user_id, 'task',
+        `New task created: "${title}"`,
+        `Created by ${creatorName}.`,
+        `/projects/${project_id}/tasks/${slug}`
+      );
+    }
   }
 
   return apiResponse({ id: result.insertId, uuid, slug, title }, 201);
@@ -152,13 +188,30 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
     await logHistory(id, user.id, action, old.status, status);
     const updater = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
     const taskSlug = await query<{ slug: string }[]>('SELECT slug FROM tasks WHERE id=?', [id]);
-    const targets = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [old.project_id, user.id]);
-    for (const t of targets) {
-      await createNotification(t.user_id, 'task',
-        `Task "${old.title}" status changed to ${status}`,
-        `Updated by ${updater[0]?.name || 'someone'}.`,
-        `/projects/${old.project_id}/tasks/${taskSlug[0]?.slug || id}`
+    const taskLink = `/projects/${old.project_id}/tasks/${taskSlug[0]?.slug || id}`;
+    const updaterName = updater[0]?.name || 'someone';
+
+    // Notify group members if task is in a group, otherwise project members
+    if (old.group_id) {
+      const targets = await query<{ user_id: number }[]>(
+        'SELECT user_id FROM project_group_members WHERE group_id=? AND user_id != ?', [old.group_id, user.id]
       );
+      for (const t of targets) {
+        await createNotification(t.user_id, 'task',
+          `Task "${old.title}" status changed to ${status}`,
+          `Updated by ${updaterName}.`, taskLink
+        );
+      }
+    } else {
+      const targets = await query<{ user_id: number }[]>(
+        'SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [old.project_id, user.id]
+      );
+      for (const t of targets) {
+        await createNotification(t.user_id, 'task',
+          `Task "${old.title}" status changed to ${status}`,
+          `Updated by ${updaterName}.`, taskLink
+        );
+      }
     }
   }
   if (title && title !== old.title) await logHistory(id, user.id, 'title_changed', old.title, title);

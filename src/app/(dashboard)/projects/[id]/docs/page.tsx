@@ -86,12 +86,6 @@ export default function ProjectDocsPage() {
   // Reload docs when folder selection or projectId changes
   useEffect(() => { loadDocs(); }, [projectId, activeFolderId]);
 
-  function downloadFile(url: string, name: string) {
-    const a = document.createElement('a');
-    a.href = url; a.download = name; a.target = '_blank';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  }
-
   async function createFolder(e: React.FormEvent) {
     e.preventDefault();
     if (!projectId) return;
@@ -123,40 +117,89 @@ export default function ProjectDocsPage() {
 
   async function createDoc(e: React.FormEvent) {
     e.preventDefault();
+    if (!projectId) return;
     setUploading(true);
     let file_url = '', file_name = '', file_size = 0;
+
     if (file && form.type !== 'doc') {
-      file_name = file.name; file_size = file.size;
-      file_url = await new Promise<string>(resolve => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
+      const fd = new FormData();
+      fd.append('file', file);
+      const uploadRes = await fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        // DO NOT set Content-Type — browser sets multipart/form-data with boundary automatically
+        body: fd,
       });
-    }
-    try {
-      const res = await fetch('/api/documents', {
-        method: 'POST', headers: h,
-        body: JSON.stringify({ ...form, project_id: projectId, folder_id: activeFolderId || null, ...(file_url ? { file_url, file_name, file_size } : {}) })
-      });
-      const data = await res.json();
-      setUploading(false);
-      if (res.ok || data?.id) {
-        showToast(`✅ "${form.title}" ${form.type === 'doc' ? 'document' : 'file'} created successfully!`, 'success');
-        loadDocs(); loadFolders();
-        setShowDocForm(false);
-        setForm({ title: '', description: '', type: 'doc', content: '' });
-        setFile(null);
-      } else {
-        showToast(data?.error || 'Failed to create document', 'error');
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        showToast(err?.error || 'File upload failed', 'error');
+        setUploading(false);
+        return;
       }
-    } catch {
-      setUploading(false);
-      // Even if fetch throws (e.g. body too large), check if doc was saved
+      const uploaded = await uploadRes.json();
+      file_url = uploaded.url;
+      file_name = uploaded.name;
+      file_size = uploaded.size;
+    }
+
+    const res = await fetch('/api/documents', {
+      method: 'POST',
+      headers: h,
+      body: JSON.stringify({
+        ...form,
+        project_id: projectId,
+        folder_id: activeFolderId || null,
+        ...(file_url ? { file_url, file_name, file_size } : {}),
+      }),
+    });
+    const data = await res.json();
+    setUploading(false);
+    if (res.ok || data?.id) {
+      showToast(`✅ "${form.title}" created successfully!`, 'success');
       loadDocs(); loadFolders();
       setShowDocForm(false);
       setForm({ title: '', description: '', type: 'doc', content: '' });
       setFile(null);
-      showToast('✅ Document saved successfully!', 'success');
+    } else {
+      showToast(data?.error || 'Failed to create document', 'error');
+    }
+  }
+
+  async function downloadDoc(docId: number, docTitle: string) {
+    const t = localStorage.getItem('token') || '';
+    if (!t) return;
+    try {
+      const res = await fetch(`/api/documents/download?document_id=${docId}`, {
+        headers: { Authorization: `Bearer ${t}` }
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const disposition = res.headers.get('content-disposition') || '';
+      const nameMatch = disposition.match(/filename="([^"]+)"/);
+      const fileName = nameMatch?.[1] || docTitle;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ }
+  }
+
+  async function deleteDoc(docId: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm('Delete this document? This cannot be undone.')) return;
+    const res = await fetch(`/api/documents?id=${docId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      showToast('Document deleted', 'success');
+      setDocs(prev => prev.filter(d => d.id !== docId));
+    } else {
+      showToast('Failed to delete document', 'error');
     }
   }
 
@@ -262,15 +305,33 @@ export default function ProjectDocsPage() {
                   {doc.last_updated_at && <span>{new Date(doc.last_updated_at).toLocaleDateString()}</span>}
                 </div>
                 <div className="flex items-center gap-2">
-                  {doc.file_url && (
-                    <button onClick={e => { e.stopPropagation(); downloadFile(doc.file_url!, doc.file_name || doc.title); }}
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-white hover:opacity-90 transition"
-                      style={{ background: '#2a9d8f' }}>⬇️ Download</button>
-                  )}
-                  <button onClick={() => router.push(`/projects/${id}/docs/${doc.id}`)}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100 transition"
-                    style={{ color: '#457b9d', border: '1px solid #d0dce8' }}>Open →</button>
-                </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); downloadDoc(doc.id, doc.title); }}
+                      title="Download"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition"
+                      style={{ background: '#1d3557' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={e => deleteDoc(doc.id, e)}
+                      title="Delete"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition"
+                      style={{ background: '#e63946' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                      </svg>
+                    </button>
+                    <button onClick={() => router.push(`/projects/${id}/docs/${doc.id}`)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100 transition"
+                      style={{ color: '#457b9d', border: '1px solid #d0dce8' }}>Open →</button>
+                  </div>
               </div>
             </div>
           ))}

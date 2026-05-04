@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Connection { id: number; status: string; direction: string; user_id: number; name: string; email: string; avatar?: string }
 interface UserResult { id: number; name: string; email: string; avatar?: string }
@@ -22,6 +23,7 @@ function Avatar({ name, avatar, size = 9, i = 0 }: { name: string; avatar?: stri
 }
 
 export default function ConnectionsPage() {
+  const router = useRouter();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<UserResult[]>([]);
@@ -29,6 +31,7 @@ export default function ConnectionsPage() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [startingChat, setStartingChat] = useState<number | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
@@ -80,6 +83,18 @@ export default function ConnectionsPage() {
   async function respond(connection_id: number, status: string) {
     await fetch('/api/connections/respond', { method: 'PUT', headers, body: JSON.stringify({ connection_id, status }) });
     setConnections(c => c.map(cn => cn.id === connection_id ? { ...cn, status } : cn));
+  }
+
+  async function startChat(userId: number) {
+    setStartingChat(userId);
+    const res = await fetch('/api/chats', { method: 'POST', headers, body: JSON.stringify({ type: 'direct', participant_ids: [userId] }) });
+    const data = await res.json();
+    setStartingChat(null);
+    if (res.ok) {
+      setProfile(null);
+      sessionStorage.setItem('openChatId', String(data.id));
+      router.push('/chats');
+    }
   }
 
   const connectedIds = new Set(connections.map(c => c.user_id));
@@ -181,15 +196,26 @@ export default function ConnectionsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {accepted.map((c, i) => (
             <div key={c.id}
-              onClick={() => openProfile(c.user_id)}
-              className="bg-white rounded-2xl p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+              className="bg-white rounded-2xl p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all"
               style={{ border: '1px solid #d0dce8' }}>
-              <Avatar name={c.name} avatar={c.avatar} size={11} i={i} />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-[#1d3557] text-sm truncate">{c.name}</div>
-                <div className="text-xs text-[#6b7a8d] truncate">{c.email}</div>
+              <div className="cursor-pointer flex items-center gap-3 flex-1 min-w-0" onClick={() => openProfile(c.user_id)}>
+                <Avatar name={c.name} avatar={c.avatar} size={11} i={i} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-[#1d3557] text-sm truncate">{c.name}</div>
+                  <div className="text-xs text-[#6b7a8d] truncate">{c.email}</div>
+                </div>
               </div>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#f0fdf9', color: '#0f766e' }}>Connected</span>
+              <button
+                onClick={() => startChat(c.user_id)}
+                disabled={startingChat === c.user_id}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white hover:opacity-90 disabled:opacity-50 transition flex-shrink-0"
+                style={{ background: '#1d3557' }}
+                title="Send message">
+                {startingChat === c.user_id
+                  ? <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                }
+              </button>
             </div>
           ))}
           {accepted.length === 0 && (
@@ -289,10 +315,24 @@ export default function ConnectionsPage() {
                   </div>
 
                   {/* Member since */}
-                  <div className="flex items-center gap-2 text-xs text-[#94a3b8]">
+                  <div className="flex items-center gap-2 text-xs text-[#94a3b8] mb-5">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     Member since {new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
                   </div>
+
+                  {/* Message button — only for accepted connections */}
+                  {accepted.some(c => c.user_id === profile.id) && (
+                    <button
+                      onClick={() => startChat(profile.id)}
+                      disabled={startingChat === profile.id}
+                      className="w-full py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                      style={{ background: '#1d3557' }}>
+                      {startingChat === profile.id
+                        ? <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message</>
+                      }
+                    </button>
+                  )}
                 </div>
               </>
             )}

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -9,6 +9,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 > Date.now()) {
+        router.replace('/dashboard');
+      }
+    } catch { /* invalid token, stay */ }
+  }, [router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
@@ -17,7 +28,13 @@ export default function LoginPage() {
     if (!res.ok) { setError(data.error); setLoading(false); return; }
     localStorage.setItem('token', data.token);
     localStorage.setItem('userId', String(data.user.id));
-    router.push('/dashboard');
+    // Set cookie via session endpoint then redirect
+    await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: data.token }),
+    });
+    window.location.replace('/dashboard');
   }
 
   return (
@@ -43,7 +60,7 @@ export default function LoginPage() {
             ))}
           </div>
           <blockquote className="text-white/60 text-lg leading-relaxed">
-            "The best way to manage your team's work — all in one place."
+            “The best way to manage your team’s work — all in one place.”
           </blockquote>
         </div>
         <div className="text-white/20 text-sm">2025 ProjectHub</div>

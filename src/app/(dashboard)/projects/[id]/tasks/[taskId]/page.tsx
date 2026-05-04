@@ -84,10 +84,11 @@ export default function TaskDetailPage() {
           setEditStatus(d.status);
           setEditPriority(d.priority);
           setEditAssignee(d.assignee_id ? String(d.assignee_id) : '');
-          // Now load related data with the real numeric id
           fetch(`/api/tasks?parent_task_id=${d.id}`, { headers: auth }).then(r => r.json()).then(r => Array.isArray(r) && setSubtasks(r));
           fetch(`/api/comments?entity_type=task&entity_id=${d.id}`, { headers: auth }).then(r => r.json()).then(r => Array.isArray(r) && setComments(buildCommentTree(r)));
           fetch(`/api/tasks/history?task_id=${d.id}`, { headers: auth }).then(r => r.json()).then(r => Array.isArray(r) && setHistory(r));
+        } else {
+          setAccessDenied(true);
         }
       });
   }, [id, taskId]);
@@ -181,6 +182,19 @@ export default function TaskDetailPage() {
     ...history.filter(e => e.action !== 'comment_added').map(e => ({ kind: 'history' as const, entry: e, time: new Date(e.created_at).getTime() })),
     ...commentTree.map(c => ({ kind: 'comment' as const, comment: c, time: new Date(c.created_at).getTime() })),
   ].sort((a, b) => b.time - a.time);
+
+  const [accessDenied, setAccessDenied] = useState(false);
+
+  if (accessDenied) return (
+    <div className="flex flex-col items-center justify-center py-32 text-center">
+      <div className="text-5xl mb-4">🔒</div>
+      <div className="font-black text-xl text-[#1d3557] mb-2">Access Denied</div>
+      <div className="text-sm text-[#6b7a8d] mb-6">You are not a member of this group or project.</div>
+      <button onClick={() => router.push('/projects')}
+        className="px-5 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90"
+        style={{ background: '#1d3557' }}>← Back to Projects</button>
+    </div>
+  );
 
   if (!task) return (
     <div className="flex items-center justify-center py-32">

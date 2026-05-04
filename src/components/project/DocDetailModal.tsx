@@ -38,6 +38,28 @@ export default function DocDetailModal({ doc, userRole, currentUserId, onClose, 
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const canEdit = ['owner','manager'].includes(userRole);
 
+  async function downloadFile(docId: number, versionNum?: number, fileName?: string) {
+    const t = localStorage.getItem('token') || '';
+    if (!t) return;
+    try {
+      const url = versionNum
+        ? `/api/documents/download?document_id=${docId}&version=${versionNum}`
+        : `/api/documents/download?document_id=${docId}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${t}` } });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const disposition = res.headers.get('content-disposition') || '';
+      const nameMatch = disposition.match(/filename="([^"]+)"/);
+      const name = nameMatch?.[1] || fileName || 'download';
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl; a.download = name;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch { /* ignore */ }
+  }
+
   useEffect(() => {
     fetch(`/api/documents/versions?document_id=${doc.id}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { if (Array.isArray(d)) { setVersions(d); if (d[0]?.content) setEditContent(d[0].content); } });
@@ -178,11 +200,40 @@ export default function DocDetailModal({ doc, userRole, currentUserId, onClose, 
                       {currentVersion.content}
                     </div>
                   ) : currentVersion?.file_url ? (
-                    <div className="rounded-xl p-5 flex items-center gap-4" style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
-                      <span className="text-3xl">📎</span>
-                      <div>
-                        <div className="font-bold text-sm" style={{ color: '#1d3557' }}>{currentVersion.file_name}</div>
-                        <a href={currentVersion.file_url} target="_blank" rel="noreferrer" className="text-xs font-bold hover:underline" style={{ color: '#457b9d' }}>Download file →</a>
+                    <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+                      {/* Inline viewer */}
+                      {(() => {
+                        const mime = currentVersion.file_url.match(/data:([^;]+)/)?.[1] || '';
+                        if (mime.startsWith('image/')) return (
+                          <img src={currentVersion.file_url} alt={currentVersion.file_name}
+                            className="w-full max-h-[500px] object-contain bg-gray-50" />
+                        );
+                        if (mime === 'application/pdf') return (
+                          <iframe src={currentVersion.file_url} className="w-full" style={{ height: 500 }} title={currentVersion.file_name} />
+                        );
+                        if (mime.startsWith('text/') || mime === 'application/json') {
+                          try {
+                            const text = atob(currentVersion.file_url.split(',')[1]);
+                            return (
+                              <pre className="p-4 text-xs overflow-auto max-h-96 font-mono" style={{ background: '#f8fafc', color: '#1d3557' }}>{text}</pre>
+                            );
+                          } catch { /* fall through */ }
+                        }
+                        return null;
+                      })()}
+                      {/* Download bar */}
+                      <div className="flex items-center gap-3 px-4 py-3" style={{ background: '#f1faee', borderTop: '1px solid #d0dce8' }}>
+                        <span className="text-xl">📎</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{currentVersion.file_name}</div>
+                        </div>
+                        <button
+                          onClick={() => downloadFile(doc.id, undefined, currentVersion.file_name)}
+                          className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition flex items-center gap-1.5"
+                          style={{ background: '#2a9d8f' }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          Download
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -217,9 +268,13 @@ export default function DocDetailModal({ doc, userRole, currentUserId, onClose, 
                       </div>
                     )}
                     {v.file_url && (
-                      <a href={v.file_url} target="_blank" rel="noreferrer" className="text-xs font-bold mt-1 inline-block hover:underline" style={{ color: '#457b9d' }}>
-                        📎 {v.file_name}
-                      </a>
+                      <button
+                        onClick={() => downloadFile(doc.id, v.version_number, v.file_name)}
+                        className="text-xs font-bold mt-1 inline-flex items-center gap-1 hover:underline"
+                        style={{ color: '#457b9d' }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        {v.file_name}
+                      </button>
                     )}
                   </div>
                 </div>

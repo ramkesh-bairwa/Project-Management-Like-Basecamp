@@ -89,10 +89,26 @@ export default function DocDetailPage() {
     }
   }
 
-  function downloadFile(url: string, name: string) {
-    const a = document.createElement('a');
-    a.href = url; a.download = name; a.target = '_blank';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  async function downloadFile(versionNum?: number, fileName?: string) {
+    const t = localStorage.getItem('token') || '';
+    if (!t) return;
+    const url = versionNum
+      ? `/api/documents/download?document_id=${docId}&version=${versionNum}`
+      : `/api/documents/download?document_id=${docId}`;
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${t}` } });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const disposition = res.headers.get('content-disposition') || '';
+      const nameMatch = disposition.match(/filename="([^"]+)"/);
+      const name = nameMatch?.[1] || fileName || 'download';
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl; a.download = name;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch { /* ignore */ }
   }
 
   async function confirmDelete() {
@@ -234,7 +250,7 @@ export default function DocDetailPage() {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             {currentVersion?.file_url && (
-              <button onClick={() => downloadFile(currentVersion.file_url, currentVersion.file_name)}
+              <button onClick={() => downloadFile(currentVersion.version_number, currentVersion.file_name)}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
                 style={{ background: '#2a9d8f' }}>
                 ⬇️ Download
@@ -271,7 +287,7 @@ export default function DocDetailPage() {
               Uploaded by <strong>{currentVersion.uploaded_by_name}</strong> · {new Date(currentVersion.created_at).toLocaleDateString()}
             </div>
           </div>
-          <button onClick={() => downloadFile(currentVersion.file_url, currentVersion.file_name)}
+          <button onClick={() => downloadFile(currentVersion.version_number, currentVersion.file_name)}
             className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
             style={{ background: '#2a9d8f' }}>
             ⬇️ Download File
@@ -396,7 +412,7 @@ export default function DocDetailPage() {
                   )}
                 </div>
                 {v.file_url && (
-                  <button onClick={() => downloadFile(v.file_url, v.file_name)}
+                  <button onClick={() => downloadFile(v.version_number, v.file_name)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90 flex-shrink-0"
                     style={{ background: '#457b9d' }}>
                     ⬇️ Download

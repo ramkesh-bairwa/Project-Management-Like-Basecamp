@@ -10,23 +10,26 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const id = searchParams.get('id'); // uuid or slug lookup for single group
 
   if (id) {
-    const rows = await query<unknown[]>(
+    const rows = await query<{ id: number } & Record<string, unknown>[]>(
       `SELECT pg.*, u.name as created_by_name FROM project_groups pg JOIN users u ON u.id=pg.created_by
        WHERE pg.deleted_at IS NULL AND (pg.id=? OR pg.uuid=? OR pg.slug=?)`, [id, id, id]
     );
     if (!rows.length) return apiError('Group not found', 404);
+    const grp = rows[0] as { id: number };
+    const member = await query<unknown[]>('SELECT id FROM project_group_members WHERE group_id=? AND user_id=?', [grp.id, user.id]);
+    if (!member.length) return apiError('Group not found', 404);
     return apiResponse(rows[0]);
   }
 
   if (!project_id) return apiError('project_id required');
-  const member = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
-  if (!member.length) return apiError('Not a project member', 403);
   const rows = await query<unknown[]>(
     `SELECT pg.*, u.name as created_by_name,
       (SELECT COUNT(*) FROM project_group_members WHERE group_id=pg.id) as member_count,
       (SELECT COUNT(*) FROM tasks WHERE group_id=pg.id AND parent_task_id IS NULL) as task_count
-     FROM project_groups pg JOIN users u ON u.id=pg.created_by
-     WHERE pg.project_id=? AND pg.deleted_at IS NULL ORDER BY pg.created_at ASC`, [project_id]
+     FROM project_groups pg
+     JOIN users u ON u.id=pg.created_by
+     JOIN project_group_members pgm ON pgm.group_id=pg.id AND pgm.user_id=?
+     WHERE pg.project_id=? AND pg.deleted_at IS NULL ORDER BY pg.created_at ASC`, [user.id, project_id]
   );
   return apiResponse(rows);
 });
@@ -46,10 +49,13 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   await query('UPDATE project_groups SET uuid=?, slug=? WHERE id=?', [uuid, slug, result.insertId]);
   await query('INSERT INTO project_group_members (group_id, user_id, role) VALUES (?,?,?)', [result.insertId, user.id, 'lead']);
 
-  // Notify all project members
-  const projectMembers = await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=? AND user_id != ?', [project_id, user.id]);
+  // Notify only project owner and managers (not all members — group has no members yet)
   const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
-  for (const m of projectMembers) {
+  const managers = await query<{ user_id: number }[]>(
+    `SELECT user_id FROM project_members WHERE project_id=? AND user_id != ? AND role IN ('owner','manager')`,
+    [project_id, user.id]
+  );
+  for (const m of managers) {
     await createNotification(m.user_id, 'project',
       `New group created: "${name}"`,
       `Created by ${creator[0]?.name || 'someone'} in your project.`,

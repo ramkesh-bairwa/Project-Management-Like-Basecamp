@@ -260,6 +260,14 @@ export async function POST(req: NextRequest) {
       )`
     },
     {
+      name: 'groups.chat_id column',
+      sql: `ALTER TABLE \`groups\` ADD COLUMN IF NOT EXISTS chat_id INT NULL`
+    },
+    {
+      name: 'groups.chat_id foreign key',
+      sql: `ALTER TABLE \`groups\` ADD CONSTRAINT fk_groups_chat FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE SET NULL`
+    },
+    {
       name: 'meetings table',
       sql: `CREATE TABLE IF NOT EXISTS meetings (
         id INT AUTO_INCREMENT PRIMARY KEY,

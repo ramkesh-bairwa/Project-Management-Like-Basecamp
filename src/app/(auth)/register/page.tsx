@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -9,6 +9,17 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 > Date.now()) {
+        router.replace('/dashboard');
+      }
+    } catch { /* invalid token, stay */ }
+  }, [router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
@@ -16,7 +27,13 @@ export default function RegisterPage() {
     const data = await res.json();
     if (!res.ok) { setError(data.error); setLoading(false); return; }
     localStorage.setItem('token', data.token);
-    router.push('/dashboard');
+    localStorage.setItem('userId', String(data.user?.id));
+    await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: data.token }),
+    });
+    window.location.replace('/dashboard');
   }
 
   return (

@@ -64,12 +64,11 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   );
   if (!grp.length) return apiError('Group not found', 404);
 
-  const pm = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=?', [grp[0].project_id, user.id]);
-  if (!pm.length) return apiError('Not a project member', 403);
+  const gm = await query<unknown[]>('SELECT id FROM project_group_members WHERE group_id=? AND user_id=?', [grp[0].id, user.id]);
+  if (!gm.length) return apiError('Not a group member', 403);
 
   let chatId = grp[0].chat_id;
 
-  // auto-create chat if not exists (same as GET)
   if (!chatId) {
     const res = await query<{ insertId: number }>(
       "INSERT INTO chats (type, name, created_by) VALUES ('group',?,?)",
@@ -77,7 +76,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     );
     chatId = res.insertId;
     await query('UPDATE project_groups SET chat_id=? WHERE id=?', [chatId, group_id]);
-    const members = await query<{ user_id: number }[]>('SELECT user_id FROM project_group_members WHERE group_id=?', [group_id]);
+    const members = await query<{ user_id: number }[]>('SELECT user_id FROM project_group_members WHERE group_id=?', [grp[0].id]);
     const participants = members.length
       ? members
       : await query<{ user_id: number }[]>('SELECT user_id FROM project_members WHERE project_id=?', [grp[0].project_id]);
@@ -86,12 +85,29 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     }
   }
 
-  // ensure current user is a participant
   await query('INSERT IGNORE INTO chat_participants (chat_id, user_id) VALUES (?,?)', [chatId, user.id]);
+
+  const sender = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
+  const senderName = sender[0]?.name || 'Unknown';
 
   const result = await query<{ insertId: number }>(
     "INSERT INTO messages (chat_id, sender_id, content, type) VALUES (?,?,?,'text')",
     [chatId, user.id, content]
   );
-  return apiResponse({ id: result.insertId, content }, 201);
+
+  // Broadcast via WebSocket
+  const broadcast = (global as Record<string, unknown>).__wsBroadcast as ((key: string, payload: unknown) => void) | undefined;
+  if (broadcast) {
+    broadcast(`chat:${chatId}`, {
+      type: 'chat_message',
+      chat_id: chatId,
+      id: result.insertId,
+      content,
+      sender_id: user.id,
+      sender_name: senderName,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  return apiResponse({ id: result.insertId, content, chat_id: chatId }, 201);
 });
