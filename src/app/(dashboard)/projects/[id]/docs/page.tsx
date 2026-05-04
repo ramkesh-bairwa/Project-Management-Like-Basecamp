@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Doc {
   id: number; title: string; description: string; type: string; status: string;
@@ -32,6 +33,9 @@ export default function ProjectDocsPage() {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null);
+  const [deleteDocTarget, setDeleteDocTarget] = useState<Doc | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -100,11 +104,19 @@ export default function ProjectDocsPage() {
 
   async function deleteFolder(folderId: number, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm('Delete this folder? Documents inside will be moved to root.')) return;
-    const res = await fetch(`/api/document-folders?id=${folderId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    const target = folders.find(f => f.id === folderId);
+    if (target) setDeleteFolderTarget(target);
+  }
+
+  async function confirmDeleteFolder() {
+    if (!deleteFolderTarget) return;
+    setDeleting(true);
+    const res = await fetch(`/api/document-folders?id=${deleteFolderTarget.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setDeleting(false);
+    setDeleteFolderTarget(null);
     if (res.ok) {
       showToast('Folder deleted', 'success');
-      if (activeFolderId === folderId) setActiveFolderId(null);
+      if (activeFolderId === deleteFolderTarget.id) setActiveFolderId(null);
       loadFolders(); loadDocs();
     }
   }
@@ -190,14 +202,22 @@ export default function ProjectDocsPage() {
 
   async function deleteDoc(docId: number, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm('Delete this document? This cannot be undone.')) return;
-    const res = await fetch(`/api/documents?id=${docId}`, {
+    const target = docs.find(d => d.id === docId);
+    if (target) setDeleteDocTarget(target);
+  }
+
+  async function confirmDeleteDoc() {
+    if (!deleteDocTarget) return;
+    setDeleting(true);
+    const res = await fetch(`/api/documents?id=${deleteDocTarget.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
+    setDeleting(false);
+    setDeleteDocTarget(null);
     if (res.ok) {
       showToast('Document deleted', 'success');
-      setDocs(prev => prev.filter(d => d.id !== docId));
+      setDocs(prev => prev.filter(d => d.id !== deleteDocTarget.id));
     } else {
       showToast('Failed to delete document', 'error');
     }
@@ -261,8 +281,8 @@ export default function ProjectDocsPage() {
               <div className="text-xs mt-1" style={{ color: '#6b7a8d' }}>{folder.doc_count} item{folder.doc_count !== 1 ? 's' : ''}</div>
               <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>by {folder.created_by_name}</div>
               <button onClick={e => deleteFolder(folder.id, e)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-lg items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition hover:bg-red-50 hidden group-hover:flex"
-                style={{ color: '#e63946' }}>✕</button>
+                className="absolute top-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50"
+                style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
             </div>
           ))}
         </div>
@@ -472,6 +492,25 @@ export default function ProjectDocsPage() {
       )}
 
 
+      {deleteFolderTarget && (
+        <ConfirmModal
+          title="Delete Folder"
+          message={`Delete "${deleteFolderTarget.name}"? Documents inside will be moved to root.`}
+          onConfirm={confirmDeleteFolder}
+          onCancel={() => setDeleteFolderTarget(null)}
+          loading={deleting}
+        />
+      )}
+
+      {deleteDocTarget && (
+        <ConfirmModal
+          title="Delete Document"
+          message={`Delete "${deleteDocTarget.title}"? This cannot be undone.`}
+          onConfirm={confirmDeleteDoc}
+          onCancel={() => setDeleteDocTarget(null)}
+          loading={deleting}
+        />
+      )}
     </div>
   );
 }

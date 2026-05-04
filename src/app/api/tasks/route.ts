@@ -4,7 +4,7 @@ import { withAuth, apiResponse, apiError } from '@/lib/api';
 import { createNotification } from '@/app/api/notifications/route';
 import { generateUUID, uniqueSlug } from '@/lib/slug';
 
-type TaskRow = { id: number; project_id: number; title: string; status: string; priority: string; assignee_id: number | null; group_id: number | null };
+type TaskRow = { id: number; project_id: number; title: string; status: string; priority: string; assignee_id: number | null; group_id: number | null; parent_task_id: number | null };
 
 async function logHistory(task_id: number, changed_by: number, action: string, old_value: string | null, new_value: string | null, note?: string) {
   await query(
@@ -107,7 +107,14 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   await query('UPDATE tasks SET uuid=?, slug=? WHERE id=?', [uuid, slug, result.insertId]);
 
   await logHistory(result.insertId, user.id, 'created', null, title);
-  if (assignee_id) await logHistory(result.insertId, user.id, 'assigned', null, String(assignee_id));
+  if (assignee_id) {
+    const assigneeName = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [assignee_id]);
+    await logHistory(result.insertId, user.id, 'assigned', null, assigneeName[0]?.name || String(assignee_id));
+  }
+  // Log subtask_added on parent task so it shows in parent's activity feed
+  if (parent_task_id) {
+    await logHistory(Number(parent_task_id), user.id, 'subtask_added', null, title);
+  }
 
   const creator = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
   const creatorName = creator[0]?.name || 'someone';
@@ -186,6 +193,10 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
   if (status && status !== old.status) {
     const action = status === 'done' ? 'closed' : old.status === 'done' ? 'reopened' : 'status_changed';
     await logHistory(id, user.id, action, old.status, status);
+    // If this is a subtask, also log on parent task
+    if (old.parent_task_id) {
+      await logHistory(old.parent_task_id, user.id, 'subtask_status_changed', old.title, `${old.title} → ${status}`);
+    }
     const updater = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
     const taskSlug = await query<{ slug: string }[]>('SELECT slug FROM tasks WHERE id=?', [id]);
     const taskLink = `/projects/${old.project_id}/tasks/${taskSlug[0]?.slug || id}`;
@@ -217,10 +228,31 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
   if (title && title !== old.title) await logHistory(id, user.id, 'title_changed', old.title, title);
   if (priority && priority !== old.priority) await logHistory(id, user.id, 'priority_changed', old.priority, priority);
   if (assignee_id !== undefined && assignee_id !== old.assignee_id) {
-    await logHistory(id, user.id, assignee_id ? 'assigned' : 'unassigned', old.assignee_id ? String(old.assignee_id) : null, assignee_id ? String(assignee_id) : null);
+    // Resolve names for meaningful history
+    let oldName: string | null = null;
+    let newName: string | null = null;
+    if (old.assignee_id) {
+      const r = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [old.assignee_id]);
+      oldName = r[0]?.name || String(old.assignee_id);
+    }
+    if (assignee_id) {
+      const r = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [assignee_id]);
+      newName = r[0]?.name || String(assignee_id);
+    }
+    await logHistory(id, user.id, assignee_id ? 'assigned' : 'unassigned', oldName, newName);
   }
   if (group_id !== undefined && group_id !== old.group_id) {
-    await logHistory(id, user.id, 'moved_group', old.group_id ? String(old.group_id) : null, group_id ? String(group_id) : null);
+    let oldGrp: string | null = null;
+    let newGrp: string | null = null;
+    if (old.group_id) {
+      const r = await query<{ name: string }[]>('SELECT name FROM project_groups WHERE id=?', [old.group_id]);
+      oldGrp = r[0]?.name || String(old.group_id);
+    }
+    if (group_id) {
+      const r = await query<{ name: string }[]>('SELECT name FROM project_groups WHERE id=?', [group_id]);
+      newGrp = r[0]?.name || String(group_id);
+    }
+    await logHistory(id, user.id, 'moved_group', oldGrp, newGrp);
   }
 
   return apiResponse({ message: 'Task updated' });
@@ -234,10 +266,10 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   if (!tasks.length) return apiError('Task not found', 404);
 
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [tasks[0].project_id, user.id]);
-  if (!member.length || !['owner','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
+  if (!member.length) return apiError('Not authorized', 403);
 
   await query('UPDATE tasks SET deleted_at=NOW() WHERE id=?', [id]);
-  // Also soft delete subtasks
   await query('UPDATE tasks SET deleted_at=NOW() WHERE parent_task_id=? AND deleted_at IS NULL', [id]);
+  await logHistory(Number(id), user.id, 'deleted', tasks[0].title, null);
   return apiResponse({ message: 'Task deleted' });
 });

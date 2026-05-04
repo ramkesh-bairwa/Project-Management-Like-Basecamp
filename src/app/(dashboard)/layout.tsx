@@ -391,6 +391,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="absolute right-0 top-10 bg-white border border-[#d0dce8] rounded-xl shadow-xl w-44 py-1 z-50">
                   <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">👤 Profile</Link>
                   <Link href="/plans" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">💎 Plans</Link>
+                  <Link href="/archive" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">🗃 Archive</Link>
                   <div className="border-t border-[#d0dce8] my-1" />
                   <button onClick={logout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">🚪 Sign out</button>
                 </div>

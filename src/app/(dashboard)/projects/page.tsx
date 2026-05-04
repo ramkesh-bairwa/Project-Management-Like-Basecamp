@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getToken } from '@/lib/client-auth';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Project { id: number; uuid: string; slug: string; name: string; description: string; status: string; priority: string; due_date: string; org_id: number | null }
 
@@ -22,6 +23,8 @@ export default function ProjectsPage() {
   const [form, setForm] = useState({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' });
 
   const [token, setToken] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const t = getToken();
@@ -35,6 +38,18 @@ export default function ProjectsPage() {
     const res = await fetch('/api/projects', { method: 'POST', headers, body: JSON.stringify(form) });
     const data = await res.json();
     if (res.ok) { setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]); setShowForm(false); setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' }); }
+  }
+
+  async function deleteProject() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await fetch(`/api/projects?id=${deleteTarget.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setDeleting(false);
+    setDeleteTarget(null);
+    setProjects(p => p.filter(x => x.id !== deleteTarget.id));
   }
 
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
@@ -64,17 +79,22 @@ export default function ProjectsPage() {
           const accent = accentColors[i % accentColors.length];
           return (
             <Link key={p.id} href={`/projects/${p.slug || p.id}`}
-              className="bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group"
+              className="bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
               style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
               <div className="h-1.5" style={{ background: accent }} />
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="font-black text-[#1d3557] text-base leading-snug group-hover:text-[#e63946] transition">{p.name}</h3>
-                  <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-                    style={{ background: sc.bg, color: sc.text }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
-                    {sc.label}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                      style={{ background: sc.bg, color: sc.text }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
+                      {sc.label}
+                    </span>
+                    <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50"
+                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                  </div>
                 </div>
                 {p.description && <p className="text-sm text-[#6b7a8d] mb-4 line-clamp-2">{p.description}</p>}
                 <div className="flex items-center justify-between text-xs text-[#6b7a8d]">
@@ -98,6 +118,16 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Project"
+          message={`Delete "${deleteTarget.name}"? All tasks, groups and documents will be removed.`}
+          onConfirm={deleteProject}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
+      )}
 
       {showForm && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>

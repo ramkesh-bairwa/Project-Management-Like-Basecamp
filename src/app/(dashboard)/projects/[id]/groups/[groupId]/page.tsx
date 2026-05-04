@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 import TaskCommentAccordion from '@/components/project/TaskCommentAccordion';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Group { id: number; uuid: string; slug: string; project_id: number; name: string; description: string; color: string; task_count: number; member_count: number; created_by_name: string }
 interface Task {
@@ -18,9 +19,14 @@ interface Member { id: number; name: string; role: string }
 interface GroupMember { id: number; name: string; email: string; role: string }
 interface Connection { user_id: number; name: string; email: string; status: string }
 interface Invitation { id: number; email: string; status: string; created_at: string; invited_by_name: string }
-interface GroupComment {
-  id: number; content: string; created_at: string; user_name: string;
-  user_avatar: string | null; task_id: number; task_title: string; is_resolved: boolean;
+interface GroupActivity {
+  id: number; kind: 'history' | 'comment';
+  created_at: string; user_name: string;
+  task_id: number; task_title: string;
+  // history fields
+  action?: string; old_value?: string | null; new_value?: string | null;
+  // comment fields
+  content?: string; is_resolved?: boolean;
 }
 
 const statusOptions = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'];
@@ -40,7 +46,15 @@ export default function GroupDetailPage() {
   const [token, setToken] = useState('');
   const [projectNumId, setProjectNumId] = useState(0);
   const [accessDenied, setAccessDenied] = useState(false);
-  const [expandedCommentId, setExpandedCommentId] = useState<number | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  function toggleItem(key: string) {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   // task form
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -53,7 +67,7 @@ export default function GroupDetailPage() {
   const [subtasks, setSubtasks] = useState<Record<number, Subtask[]>>({});
   const [subtaskInput, setSubtaskInput] = useState<Record<number, string>>({});
   const [updatingTask, setUpdatingTask] = useState<number | null>(null);
-  const [groupComments, setGroupComments] = useState<GroupComment[]>([]);
+  const [groupComments, setGroupComments] = useState<GroupActivity[]>([]);
 
   // members panel
   const [showMembers, setShowMembers] = useState(false);
@@ -74,6 +88,10 @@ export default function GroupDetailPage() {
 
   // filter
   const [filterStatus, setFilterStatus] = useState('');
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<{ id: number; title: string } | null>(null);
+  const [deletingTask, setDeletingTask] = useState(false);
+  const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<{ id: number; title: string; parentId: number } | null>(null);
+  const [deletingSubtask, setDeletingSubtask] = useState(false);
 
   useEffect(() => {
     const t = getToken();
@@ -205,6 +223,13 @@ export default function GroupDetailPage() {
       .then(r => r.json()).then(d => Array.isArray(d) && setGroupComments(d));
   }
 
+  // Auto-refresh activity every 5 seconds
+  useEffect(() => {
+    if (!group) return;
+    const interval = setInterval(loadGroupComments, 5000);
+    return () => clearInterval(interval);
+  }, [group, token]);
+
   async function updateTask(task: Task, fields: Partial<{ status: string; assignee_id: number | null; priority: string }>) {
     setUpdatingTask(task.id);
     await fetch('/api/tasks', {
@@ -240,8 +265,16 @@ export default function GroupDetailPage() {
 
   async function deleteTask(e: React.MouseEvent, taskId: number) {
     e.stopPropagation();
-    if (!confirm('Delete this task?')) return;
-    await fetch(`/api/tasks?id=${taskId}`, { method: 'DELETE', headers: h });
+    const task = tasks.find(t => t.id === taskId);
+    if (task) setDeleteTaskTarget({ id: task.id, title: task.title });
+  }
+
+  async function confirmDeleteTask() {
+    if (!deleteTaskTarget) return;
+    setDeletingTask(true);
+    await fetch(`/api/tasks?id=${deleteTaskTarget.id}`, { method: 'DELETE', headers: h });
+    setDeletingTask(false);
+    setDeleteTaskTarget(null);
     loadTasks();
   }
 
@@ -268,6 +301,21 @@ export default function GroupDetailPage() {
   async function toggleSubtaskDone(sub: Subtask, taskId: number) {
     await fetch('/api/tasks', { method: 'PUT', headers: h, body: JSON.stringify({ id: sub.id, title: sub.title, status: sub.status === 'done' ? 'todo' : 'done' }) });
     loadSubtasks(taskId);
+  }
+
+  async function deleteSubtask(subId: number, taskId: number) {
+    const sub = subtasks[taskId]?.find(s => s.id === subId);
+    if (sub) setDeleteSubtaskTarget({ id: sub.id, title: sub.title, parentId: taskId });
+  }
+
+  async function confirmDeleteSubtask() {
+    if (!deleteSubtaskTarget) return;
+    setDeletingSubtask(true);
+    await fetch(`/api/tasks?id=${deleteSubtaskTarget.id}`, { method: 'DELETE', headers: h });
+    setDeletingSubtask(false);
+    loadSubtasks(deleteSubtaskTarget.parentId);
+    loadTasks();
+    setDeleteSubtaskTarget(null);
   }
 
   const canManage = ['owner', 'manager'].includes(myRole);
@@ -523,13 +571,11 @@ export default function GroupDetailPage() {
                 </button>
 
                 {/* Delete */}
-                {canManage && (
-                  <button onClick={e => deleteTask(e, task.id)}
-                    className="text-xs px-2 py-1.5 rounded-lg font-bold transition hover:bg-red-50 flex-shrink-0"
-                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>
-                    🗑
-                  </button>
-                )}
+                <button onClick={e => deleteTask(e, task.id)}
+                  className="text-xs px-2 py-1.5 rounded-lg font-bold transition hover:bg-red-50 flex-shrink-0"
+                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>
+                  🗑
+                </button>
               </div>
 
               {/* Subtask accordion */}
@@ -560,6 +606,11 @@ export default function GroupDetailPage() {
                             {sub.title}
                           </span>
                           <span className="text-xs font-bold capitalize" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
+                          {canManage && (
+                            <button onClick={() => deleteSubtask(sub.id, task.id)}
+                              className="w-5 h-5 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
+                              style={{ color: '#e63946' }}>✕</button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -596,6 +647,26 @@ export default function GroupDetailPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {deleteTaskTarget && (
+        <ConfirmModal
+          title="Delete Task"
+          message={`Delete "${deleteTaskTarget.title}"? All subtasks and comments will also be removed.`}
+          onConfirm={confirmDeleteTask}
+          onCancel={() => setDeleteTaskTarget(null)}
+          loading={deletingTask}
+        />
+      )}
+
+      {deleteSubtaskTarget && (
+        <ConfirmModal
+          title="Delete Subtask"
+          message={`Delete "${deleteSubtaskTarget.title}"?`}
+          onConfirm={confirmDeleteSubtask}
+          onCancel={() => setDeleteSubtaskTarget(null)}
+          loading={deletingSubtask}
+        />
       )}
 
       {/* Meeting Modal */}
@@ -888,103 +959,224 @@ export default function GroupDetailPage() {
         </div>
       )}
 
-      {/* Comment History Feed */}
+      {/* Recent Activity Feed */}
       {groupComments.length > 0 && (
         <div className="mt-8">
           <div className="flex items-center gap-3 mb-4">
-            <h3 className="font-black text-base" style={{ color: '#1d3557' }}>💬 Recent Comments</h3>
+            <h3 className="font-black text-base" style={{ color: '#1d3557' }}>⚡ Recent Activity</h3>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8f4ff', color: '#457b9d' }}>
               {groupComments.length}
             </span>
           </div>
           <div className="space-y-2">
-            {groupComments.map(comment => {
-              const relatedTask = tasks.find(t => t.id === comment.task_id);
-              const isExpanded = expandedCommentId === comment.id;
-              return (
-                <div key={comment.id} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
-                  {/* Comment row */}
-                  <div
-                    className="px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
-                    onClick={() => setExpandedCommentId(isExpanded ? null : comment.id)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                        style={{ background: `hsl(${(comment.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
-                        {comment.user_name[0].toUpperCase()}
+            {groupComments.map(item => {
+              const key = item.kind === 'history' ? `h-${item.id}` : `c-${item.id}`;
+              const isExpanded = expandedItems.has(key);
+              const relatedTask = tasks.find(t => t.id === item.task_id);
+
+              const actCfg: Record<string, { icon: string; color: string }> = {
+                created:          { icon: '✦', color: '#2a9d8f' },
+                status_changed:   { icon: '⇄', color: '#457b9d' },
+                closed:           { icon: '✓', color: '#0f766e' },
+                reopened:         { icon: '↺', color: '#c2410c' },
+                assigned:         { icon: '→', color: '#6d6875' },
+                unassigned:       { icon: '←', color: '#94a3b8' },
+                priority_changed: { icon: '!',  color: '#f4a261' },
+                title_changed:    { icon: '✎', color: '#457b9d' },
+                deleted:          { icon: '🗑', color: '#e63946' },
+                subtask_added:    { icon: '+',  color: '#2a9d8f' },
+                comment_added:    { icon: '💬', color: '#457b9d' },
+                moved_group:      { icon: '⇢', color: '#e9c46a' },
+              };
+
+              const sl: Record<string, string> = { todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done', cancelled: 'Cancelled' };
+              const lbl = (v: string | null) => (v && sl[v]) ? sl[v] : (v || '');
+
+              function buildMsg(action: string, by: string, oldVal: string | null, newVal: string | null): string {
+                switch (action) {
+                  case 'created':          return `${by} created task "${item.task_title}"`;
+                  case 'assigned':         return newVal ? `${by} assigned "${item.task_title}" to ${newVal}` : `${by} assigned task`;
+                  case 'unassigned':       return oldVal ? `${by} removed ${oldVal} from "${item.task_title}"` : `${by} unassigned task`;
+                  case 'status_changed':   return `${by} changed status of "${item.task_title}" from "${lbl(oldVal)}" to "${lbl(newVal)}"`;
+                  case 'closed':           return `${by} marked "${item.task_title}" as Done`;
+                  case 'reopened':         return `${by} reopened "${item.task_title}" to "${lbl(newVal)}"`;
+                  case 'priority_changed': return `${by} changed priority of "${item.task_title}" from "${oldVal}" to "${newVal}"`;
+                  case 'title_changed':    return `${by} renamed task from "${oldVal}" to "${newVal}"`;
+                  case 'moved_group':      return `${by} moved "${item.task_title}" to group "${newVal}"`;
+                  case 'subtask_added':    return `${by} added subtask "${newVal}" to "${item.task_title}"`;
+                  case 'deleted':          return `${by} deleted task "${item.task_title}"`;
+                  default:                 return `${by} ${action.replace(/_/g, ' ')} on "${item.task_title}"`;
+                }
+              }
+
+              if (item.kind === 'history') {
+                const cfg = actCfg[item.action || ''] || { icon: '•', color: '#94a3b8' };
+                const msg = buildMsg(item.action || '', item.user_name, item.old_value || null, item.new_value || null);
+                return (
+                  <div key={key} className="bg-white rounded-2xl overflow-hidden transition-all"
+                    style={{ border: `1px solid ${isExpanded ? cfg.color + '50' : '#d0dce8'}` }}>
+                    {/* Row */}
+                    <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                      onClick={() => toggleItem(key)}>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                        style={{ background: cfg.color }}>{cfg.icon}</div>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                        style={{ background: `hsl(${(item.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                        {item.user_name[0].toUpperCase()}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-sm font-black" style={{ color: '#1d3557' }}>{comment.user_name}</span>
-                          <span className="text-xs" style={{ color: '#94a3b8' }}>commented on</span>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: '#f1f5f9', color: '#457b9d' }}>
-                            {comment.task_title}
-                          </span>
-                          {comment.is_resolved && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf9', color: '#0f766e' }}>✓ Resolved</span>
-                          )}
-                          <span className="text-xs ml-auto" style={{ color: '#94a3b8' }}>
-                            {new Date(comment.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed" style={{ color: '#475569' }}>{comment.content}</p>
-                      </div>
+                      <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>{msg}</span>
+                      <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
+                        {new Date(item.created_at).toLocaleString()}
+                      </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
-                        className="flex-shrink-0 mt-1 transition-transform duration-200"
+                        className="flex-shrink-0 transition-transform duration-200"
                         style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                         <polyline points="6 9 12 15 18 9"/>
                       </svg>
                     </div>
-                  </div>
-
-                  {/* Expanded task details */}
-                  {isExpanded && relatedTask && (
-                    <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid #e8f0f7', background: '#f8fafc' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <span className="text-xs font-black" style={{ color: '#1d3557' }}>Task Details</span>
-                        <button
-                          onClick={() => router.push(`/projects/${id}/tasks/${relatedTask.id}`)}
-                          className="text-xs font-bold px-2 py-0.5 rounded-lg hover:opacity-80 transition ml-auto"
-                          style={{ background: '#1d3557', color: '#fff' }}>
-                          Open Task →
-                        </button>
-                      </div>
-                      <div className="bg-white rounded-xl p-3" style={{ border: '1px solid #e2e8f0' }}>
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          {relatedTask.group_name && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                              style={{ background: relatedTask.group_color || '#457b9d' }}>
-                              {relatedTask.group_name}
-                            </span>
+                    {/* Expanded */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: `1px solid ${cfg.color}30`, background: '#fafbfc' }}>
+                        {/* Detail */}
+                        <div className="rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                            style={{ background: cfg.color }}>{cfg.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-black mb-0.5" style={{ color: '#1d3557' }}>{item.user_name}</div>
+                            <div className="text-xs" style={{ color: '#6b7a8d' }}>{msg}</div>
+                          </div>
+                          {(item.old_value || item.new_value) && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {item.old_value && (
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{item.old_value}</span>
+                              )}
+                              {item.old_value && item.new_value && <span className="text-xs" style={{ color: '#94a3b8' }}>→</span>}
+                              {item.new_value && (
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: '#f0fdf9', color: '#0f766e' }}>{item.new_value}</span>
+                              )}
+                            </div>
                           )}
-                          <span className="text-xs" style={{ color: '#94a3b8' }}>#{relatedTask.id}</span>
+                          {relatedTask && (
+                            <button onClick={() => router.push(`/projects/${id}/tasks/${relatedTask.slug || relatedTask.id}`)}
+                              className="text-xs font-bold px-2 py-1 rounded-lg hover:opacity-80 transition flex-shrink-0"
+                              style={{ background: '#1d3557', color: '#fff' }}>Open Task →</button>
+                          )}
                         </div>
-                        <p className="text-sm font-bold mb-2" style={{ color: '#1d3557' }}>{relatedTask.title}</p>
-                        {relatedTask.description && (
-                          <p className="text-xs mb-2" style={{ color: '#6b7a8d' }}>{relatedTask.description}</p>
+                        {/* Quick update */}
+                        {relatedTask && (
+                          <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                            <div className="text-xs font-black mb-2" style={{ color: '#6b7a8d' }}>QUICK UPDATE</div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+                                <select
+                                  defaultValue={relatedTask.status}
+                                  onChange={async e => { await updateTask(relatedTask, { status: e.target.value }); }}
+                                  className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                  style={{ background: statusColors[relatedTask.status] + '20', color: statusColors[relatedTask.status], border: `1.5px solid ${statusColors[relatedTask.status]}50` }}>
+                                  {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
+                                </select>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Priority</span>
+                                <select
+                                  defaultValue={relatedTask.priority}
+                                  onChange={async e => { await updateTask(relatedTask, { priority: e.target.value }); }}
+                                  className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                  style={{ background: priorityColors[relatedTask.priority] + '20', color: priorityColors[relatedTask.priority], border: `1.5px solid ${priorityColors[relatedTask.priority]}50` }}>
+                                  {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+                                <select
+                                  defaultValue={relatedTask.assignee_id ?? ''}
+                                  onChange={async e => { await updateTask(relatedTask, { assignee_id: e.target.value ? Number(e.target.value) : null }); }}
+                                  className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                                  <option value="">Unassigned</option>
+                                  {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
                         )}
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: statusColors[relatedTask.status] + '20', color: statusColors[relatedTask.status] }}>
-                            {statusLabels[relatedTask.status]}
-                          </span>
-                          <span className="text-xs font-bold capitalize" style={{ color: priorityColors[relatedTask.priority] }}>
-                            {relatedTask.priority}
-                          </span>
-                          {relatedTask.assignee_name && (
-                            <span className="text-xs" style={{ color: '#6b7a8d' }}>→ {relatedTask.assignee_name}</span>
-                          )}
-                          {relatedTask.due_date && (
-                            <span className="text-xs" style={{ color: '#6b7a8d' }}>📅 {new Date(relatedTask.due_date).toLocaleDateString()}</span>
-                          )}
-                          {relatedTask.subtask_count > 0 && (
-                            <span className="text-xs" style={{ color: '#94a3b8' }}>✅ {relatedTask.subtask_count} subtasks</span>
-                          )}
-                          {relatedTask.comment_count > 0 && (
-                            <span className="text-xs" style={{ color: '#94a3b8' }}>💬 {relatedTask.comment_count} comments</span>
-                          )}
-                        </div>
                       </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Comment
+              return (
+                <div key={key} className="bg-white rounded-2xl overflow-hidden"
+                  style={{ border: `1px solid ${isExpanded ? '#bfdbfe' : '#d0dce8'}` }}>
+                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                    onClick={() => toggleItem(key)}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                      style={{ background: '#457b9d' }}>💬</div>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                      style={{ background: `hsl(${(item.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                      {item.user_name[0].toUpperCase()}
+                    </div>
+                    <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>
+                      <span className="font-bold">{item.user_name}</span>
+                      {' commented on '}
+                      <span className="font-bold" style={{ color: '#457b9d' }}>{item.task_title}</span>
+                      {!isExpanded && (
+                        <span style={{ color: '#6b7a8d' }}>
+                          {' — '}{(item.content || '').length > 60 ? (item.content || '').substring(0, 60) + '…' : item.content}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
+                      {new Date(item.created_at).toLocaleString()}
+                    </span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
+                      className="flex-shrink-0 transition-transform duration-200"
+                      style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </div>
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: '1px solid #bfdbfe', background: '#f8fbff' }}>
+                      <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                        <p className="text-sm leading-relaxed" style={{ color: '#1d3557' }}>{item.content}</p>
+                        {item.is_resolved && (
+                          <span className="inline-block mt-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf9', color: '#0f766e' }}>✓ Resolved</span>
+                        )}
+                      </div>
+                      {relatedTask && (
+                        <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                          <div className="text-xs font-black mb-2" style={{ color: '#6b7a8d' }}>QUICK UPDATE</div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+                              <select
+                                defaultValue={relatedTask.status}
+                                onChange={async e => { await updateTask(relatedTask, { status: e.target.value }); }}
+                                className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                style={{ background: statusColors[relatedTask.status] + '20', color: statusColors[relatedTask.status], border: `1.5px solid ${statusColors[relatedTask.status]}50` }}>
+                                {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+                              <select
+                                defaultValue={relatedTask.assignee_id ?? ''}
+                                onChange={async e => { await updateTask(relatedTask, { assignee_id: e.target.value ? Number(e.target.value) : null }); }}
+                                className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                                <option value="">Unassigned</option>
+                                {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                              </select>
+                            </div>
+                            <button onClick={() => router.push(`/projects/${id}/tasks/${relatedTask.slug || relatedTask.id}`)}
+                              className="text-xs font-bold px-2 py-1.5 rounded-lg hover:opacity-80 transition ml-auto"
+                              style={{ background: '#1d3557', color: '#fff' }}>Open Task →</button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

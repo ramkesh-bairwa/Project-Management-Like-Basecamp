@@ -28,24 +28,34 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const sender = await query<{ name: string }[]>('SELECT name FROM users WHERE id=?', [user.id]);
   const senderName = sender[0]?.name || 'Unknown';
 
-  const result = await query<{ insertId: number; }>(
+  const result = await query<{ insertId: number }>(
     'INSERT INTO messages (chat_id, sender_id, content, type, file_url) VALUES (?,?,?,?,?)',
     [chat_id, user.id, content, type || 'text', file_url || null]
   );
 
-  // Broadcast to WebSocket room
-  const broadcast = (global as Record<string, unknown>).__wsBroadcast as ((key: string, payload: unknown) => void) | undefined;
-  if (broadcast) {
-    broadcast(`chat:${chat_id}`, {
-      type: 'chat_message',
-      chat_id,
-      id: result.insertId,
-      content,
-      sender_id: user.id,
-      sender_name: senderName,
-      created_at: new Date().toISOString(),
-    });
-  }
-
   return apiResponse({ id: result.insertId, content, sender_name: senderName }, 201);
+});
+
+export const PUT = withAuth(async (req: NextRequest, user) => {
+  const { id, content } = await req.json();
+  if (!id || !content?.trim()) return apiError('id and content required');
+
+  const msgs = await query<{ sender_id: number }[]>('SELECT sender_id FROM messages WHERE id=?', [id]);
+  if (!msgs.length) return apiError('Message not found', 404);
+  if (msgs[0].sender_id !== user.id) return apiError('Not authorized', 403);
+
+  await query('UPDATE messages SET content=?, edited_at=NOW() WHERE id=?', [content.trim(), id]);
+  return apiResponse({ message: 'Message updated' });
+});
+
+export const DELETE = withAuth(async (req: NextRequest, user) => {
+  const id = new URL(req.url).searchParams.get('id');
+  if (!id) return apiError('id required');
+
+  const msgs = await query<{ sender_id: number }[]>('SELECT sender_id FROM messages WHERE id=?', [id]);
+  if (!msgs.length) return apiError('Message not found', 404);
+  if (msgs[0].sender_id !== user.id) return apiError('Not authorized', 403);
+
+  await query('DELETE FROM messages WHERE id=?', [id]);
+  return apiResponse({ message: 'Message deleted' });
 });

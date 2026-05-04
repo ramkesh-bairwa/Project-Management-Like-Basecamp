@@ -29,7 +29,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
      FROM comments c
      JOIN users u ON u.id = c.user_id
      LEFT JOIN users ru ON ru.id = c.resolved_by
-     WHERE c.entity_type=? AND c.entity_id=?
+     WHERE c.entity_type=? AND c.entity_id=? AND c.deleted_at IS NULL
      ORDER BY c.created_at ASC`,
     [entity_type, entity_id]
   );
@@ -102,11 +102,9 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
 export const DELETE = withAuth(async (req: NextRequest, user) => {
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return apiError('id required');
-  // Only author can delete, or manager/owner
-  const comment = await query<{ user_id: number; entity_type: string; entity_id: number }[]>('SELECT user_id, entity_type, entity_id FROM comments WHERE id=?', [id]);
+  const comment = await query<{ user_id: number; entity_type: string; entity_id: number }[]>('SELECT user_id, entity_type, entity_id FROM comments WHERE id=? AND deleted_at IS NULL', [id]);
   if (!comment.length) return apiError('Comment not found', 404);
   if (comment[0].user_id !== user.id) {
-    // Check if manager/owner of the project
     if (comment[0].entity_type === 'task') {
       const task = await query<{ project_id: number }[]>('SELECT project_id FROM tasks WHERE id=?', [comment[0].entity_id]);
       if (task.length) {
@@ -117,6 +115,8 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
       return apiError('Not authorized', 403);
     }
   }
-  await query('DELETE FROM comments WHERE id=?', [id]);
+  await query('UPDATE comments SET deleted_at=NOW() WHERE id=?', [id]);
+  // Soft delete child replies too
+  await query('UPDATE comments SET deleted_at=NOW() WHERE parent_id=? AND deleted_at IS NULL', [id]);
   return apiResponse({ message: 'Comment deleted' });
 });

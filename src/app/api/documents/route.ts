@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { unlink } from 'fs/promises';
+import path from 'path';
 
 export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url);
@@ -98,12 +100,33 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return apiError('id required');
 
-  const docs = await query<{ project_id: number }[]>('SELECT project_id FROM documents WHERE id=?', [id]);
+  const docs = await query<{ project_id: number; created_by: number }[]>('SELECT project_id, created_by FROM documents WHERE id=?', [id]);
   if (!docs.length) return apiError('Document not found', 404);
 
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [docs[0].project_id, user.id]);
-  if (!member.length || !['owner','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
+  if (!member.length) return apiError('Not a project member', 403);
 
-  await query("UPDATE documents SET status='archived' WHERE id=?", [id]);
-  return apiResponse({ message: 'Document archived' });
+  const isManagerOrOwner = ['owner', 'manager'].includes(member[0].role);
+  const isCreator = docs[0].created_by === user.id;
+  if (!isManagerOrOwner && !isCreator) return apiError('Not authorized', 403);
+
+  // Get all file_urls across all versions to delete from disk
+  const versions = await query<{ file_url: string | null }[]>(
+    'SELECT file_url FROM document_versions WHERE document_id=?', [id]
+  );
+
+  // Delete physical files (ignore errors if file not found)
+  for (const v of versions) {
+    if (v.file_url?.startsWith('/uploads/')) {
+      const filePath = path.join(process.cwd(), 'public', v.file_url);
+      await unlink(filePath).catch(() => null); // silently ignore missing files
+    }
+  }
+
+  // Hard delete DB records regardless of whether files existed
+  await query('DELETE FROM document_versions WHERE document_id=?', [id]);
+  await query('DELETE FROM comments WHERE entity_type=\'document\' AND entity_id=?', [id]);
+  await query('DELETE FROM documents WHERE id=?', [id]);
+
+  return apiResponse({ message: 'Document deleted' });
 });

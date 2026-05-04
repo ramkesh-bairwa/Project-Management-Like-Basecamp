@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Task {
   id: number; title: string; description: string; status: string; priority: string;
@@ -34,6 +35,8 @@ export default function ProjectTasksPage() {
   const [view, setView] = useState<'board' | 'list'>('board');
   const [filterGroup, setFilterGroup] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // inline create task form
   const [showForm, setShowForm] = useState(false);
@@ -95,6 +98,18 @@ export default function ProjectTasksPage() {
       const d = await res.json();
       setFormError(d.error || 'Failed to create task');
     }
+  }
+
+  async function confirmDeleteTask() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await fetch(`/api/tasks?id=${deleteTarget.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    setDeleting(false);
+    setDeleteTarget(null);
+    loadTasks();
   }
 
   const filtered = tasks.filter(t =>
@@ -207,7 +222,7 @@ export default function ProjectTasksPage() {
                 <div className="p-3 space-y-2 min-h-24">
                   {colTasks.map(task => (
                     <div key={task.id} onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
-                      className="bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md transition"
+                      className="bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md transition group relative"
                       style={{ border: '1px solid #e8f0f7' }}>
                       {task.group_name && (
                         <span className="text-xs font-bold px-1.5 py-0.5 rounded text-white mb-1.5 inline-block"
@@ -221,6 +236,9 @@ export default function ProjectTasksPage() {
                         <div className="flex items-center gap-2 text-xs" style={{ color: '#94a3b8' }}>
                           {task.subtask_count > 0 && <span>✅{task.subtask_count}</span>}
                           {task.comment_count > 0 && <span>💬{task.comment_count}</span>}
+                          <button onClick={e => { e.stopPropagation(); setDeleteTarget(task); }}
+                            className="hover:bg-red-50 rounded px-1 transition"
+                            style={{ color: '#e63946' }}>🗑</button>
                         </div>
                       </div>
                       {task.assignee_name && <div className="text-xs mt-1.5" style={{ color: '#6b7a8d' }}>→ {task.assignee_name}</div>}
@@ -243,7 +261,7 @@ export default function ProjectTasksPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  {['Title', 'Group', 'Status', 'Priority', 'Assignee', 'Due', '✅', '💬'].map(c => (
+                  {['Title', 'Group', 'Status', 'Priority', 'Assignee', 'Due', '✅', '💬', ''].map(c => (
                     <th key={c} className="px-4 py-3 text-left text-xs font-black" style={{ color: '#6b7a8d' }}>{c}</th>
                   ))}
                 </tr>
@@ -271,12 +289,27 @@ export default function ProjectTasksPage() {
                     <td className="px-4 py-3 text-xs" style={{ color: '#6b7a8d' }}>{task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: '#94a3b8' }}>{task.subtask_count || 0}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: '#94a3b8' }}>{task.comment_count || 0}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={e => { e.stopPropagation(); setDeleteTarget(task); }}
+                        className="text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition"
+                        style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
         </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Task"
+          message={`Delete "${deleteTarget.title}"? All subtasks and comments will also be removed.`}
+          onConfirm={confirmDeleteTask}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
       )}
     </div>
   );

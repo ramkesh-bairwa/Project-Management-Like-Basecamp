@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWebSocket, sendWS } from '@/lib/ws-client';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Chat {
   id: number;
@@ -63,6 +64,7 @@ export default function ChatsPage() {
   const [sending, setSending] = useState(false);
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [deleteMsgTarget, setDeleteMsgTarget] = useState<number | null>(null);
 
   // New chat modal
   const [showNewModal, setShowNewModal] = useState(false);
@@ -231,6 +233,22 @@ export default function ChatsPage() {
     }
   }
 
+  async function deleteMessage(msgId: number) {
+    setDeleteMsgTarget(msgId);
+  }
+
+  async function confirmDeleteMessage() {
+    const msgId = deleteMsgTarget;
+    if (!msgId) return;
+    const t = tokenRef.current;
+    setDeleteMsgTarget(null);
+    await fetch(`/api/chats/messages?id=${msgId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+  }
+
   function handleTyping() {
     if (!activeChat) return;
     sendWS({ type: 'typing', chat_id: activeChat, sender_name: myNameRef.current || 'Someone' });
@@ -375,7 +393,7 @@ export default function ChatsPage() {
                 messages.map(m => {
                   const isMe = m.sender_id === myId;
                   return (
-                    <div key={m.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    <div key={m.id} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''}`}>
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                         style={{ background: avatarBg(m.sender_name) }}>
                         {m.sender_name?.[0]?.toUpperCase()}
@@ -387,11 +405,24 @@ export default function ChatsPage() {
                             {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
-                        <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
-                          style={isMe
-                            ? { background: '#1d3557', color: '#fff', borderBottomRightRadius: 4 }
-                            : { background: '#fff', color: '#1d3557', border: '1px solid #d0dce8', borderBottomLeftRadius: 4 }}>
-                          {m.content}
+                        <div className="flex items-end gap-1.5">
+                          <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
+                            style={isMe
+                              ? { background: '#1d3557', color: '#fff', borderBottomRightRadius: 4 }
+                              : { background: '#fff', color: '#1d3557', border: '1px solid #d0dce8', borderBottomLeftRadius: 4 }}>
+                            {m.content}
+                          </div>
+                          {isMe && (
+                            <button onClick={() => deleteMessage(m.id)}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80"
+                              style={{ background: '#e63946' }} title="Delete">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -506,6 +537,14 @@ export default function ChatsPage() {
             </div>
           </div>
         </div>
+      )}
+      {deleteMsgTarget !== null && (
+        <ConfirmModal
+          title="Delete Message"
+          message="Delete this message? This cannot be undone."
+          onConfirm={confirmDeleteMessage}
+          onCancel={() => setDeleteMsgTarget(null)}
+        />
       )}
     </div>
   );

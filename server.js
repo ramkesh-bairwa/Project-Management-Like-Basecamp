@@ -2,6 +2,7 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const jwt = require('jsonwebtoken');
+const WebSocket = require('ws');
 
 // Load .env.local manually since plain node doesn't load it
 require('fs').readFileSync('.env.local', 'utf8').split('\n').forEach(line => {
@@ -74,9 +75,60 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   });
 
+  // ── WebSocket Server ──────────────────────────────────────────────────────
+  const wss = new WebSocket.Server({ server });
+  const clients = new Map();
+  let clientIdCounter = 1;
+
+  wss.on('connection', (ws, req) => {
+    // Optional: verify JWT from query param → ws://localhost:3000?token=xxx
+    const { query } = parse(req.url, true);
+    let user = null;
+    if (query.token) {
+      try { user = jwt.verify(query.token, JWT_SECRET); } catch { /* invalid token */ }
+    }
+
+    const clientId = clientIdCounter++;
+    clients.set(ws, { id: clientId, user });
+
+    ws.send(JSON.stringify({ type: 'welcome', clientId, userId: user?.id || null }));
+
+    ws.on('message', (data) => {
+      let parsed;
+      try { parsed = JSON.parse(data.toString()); } catch {
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid JSON' }));
+        return;
+      }
+
+      const sender = clients.get(ws);
+
+      // Broadcast to all connected clients
+      if (parsed.type === 'message') {
+        const payload = JSON.stringify({
+          type: 'message',
+          from: sender.user?.name || `Client-${sender.id}`,
+          fromId: sender.id,
+          text: parsed.text,
+          timestamp: new Date().toISOString(),
+        });
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) client.send(payload);
+        });
+      }
+
+      if (parsed.type === 'ping') {
+        ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+      }
+    });
+
+    ws.on('close', () => clients.delete(ws));
+    ws.on('error', (err) => console.error(`[WS Error] Client ${clientId}:`, err.message));
+  });
+
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
     console.log(`> Ready on http://localhost:${PORT}`);
+    console.log(`> WebSocket ready on ws://localhost:${PORT}`);
   });
 });
 

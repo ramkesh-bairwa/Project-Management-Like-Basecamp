@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Member { id: number; name: string; email: string; role: string }
 interface Group { id: number; name: string; description: string; is_private: boolean; owner_id: number; members: Member[] }
@@ -15,6 +16,9 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'chat' | 'meetings'>('overview');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [myId, setMyId] = useState(0);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMsg, setNewMsg] = useState('');
@@ -34,6 +38,8 @@ export default function GroupDetailPage() {
       .then(r => r.json())
       .then(d => { if (d.id) setGroup(d); })
       .finally(() => setLoading(false));
+    fetch('/api/users/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => d?.id && setMyId(d.id));
   }, [id]);
 
   useEffect(() => {
@@ -61,6 +67,13 @@ export default function GroupDetailPage() {
       setMessages(m => [...m, { id: data.id, content: newMsg, sender_name: 'You', created_at: new Date().toISOString() }]);
       setNewMsg('');
     }
+  }
+
+  async function deleteGroup() {
+    setDeleting(true);
+    await fetch(`/api/groups?id=${id}`, { method: 'DELETE', headers: auth });
+    setDeleting(false);
+    router.push('/groups');
   }
 
   async function scheduleMeeting(e: React.FormEvent) {
@@ -141,6 +154,13 @@ export default function GroupDetailPage() {
               style={{ background: '#2a9d8f', color: '#fff' }}>
               📅 Create Meeting
             </button>
+            {group.owner_id === myId && (
+              <button onClick={() => setDeleteConfirm(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition"
+                style={{ background: 'rgba(230,57,70,0.15)', color: '#fca5a5', border: '1px solid rgba(230,57,70,0.3)' }}>
+                🗑 Delete
+              </button>
+            )}
           </div>
         </div>
 
@@ -426,6 +446,16 @@ export default function GroupDetailPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Delete Group"
+          message={`Delete "${group?.name}"? This will remove all members and cannot be undone.`}
+          onConfirm={deleteGroup}
+          onCancel={() => setDeleteConfirm(false)}
+          loading={deleting}
+        />
       )}
     </div>
   );

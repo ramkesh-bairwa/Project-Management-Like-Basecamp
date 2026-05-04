@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ConfirmModal from '@/components/ConfirmModal';
 
-interface Group { id: number; name: string; description: string; is_private: boolean; org_id: number | null }
+interface Group { id: number; name: string; description: string; is_private: boolean; org_id: number | null; owner_id: number }
 
 const palette = [
   { bg: '#457b9d', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -18,6 +19,9 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', is_private: false });
+  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [myId, setMyId] = useState(0);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -25,6 +29,8 @@ export default function GroupsPage() {
   useEffect(() => {
     fetch('/api/groups', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
+    fetch('/api/users/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => d?.id && setMyId(d.id));
   }, []);
 
   async function createGroup(e: React.FormEvent) {
@@ -36,6 +42,15 @@ export default function GroupsPage() {
       setForm({ name: '', description: '', is_private: false });
       router.push(`/groups/${data.id}`);
     }
+  }
+
+  async function deleteGroup() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await fetch(`/api/groups?id=${deleteTarget.id}`, { method: 'DELETE', headers: authHeader });
+    setDeleting(false);
+    setDeleteTarget(null);
+    setGroups(g => g.filter(x => x.id !== deleteTarget.id));
   }
 
   return (
@@ -52,7 +67,7 @@ export default function GroupsPage() {
         {groups.map((g, i) => {
           const p = palette[i % palette.length];
           return (
-            <div key={g.id} className="rounded-2xl overflow-hidden hover:shadow-lg transition-all"
+            <div key={g.id} className="rounded-2xl overflow-hidden hover:shadow-lg transition-all relative group"
               style={{ background: p.light, border: `1.5px solid ${p.border}` }}>
               <div className="h-1.5" style={{ background: p.bg }} />
               <div className="p-5">
@@ -61,10 +76,15 @@ export default function GroupsPage() {
                     style={{ background: p.bg }}>
                     {g.name[0].toUpperCase()}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="font-black text-sm truncate" style={{ color: p.text }}>{g.name}</div>
                     <div className="text-xs text-[#6b7a8d] mt-0.5">{g.is_private ? '🔒 Private' : '🌐 Public'}</div>
                   </div>
+                  {g.owner_id === myId && (
+                    <button onClick={e => { e.stopPropagation(); setDeleteTarget(g); }}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
+                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                  )}
                 </div>
                 {g.description && <p className="text-xs text-[#6b7a8d] line-clamp-2 mb-3">{g.description}</p>}
                 <div className="flex gap-2 pt-3" style={{ borderTop: `1px solid ${p.border}` }}>
@@ -95,6 +115,16 @@ export default function GroupsPage() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Group"
+          message={`Delete "${deleteTarget.name}"? This cannot be undone.`}
+          onConfirm={deleteGroup}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
+      )}
 
       {/* Create Group Modal */}
       {showForm && (

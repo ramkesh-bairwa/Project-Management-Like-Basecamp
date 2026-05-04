@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Group { id: number; uuid: string; slug: string; name: string; description: string; color: string; task_count: number; member_count: number; created_by_name: string; created_at: string; }
 interface Member { id: number; name: string; role: string; email: string }
@@ -22,6 +23,8 @@ export default function ProjectGroupsPage() {
   const [projectId, setProjectId] = useState<number | null>(null);
   const [projectMembers, setProjectMembers] = useState<Member[]>([]);
   const [myId, setMyId] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // member dropdown
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
@@ -141,15 +144,23 @@ export default function ProjectGroupsPage() {
 
   async function deleteGroup(e: React.MouseEvent, gid: number) {
     e.stopPropagation();
-    if (!confirm('Delete this group? All tasks inside will be soft deleted.')) return;
-    await fetch(`/api/project-groups?id=${gid}`, {
+    const target = groups.find(g => g.id === gid);
+    if (target) setDeleteTarget(target);
+  }
+
+  async function confirmDeleteGroup() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await fetch(`/api/project-groups?id=${deleteTarget.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     });
+    setDeleting(false);
+    setDeleteTarget(null);
     loadGroups();
   }
 
-  const canManage = !loaded || ['owner', 'manager'].includes(myRole);
+  const canManage = true;
 
   // filtered members for dropdown (exclude self + already selected)
   const selectedIds = new Set(selectedMembers.map(m => m.id));
@@ -376,8 +387,8 @@ export default function ProjectGroupsPage() {
 
               {canManage && (
                 <button onClick={e => deleteGroup(e, group.id)}
-                  className="absolute top-3 right-3 w-7 h-7 rounded-lg items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition hover:bg-red-50 hidden group-hover:flex"
-                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                  className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50"
+                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
               )}
 
               <div className="flex items-center gap-3 mb-3">
@@ -407,6 +418,16 @@ export default function ProjectGroupsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Group"
+          message={`Delete "${deleteTarget.name}"? All tasks inside will be removed.`}
+          onConfirm={confirmDeleteGroup}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
       )}
     </div>
   );

@@ -268,6 +268,23 @@ export async function POST(req: NextRequest) {
       sql: `ALTER TABLE \`groups\` ADD CONSTRAINT fk_groups_chat FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE SET NULL`
     },
     {
+      name: 'messages.edited_at column',
+      sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMP NULL DEFAULT NULL`
+    },
+    {
+      name: 'task_history.deleted action',
+      sql: `ALTER TABLE task_history MODIFY COLUMN action ENUM(
+        'created','status_changed','assigned','unassigned',
+        'priority_changed','title_changed','description_changed',
+        'due_date_changed','reopened','closed','moved_group',
+        'subtask_added','comment_added','document_attached','deleted','subtask_status_changed'
+      ) NOT NULL`
+    },
+    {
+      name: 'comments.deleted_at column',
+      sql: `ALTER TABLE comments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL`
+    },
+    {
       name: 'meetings table',
       sql: `CREATE TABLE IF NOT EXISTS meetings (
         id INT AUTO_INCREMENT PRIMARY KEY,

@@ -4,6 +4,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 import CommentThread, { CommentNode, buildCommentTree } from '@/components/project/CommentThread';
+import ConfirmModal from '@/components/ConfirmModal';
+import { formatDate, formatDateOnly } from '@/lib/date';
 
 interface Task {
   id: number; title: string; description: string; status: string; priority: string;
@@ -22,19 +24,43 @@ const priorityOptions = ['low', 'medium', 'high', 'critical'];
 const statusColors: Record<string, string> = { todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946' };
 const statusLabels: Record<string, string> = { todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done', cancelled: 'Cancelled' };
 const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
-const actionCfg: Record<string, { icon: string; color: string; label: string }> = {
-  created:          { icon: '✦', color: '#2a9d8f', label: 'created task' },
-  status_changed:   { icon: '⇄', color: '#457b9d', label: 'changed status' },
-  closed:           { icon: '✓', color: '#0f766e', label: 'closed task' },
-  reopened:         { icon: '↺', color: '#c2410c', label: 'reopened task' },
-  assigned:         { icon: '→', color: '#6d6875', label: 'assigned' },
-  unassigned:       { icon: '←', color: '#94a3b8', label: 'unassigned' },
-  priority_changed: { icon: '!', color: '#f4a261', label: 'changed priority' },
-  title_changed:    { icon: '✎', color: '#457b9d', label: 'changed title' },
-  moved_group:      { icon: '⇢', color: '#e9c46a', label: 'moved group' },
-  subtask_added:    { icon: '+', color: '#2a9d8f', label: 'added subtask' },
-  comment_added:    { icon: '💬', color: '#457b9d', label: 'commented' },
+
+const actionCfg: Record<string, { icon: string; color: string }> = {
+  created:                 { icon: '✦', color: '#2a9d8f' },
+  status_changed:          { icon: '⇄', color: '#457b9d' },
+  closed:                  { icon: '✓', color: '#0f766e' },
+  reopened:                { icon: '↺', color: '#c2410c' },
+  assigned:                { icon: '→', color: '#6d6875' },
+  unassigned:              { icon: '←', color: '#94a3b8' },
+  priority_changed:        { icon: '!', color: '#f4a261' },
+  title_changed:           { icon: '✎', color: '#457b9d' },
+  moved_group:             { icon: '⇢', color: '#e9c46a' },
+  subtask_added:           { icon: '+', color: '#2a9d8f' },
+  subtask_status_changed:  { icon: '☑', color: '#2a9d8f' },
+  comment_added:           { icon: '💬', color: '#457b9d' },
+  deleted:                 { icon: '🗑', color: '#e63946' },
 };
+
+function buildMessage(action: string, by: string, oldVal: string | null, newVal: string | null): string {
+  const sl: Record<string, string> = { todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done', cancelled: 'Cancelled' };
+  const label = (v: string | null) => (v && sl[v]) ? sl[v] : (v || '');
+  switch (action) {
+    case 'created':                 return `${by} created this task`;
+    case 'assigned':                return newVal ? `${by} assigned task to ${newVal}` : `${by} assigned task`;
+    case 'unassigned':              return oldVal ? `${by} removed ${oldVal} from this task` : `${by} unassigned task`;
+    case 'status_changed':          return `${by} changed status from "${label(oldVal)}" to "${label(newVal)}"`;
+    case 'closed':                  return `${by} marked task as Done`;
+    case 'reopened':                return `${by} reopened task (from "${label(oldVal)}" to "${label(newVal)}")`;
+    case 'priority_changed':        return `${by} changed priority from "${oldVal}" to "${newVal}"`;
+    case 'title_changed':           return `${by} renamed task from "${oldVal}" to "${newVal}"`;
+    case 'moved_group':             return oldVal ? `${by} moved task from group "${oldVal}" to "${newVal}"` : `${by} moved task to group "${newVal}"`;
+    case 'subtask_added':           return `${by} added subtask "${newVal}"`;
+    case 'subtask_status_changed':  return `${by} updated subtask "${oldVal}"`;
+    case 'comment_added':           return `${by} commented`;
+    case 'deleted':                 return `${by} deleted this task`;
+    default:                        return `${by} ${action.replace(/_/g, ' ')}`;
+  }
+}
 
 type FeedItem =
   | { kind: 'history'; entry: HistoryEntry; time: number }
@@ -51,6 +77,7 @@ export default function TaskDetailPage() {
   const [myRole, setMyRole] = useState('');
   const [myId, setMyId] = useState(0);
   const [token, setToken] = useState('');
+  const [projectNumId, setProjectNumId] = useState(0);
   const [activeTab, setActiveTab] = useState<'activity' | 'subtasks'>('activity');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -62,6 +89,10 @@ export default function TaskDetailPage() {
   const [newSubtask, setNewSubtask] = useState('');
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
+  const [deleteTaskConfirm, setDeleteTaskConfirm] = useState(false);
+  const [deletingTask, setDeletingTask] = useState(false);
+  const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<Subtask | null>(null);
+  const [deletingSubtask, setDeletingSubtask] = useState(false);
 
   useEffect(() => {
     const t = getToken();
@@ -81,6 +112,7 @@ export default function TaskDetailPage() {
       .then(r => r.json()).then(d => {
         if (d && d.id) {
           setTask(d);
+          setProjectNumId(d.project_id);
           setEditStatus(d.status);
           setEditPriority(d.priority);
           setEditAssignee(d.assignee_id ? String(d.assignee_id) : '');
@@ -120,6 +152,16 @@ export default function TaskDetailPage() {
       .then(r => r.json()).then(d => Array.isArray(d) && setHistory(d));
   }
 
+  // Auto-refresh activity every 5 seconds
+  useEffect(() => {
+    if (!task) return;
+    const interval = setInterval(() => {
+      loadComments();
+      loadHistory();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [task, token]);
+
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   async function updateTask(fields: Record<string, unknown>) {
@@ -135,12 +177,29 @@ export default function TaskDetailPage() {
   async function addSubtask(e: React.FormEvent) {
     e.preventDefault();
     if (!newSubtask.trim() || !task) return;
-    await fetch('/api/tasks', { method: 'POST', headers: h, body: JSON.stringify({ project_id: Number(id), parent_task_id: task.id, title: newSubtask, priority: 'medium' }) });
+    await fetch('/api/tasks', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectNumId, parent_task_id: task.id, title: newSubtask, priority: 'medium' }) });
     setNewSubtask(''); loadSubtasks(); loadHistory();
   }
 
   async function toggleSubtask(sub: Subtask) {
     await fetch('/api/tasks', { method: 'PUT', headers: h, body: JSON.stringify({ id: sub.id, title: sub.title, status: sub.status === 'done' ? 'todo' : 'done' }) });
+    loadSubtasks();
+  }
+
+  async function deleteTask() {
+    if (!task) return;
+    setDeletingTask(true);
+    await fetch(`/api/tasks?id=${task.id}`, { method: 'DELETE', headers: h });
+    setDeletingTask(false);
+    router.push(`/projects/${id}/tasks`);
+  }
+
+  async function deleteSubtask() {
+    if (!deleteSubtaskTarget) return;
+    setDeletingSubtask(true);
+    await fetch(`/api/tasks?id=${deleteSubtaskTarget.id}`, { method: 'DELETE', headers: h });
+    setDeletingSubtask(false);
+    setDeleteSubtaskTarget(null);
     loadSubtasks();
   }
 
@@ -177,7 +236,7 @@ export default function TaskDetailPage() {
   const commentTree = buildCommentTree(comments);
   const canReopen = ['owner', 'manager'].includes(myRole);
 
-  // Build feed: newest first
+  // Build feed: newest first — exclude comment_added (shown as actual comments)
   const feed: FeedItem[] = [
     ...history.filter(e => e.action !== 'comment_added').map(e => ({ kind: 'history' as const, entry: e, time: new Date(e.created_at).getTime() })),
     ...commentTree.map(c => ({ kind: 'comment' as const, comment: c, time: new Date(c.created_at).getTime() })),
@@ -226,6 +285,13 @@ export default function TaskDetailPage() {
             {task.description && <p className="text-sm mt-1" style={{ color: '#6b7a8d' }}>{task.description}</p>}
           </div>
           <button onClick={() => router.back()} className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-100 transition" style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>← Back</button>
+          {['owner', 'manager'].includes(myRole) && (
+            <button onClick={() => setDeleteTaskConfirm(true)}
+              className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-50 transition"
+              style={{ color: '#e63946', border: '1px solid #fecaca' }}>
+              🗑 Delete Task
+            </button>
+          )}
         </div>
 
         {/* Inline controls */}
@@ -312,68 +378,104 @@ export default function TaskDetailPage() {
           ) : (
             feed.map((item) => {
               if (item.kind === 'history') {
-                const cfg = actionCfg[item.entry.action] || { icon: '•', color: '#94a3b8', label: item.entry.action };
+                const cfg = actionCfg[item.entry.action] || { icon: '•', color: '#94a3b8' };
                 const key = `h-${item.entry.id}`;
                 const isOpen = expandedItems.has(key);
-                const hasDetail = !!(item.entry.old_value || item.entry.new_value);
+                const msg = buildMessage(item.entry.action, item.entry.changed_by_name, item.entry.old_value, item.entry.new_value);
                 return (
                   <div key={key} className="bg-white rounded-xl overflow-hidden transition-all"
-                    style={{ border: '1px solid #e2e8f0' }}>
-                    {/* Compact row */}
-                    <div
-                      className={`flex items-center gap-3 px-4 py-2.5 ${hasDetail ? 'cursor-pointer hover:bg-[#f8fafc]' : ''} transition`}
-                      onClick={() => hasDetail && toggleItem(key)}>
-                      {/* Icon */}
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                        style={{ background: cfg.color }}>
-                        {cfg.icon}
+                    style={{ border: `1px solid ${isOpen ? cfg.color + '40' : '#e2e8f0'}` }}>
+                    {/* Row — always clickable */}
+                    <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                      onClick={() => toggleItem(key)}>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                        style={{ background: cfg.color }}>{cfg.icon}</div>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                        style={{ background: `hsl(${(item.entry.changed_by_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                        {item.entry.changed_by_name[0]}
                       </div>
-                      {/* Summary */}
-                      <div className="flex-1 flex items-center gap-2 flex-wrap min-w-0">
-                        <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{item.entry.changed_by_name}</span>
-                        <span className="text-xs" style={{ color: '#6b7a8d' }}>{cfg.label}</span>
-                        {/* Inline pill preview */}
-                        {item.entry.new_value && !isOpen && (
-                          <span className="text-xs px-2 py-0.5 rounded-full font-bold truncate max-w-32"
-                            style={{ background: cfg.color + '15', color: cfg.color }}>
-                            {item.entry.new_value.length > 24 ? item.entry.new_value.substring(0, 24) + '…' : item.entry.new_value}
-                          </span>
-                        )}
-                      </div>
+                      <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>{msg}</span>
                       <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
                         {new Date(item.entry.created_at).toLocaleString()}
                       </span>
-                      {hasDetail && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
-                          className="flex-shrink-0 transition-transform duration-200"
-                          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                          <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                      )}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
+                        className="flex-shrink-0 transition-transform duration-200"
+                        style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
                     </div>
-                    {/* Expanded detail */}
-                    {isOpen && hasDetail && (
-                      <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid #f1f5f9', background: '#fafbfc' }}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {item.entry.old_value && (
-                            <>
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>From</span>
-                              <span className="text-xs px-2 py-1 rounded-lg line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>
-                                {item.entry.old_value}
-                              </span>
-                            </>
+
+                    {/* Expanded detail + quick actions */}
+                    {isOpen && (
+                      <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: `1px solid ${cfg.color}30`, background: '#fafbfc' }}>
+                        {/* Detail card */}
+                        <div className="rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                            style={{ background: cfg.color }}>{cfg.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-black mb-0.5" style={{ color: '#1d3557' }}>{item.entry.changed_by_name}</div>
+                            <div className="text-xs" style={{ color: '#6b7a8d' }}>{msg}</div>
+                          </div>
+                          {/* old → new values */}
+                          {(item.entry.old_value || item.entry.new_value) && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {item.entry.old_value && (
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>
+                                  {item.entry.old_value}
+                                </span>
+                              )}
+                              {item.entry.old_value && item.entry.new_value && <span className="text-xs" style={{ color: '#94a3b8' }}>→</span>}
+                              {item.entry.new_value && (
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: '#f0fdf9', color: '#0f766e' }}>
+                                  {item.entry.new_value}
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {item.entry.old_value && item.entry.new_value && (
-                            <span className="text-xs" style={{ color: '#94a3b8' }}>→</span>
-                          )}
-                          {item.entry.new_value && (
-                            <>
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>{item.entry.old_value ? 'To' : 'Value'}</span>
-                              <span className="text-xs px-2 py-1 rounded-lg font-bold" style={{ background: '#f0fdf9', color: '#0f766e' }}>
-                                {item.entry.new_value}
-                              </span>
-                            </>
-                          )}
+                        </div>
+
+                        {/* Quick-change controls */}
+                        <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                          <div className="text-xs font-black mb-2" style={{ color: '#6b7a8d' }}>QUICK UPDATE</div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {/* Status */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+                              <select value={editStatus}
+                                onChange={e => {
+                                  const s = e.target.value;
+                                  if (task!.status === 'done' && s !== 'done' && !canReopen) { setSaveError('Only manager/owner can reopen'); return; }
+                                  setEditStatus(s); updateTask({ status: s });
+                                }}
+                                className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                style={{ background: statusColors[editStatus] + '20', color: statusColors[editStatus], border: `1.5px solid ${statusColors[editStatus]}50` }}>
+                                {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
+                              </select>
+                            </div>
+                            {/* Priority */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Priority</span>
+                              <select value={editPriority}
+                                onChange={e => { setEditPriority(e.target.value); updateTask({ priority: e.target.value }); }}
+                                className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                style={{ background: priorityColors[editPriority] + '20', color: priorityColors[editPriority], border: `1.5px solid ${priorityColors[editPriority]}50` }}>
+                                {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                              </select>
+                            </div>
+                            {/* Assignee */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+                              <select value={editAssignee}
+                                onChange={e => { setEditAssignee(e.target.value); updateTask({ assignee_id: e.target.value ? Number(e.target.value) : null }); }}
+                                className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                                <option value="">Unassigned</option>
+                                {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                              </select>
+                            </div>
+                            {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
+                            {saveError && <span className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {saveError}</span>}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -386,12 +488,11 @@ export default function TaskDetailPage() {
               const isOpen = expandedItems.has(key);
               return (
                 <div key={key} className="bg-white rounded-xl overflow-hidden"
-                  style={{ border: '1px solid #e2e8f0' }}>
+                  style={{ border: `1px solid ${isOpen ? '#bfdbfe' : '#e2e8f0'}` }}>
                   {/* Compact comment row */}
-                  <div
-                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[#f8fafc] transition"
+                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
                     onClick={() => toggleItem(key)}>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                       style={{ background: `hsl(${(item.comment.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                       {item.comment.user_name[0]}
                     </div>
@@ -400,16 +501,14 @@ export default function TaskDetailPage() {
                       <span className="text-xs flex-shrink-0" style={{ color: '#6b7a8d' }}>commented</span>
                       {!isOpen && (
                         <span className="text-xs truncate" style={{ color: '#94a3b8' }}>
-                          — {item.comment.content.length > 50 ? item.comment.content.substring(0, 50) + '…' : item.comment.content}
+                          — {item.comment.content.length > 60 ? item.comment.content.substring(0, 60) + '…' : item.comment.content}
                         </span>
                       )}
                       {item.comment.is_resolved && (
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: '#f0fdf9', color: '#0f766e' }}>✓</span>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: '#f0fdf9', color: '#0f766e' }}>✓ Resolved</span>
                       )}
                       {(item.comment.children?.length ?? 0) > 0 && !isOpen && (
-                        <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
-                          💬 {item.comment.children!.length}
-                        </span>
+                        <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>💬 {item.comment.children!.length} repl{item.comment.children!.length === 1 ? 'y' : 'ies'}</span>
                       )}
                     </div>
                     <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
@@ -423,7 +522,7 @@ export default function TaskDetailPage() {
                   </div>
                   {/* Expanded comment thread */}
                   {isOpen && (
-                    <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid #f1f5f9', background: '#fafbfc' }}>
+                    <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid #bfdbfe', background: '#f8fbff' }}>
                       <CommentThread
                         comment={item.comment}
                         currentUserId={myId}
@@ -471,6 +570,11 @@ export default function TaskDetailPage() {
                     {sub.status.replace('_', ' ')}
                   </span>
                   <span className="text-xs font-bold" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
+                  {['owner', 'manager'].includes(myRole) && (
+                    <button onClick={() => setDeleteSubtaskTarget(sub)}
+                      className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
+                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                  )}
                 </div>
               ))}
               <div className="text-xs pt-1" style={{ color: '#6b7a8d' }}>
@@ -479,6 +583,26 @@ export default function TaskDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {deleteTaskConfirm && (
+        <ConfirmModal
+          title="Delete Task"
+          message={`Delete "${task?.title}"? All subtasks and comments will also be removed.`}
+          onConfirm={deleteTask}
+          onCancel={() => setDeleteTaskConfirm(false)}
+          loading={deletingTask}
+        />
+      )}
+
+      {deleteSubtaskTarget && (
+        <ConfirmModal
+          title="Delete Subtask"
+          message={`Delete "${deleteSubtaskTarget.title}"?`}
+          onConfirm={deleteSubtask}
+          onCancel={() => setDeleteSubtaskTarget(null)}
+          loading={deletingSubtask}
+        />
       )}
     </div>
   );
