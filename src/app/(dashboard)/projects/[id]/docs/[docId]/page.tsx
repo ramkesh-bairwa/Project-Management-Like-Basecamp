@@ -168,8 +168,8 @@ export default function DocDetailPage() {
   }
 
   const currentVersion = versions[0];
-  const canEdit = ['owner', 'manager', 'developer'].includes(myRole);
-  const canDelete = ['owner', 'manager'].includes(myRole);
+  const canEdit = ['owner', 'admin', 'manager', 'developer'].includes(myRole);
+  const canDelete = ['owner', 'admin', 'manager'].includes(myRole);
   const tree = buildCommentTree(comments);
 
   // For file types, default tab is 'comments' if no content

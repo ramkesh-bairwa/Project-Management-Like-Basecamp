@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { query } from '@/lib/db';
 import { signToken } from '@/lib/auth';
-import { apiResponse, apiError } from '@/lib/api';
+import { apiError } from '@/lib/api';
 
 export async function POST(req: NextRequest) {
   const { name, email, password } = await req.json();
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const result = await query<{ insertId: number }>('INSERT INTO users (name, email, password, plan_id) VALUES (?, ?, ?, ?)', [name, email, hashed, planId]);
   const token = signToken({ id: result.insertId, email, role: 'user', is_org: false });
 
-  const res = apiResponse({ user: { id: result.insertId, name, email, role: 'user', is_org: false }, token }, 201);
+  const res = NextResponse.json({ user: { id: result.insertId, name, email, role: 'user', is_org: false }, token }, { status: 201 });
   res.cookies.set('token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'lax' });
   return res;
 }

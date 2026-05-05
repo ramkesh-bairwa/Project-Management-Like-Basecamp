@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 
-interface Project { id: number; name: string; description: string; status: string; priority: string; due_date: string; created_at: string }
+interface Project { id: number; name: string; description: string; status: string; priority: string; due_date: string; created_at: string; creator_name: string }
 interface Member { id: number; name: string; email: string; role: string }
 interface Stats { groups: number; tasks: number; docs: number; members: number }
 
@@ -51,11 +51,13 @@ export default function ProjectOverviewPage() {
   const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState('developer');
   const [addError, setAddError] = useState('');
+  const [myId, setMyId] = useState(0);
 
   useEffect(() => {
     const t = getToken();
     const uid = getTokenUserId();
     setToken(t);
+    setMyId(uid);
     if (!id) return;
     const auth = { Authorization: `Bearer ${t}` };
     fetch(`/api/projects?id=${id}`, { headers: auth })
@@ -82,6 +84,23 @@ export default function ProjectOverviewPage() {
       });
   }, [id]);
 
+  function reloadMembers() {
+    fetch(`/api/projects/members?project_id=${projectId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) { setMembers(d); setStats(s => ({ ...s, members: d.length })); } });
+  }
+
+  async function changeRole(userId: number, role: string) {
+    const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: userId, role }) });
+    reloadMembers();
+  }
+
+  async function removeMember(userId: number) {
+    const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    await fetch('/api/projects/members', { method: 'DELETE', headers: h, body: JSON.stringify({ project_id: projectId, user_id: userId }) });
+    reloadMembers();
+  }
+
   async function addMember(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
@@ -91,8 +110,7 @@ export default function ProjectOverviewPage() {
     if (!res.ok || !data.id) { setAddError('User not found'); return; }
     const r2 = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: data.id, role: memberRole }) });
     if (r2.ok) {
-      setMembers(m => [...m, { id: data.id, name: data.name, email: data.email, role: memberRole }]);
-      setStats(s => ({ ...s, members: s.members + 1 }));
+      reloadMembers();
       setShowAddMember(false); setMemberEmail(''); setMemberRole('developer');
     } else {
       const e2 = await r2.json(); setAddError(e2.error || 'Failed');
@@ -102,7 +120,7 @@ export default function ProjectOverviewPage() {
   if (!project) return <div className="text-center py-20 text-[#6b7a8d]">Loading...</div>;
 
   const sc = statusCfg[project.status] || statusCfg.planning;
-  const canManage = ['owner','manager'].includes(myRole);
+  const canManage = ['owner','admin','manager'].includes(myRole);
 
   const sections = [
     { href: `/projects/${id}/groups`, icon: '🗂', label: 'Groups', count: stats.groups, desc: 'Organize tasks into groups', color: '#457b9d' },
@@ -129,6 +147,7 @@ export default function ProjectOverviewPage() {
             <div className="flex items-center gap-4 mt-3 text-xs" style={{ color: '#94a3b8' }}>
               {project.due_date && <span>📅 Due {fmtD(project.due_date)}</span>}
               <span>Created {fmtD(project.created_at)}</span>
+              {project.creator_name && <span>👤 {project.creator_name}</span>}
             </div>
           </div>
           {canManage && (
@@ -157,24 +176,63 @@ export default function ProjectOverviewPage() {
       </div>
 
       <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #d0dce8' }}>
-        <h2 className="font-black text-base mb-4" style={{ color: '#1d3557' }}>Members ({members.length})</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black text-base" style={{ color: '#1d3557' }}>Members ({members.length})</h2>
+          {canManage && (
+            <button onClick={() => setShowAddMember(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
+              style={{ background: '#457b9d' }}>
+              + Add Member
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {members.map((m, i) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-                style={{ background: avatarColors[i % avatarColors.length] }}>
-                {m.name[0]}
+          {members.map((m, i) => {
+            const isMe = m.id === myId;
+            const isOwner = m.role === 'owner';
+            const canEdit = canManage && !isMe && !isOwner;
+            return (
+              <div key={m.id} className="flex items-center gap-3 rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
+                  style={{ background: avatarColors[i % avatarColors.length] }}>
+                  {m.name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>
+                    {m.name}{isMe && <span className="ml-1 text-xs font-normal" style={{ color: '#94a3b8' }}>(you)</span>}
+                  </div>
+                  <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{m.email}</div>
+                </div>
+                {canEdit ? (
+                  <select value={m.role} onChange={e => changeRole(m.id, e.target.value)}
+                    className="text-xs font-bold px-2 py-1 rounded-lg focus:outline-none cursor-pointer flex-shrink-0"
+                    style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                    {(myRole === 'owner' ? ['admin','manager','developer','designer','viewer'] : ['manager','developer','designer','viewer']).map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ background: isOwner ? '#fef2f2' : m.role === 'admin' ? '#1d3557' : '#eff6ff', color: isOwner ? '#e63946' : m.role === 'admin' ? '#fff' : '#1d4ed8' }}>
+                    {m.role}
+                  </span>
+                )}
+                {canEdit && (
+                  <button onClick={() => removeMember(m.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
+                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{m.name}</div>
-                <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{m.email}</div>
-              </div>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: m.role === 'owner' ? '#f0fdf9' : '#eff6ff', color: m.role === 'owner' ? '#0f766e' : '#1d4ed8' }}>
-                {m.role}
-              </span>
-            </div>
-          ))}
+            );
+          })}
+          {canManage && (
+            <button onClick={() => setShowAddMember(true)}
+              className="flex items-center justify-center gap-2 rounded-xl p-3 transition hover:border-[#457b9d] hover:bg-[#eff6ff]"
+              style={{ border: '2px dashed #d0dce8', color: '#457b9d' }}>
+              <span className="text-lg font-black">+</span>
+              <span className="text-sm font-bold">Add Member</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -197,7 +255,7 @@ export default function ProjectOverviewPage() {
                 <select value={memberRole} onChange={e => setMemberRole(e.target.value)}
                   className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
-                  {['manager','developer','designer','viewer'].map(r => <option key={r} value={r}>{r}</option>)}
+                  {(myRole === 'owner' ? ['admin','manager','developer','designer','viewer'] : ['manager','developer','designer','viewer']).map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               {addError && <p className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {addError}</p>}

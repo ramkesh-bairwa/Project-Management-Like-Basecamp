@@ -299,6 +299,74 @@ export async function POST(req: NextRequest) {
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
       )`
     },
+    {
+      name: 'plans.max_tasks column',
+      sql: `ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_tasks INT DEFAULT -1 AFTER max_members`
+    },
+    {
+      name: 'plans.max_groups column',
+      sql: `ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_groups INT DEFAULT -1 AFTER max_tasks`
+    },
+    {
+      name: 'plans.quarterly_price column',
+      sql: `ALTER TABLE plans ADD COLUMN IF NOT EXISTS quarterly_price DECIMAL(10,2) DEFAULT NULL AFTER price`
+    },
+    {
+      name: 'plans.yearly_price column',
+      sql: `ALTER TABLE plans ADD COLUMN IF NOT EXISTS yearly_price DECIMAL(10,2) DEFAULT NULL AFTER quarterly_price`
+    },
+    {
+      name: 'plans.sort_order column',
+      sql: `ALTER TABLE plans ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0 AFTER is_active`
+    },
+    {
+      name: 'subscriptions.billing_cycle column',
+      sql: `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS billing_cycle ENUM('monthly','quarterly','yearly','lifetime') DEFAULT 'monthly' AFTER plan_id`
+    },
+    {
+      name: 'subscriptions.stripe_session_id column',
+      sql: `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255) NULL AFTER payment_ref`
+    },
+    {
+      name: 'payments table',
+      sql: `CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        plan_id INT NOT NULL,
+        billing_cycle ENUM('monthly','quarterly','yearly','lifetime') DEFAULT 'monthly',
+        amount DECIMAL(10,2) NOT NULL,
+        currency VARCHAR(10) DEFAULT 'USD',
+        status ENUM('pending','completed','failed','refunded') DEFAULT 'pending',
+        provider ENUM('stripe','sandbox') DEFAULT 'sandbox',
+        provider_ref VARCHAR(255),
+        stripe_session_id VARCHAR(255),
+        metadata JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+      )`
+    },
+    {
+      name: 'users.role banned value',
+      sql: `ALTER TABLE users MODIFY COLUMN role ENUM('user','admin','banned') DEFAULT 'user'`
+    },
+    {
+      name: 'admin_users table',
+      sql: `CREATE TABLE IF NOT EXISTS admin_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        last_login TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`
+    },
+    {
+      name: 'project_members.role add admin',
+      sql: `ALTER TABLE project_members MODIFY COLUMN role ENUM('owner','admin','manager','developer','designer','viewer') DEFAULT 'developer'`
+    },
   ];
 
   for (const step of steps) {

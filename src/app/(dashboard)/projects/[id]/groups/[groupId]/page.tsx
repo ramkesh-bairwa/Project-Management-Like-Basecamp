@@ -11,7 +11,7 @@ interface Task {
   id: number; uuid: string; slug: string; title: string; status: string; priority: string;
   assignee_id: number | null; assignee_name: string;
   subtask_count: number; comment_count: number;
-  description: string; due_date: string; created_at: string;
+  description: string; due_date: string; created_at: string; creator_name: string;
   group_name: string; group_color: string;
 }
 interface Subtask { id: number; title: string; status: string; priority: string }
@@ -66,6 +66,7 @@ export default function GroupDetailPage() {
   const [myId, setMyId] = useState(0);
   const [token, setToken] = useState('');
   const [projectNumId, setProjectNumId] = useState(0);
+  const [projectName, setProjectName] = useState('');
   const [accessDenied, setAccessDenied] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -128,6 +129,7 @@ export default function GroupDetailPage() {
         setGroup(d);
         const pid = d.project_id;
         setProjectNumId(pid);
+        fetch(`/api/projects?id=${pid}`, { headers: auth }).then(r => r.json()).then(p => p?.name && setProjectName(p.name));
         // Load tasks, comments, members using resolved numeric ids
         fetch(`/api/tasks?group_id=${d.id}`, { headers: auth })
           .then(r => r.json()).then(r => Array.isArray(r) && setTasks(r));
@@ -147,8 +149,9 @@ export default function GroupDetailPage() {
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   function loadGroupMembers() {
-    if (!group) return;
-    fetch(`/api/project-groups/members?group_id=${group.id}`, { headers: { Authorization: `Bearer ${token}` } })
+    const gid = group?.id;
+    if (!gid) return;
+    fetch(`/api/project-groups/members?group_id=${gid}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => Array.isArray(d) && setGroupMembers(d));
   }
 
@@ -179,7 +182,13 @@ export default function GroupDetailPage() {
       body: JSON.stringify({ group_id: group?.id || Number(groupId), user_id: userId, role: 'member' }),
     });
     setAddingMember(null);
-    if (res.ok) { setMemberMsg('Member added!'); loadGroupMembers(); }
+    if (res.ok) {
+      setMemberMsg('Member added!');
+      loadGroupMembers();
+      // Also refresh project members so the new member appears in task assignee dropdowns
+      fetch(`/api/projects/members?project_id=${projectNumId}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => Array.isArray(d) && setMembers(d));
+    }
     else { const d = await res.json(); setMemberMsg(d.error || 'Failed'); }
     setTimeout(() => setMemberMsg(''), 3000);
   }
@@ -190,6 +199,8 @@ export default function GroupDetailPage() {
       body: JSON.stringify({ group_id: group?.id || Number(groupId), user_id: userId }),
     });
     loadGroupMembers();
+    setMemberMsg('Member removed.');
+    setTimeout(() => setMemberMsg(''), 3000);
   }
 
   async function sendInvite(e: React.FormEvent) {
@@ -339,7 +350,7 @@ export default function GroupDetailPage() {
     setDeleteSubtaskTarget(null);
   }
 
-  const canManage = ['owner', 'manager'].includes(myRole);
+  const canManage = ['owner', 'admin', 'manager'].includes(myRole);
   const filtered = filterStatus ? tasks.filter(t => t.status === filterStatus) : tasks;
   const doneTasks = tasks.filter(t => t.status === 'done').length;
 
@@ -385,6 +396,7 @@ export default function GroupDetailPage() {
               <h1 className="text-2xl font-black" style={{ color: '#1d3557' }}>{group.name}</h1>
               {group.description && <p className="text-sm mt-0.5" style={{ color: '#6b7a8d' }}>{group.description}</p>}
               <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: '#6b7a8d' }}>
+                {projectName && <span>📁 <strong style={{ color: '#457b9d' }}>{projectName}</strong></span>}
                 <span><strong style={{ color: '#1d3557' }}>{tasks.length}</strong> tasks</span>
                 <span><strong style={{ color: '#2a9d8f' }}>{doneTasks}</strong> done</span>
                 <span><strong style={{ color: '#1d3557' }}>{group.member_count}</strong> members</span>
@@ -518,11 +530,10 @@ export default function GroupDetailPage() {
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: statusColors[task.status] }} />
 
                 {/* Title */}
-                <span className="flex-1 min-w-40 text-sm font-semibold cursor-pointer hover:text-[#e63946] transition"
-                  style={{ color: '#1d3557' }}
-                  onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}>
-                  {task.title}
-                </span>
+                <div className="flex-1 min-w-40 cursor-pointer" onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}>
+                  <div className="text-sm font-semibold hover:text-[#e63946] transition" style={{ color: '#1d3557' }}>{task.title}</div>
+                  <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>🕐 {fmtDT(task.created_at)}{task.creator_name && <> · by <strong style={{ color: '#6b7a8d' }}>{task.creator_name}</strong></>}</div>
+                </div>
 
                 {/* Due date */}
                 {task.due_date && (
@@ -571,7 +582,7 @@ export default function GroupDetailPage() {
                 </button>
 
                 {/* Comment toggle */}
-                <button onClick={e => { e.stopPropagation(); setOpenCommentTaskId(openCommentTaskId === task.id ? null : task.id); }}
+                {/* <button onClick={e => { e.stopPropagation(); setOpenCommentTaskId(openCommentTaskId === task.id ? null : task.id); }}
                   className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition"
                   style={{
                     color: openCommentTaskId === task.id ? '#457b9d' : '#94a3b8',
@@ -582,7 +593,7 @@ export default function GroupDetailPage() {
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                   {task.comment_count > 0 ? task.comment_count : 'Chat'}
-                </button>
+                </button> */}
 
                 {/* Open detail */}
                 <button onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
@@ -990,7 +1001,28 @@ export default function GroupDetailPage() {
             </span>
           </div>
           <div className="space-y-2">
-            {groupComments.map(item => {
+            {(() => {
+              const groups: { dateLabel: string; items: typeof groupComments }[] = [];
+              groupComments.forEach(item => {
+                const dt = new Date(item.created_at);
+                const today = new Date();
+                const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+                const isSameDay = (a: Date, b: Date) => a.getDate()===b.getDate() && a.getMonth()===b.getMonth() && a.getFullYear()===b.getFullYear();
+                const label = isSameDay(dt, today) ? 'Today' : isSameDay(dt, yesterday) ? 'Yesterday' : fmtD(dt);
+                const last = groups[groups.length - 1];
+                if (last && last.dateLabel === label) last.items.push(item);
+                else groups.push({ dateLabel: label, items: [item] });
+              });
+              return groups.map(group => (
+                <div key={group.dateLabel}>
+                  <div className="flex items-center gap-3 my-4">
+                    <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                    <span className="text-xs font-black px-3 py-1 rounded-full flex-shrink-0"
+                      style={{ background: '#f1f5f9', color: '#64748b' }}>{group.dateLabel}</span>
+                    <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                  </div>
+                  <div className="space-y-2">
+                  {group.items.map(item => {
               const key = item.kind === 'history' ? `h-${item.id}` : `c-${item.id}`;
               const isExpanded = expandedItems.has(key);
               const relatedTask = tasks.find(t => t.id === item.task_id);
@@ -1203,6 +1235,10 @@ export default function GroupDetailPage() {
                 </div>
               );
             })}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </div>
       )}

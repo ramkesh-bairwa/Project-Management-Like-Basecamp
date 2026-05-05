@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ConfirmModal';
 interface Task {
   id: number; title: string; description: string; status: string; priority: string;
   assignee_name: string; due_date: string; subtask_count: number; comment_count: number;
-  group_name: string; group_color: string; created_at: string;
+  group_name: string; group_color: string; created_at: string; creator_name: string;
 }
 interface Group { id: number; name: string; color: string }
 interface Member { id: number; name: string; role: string }
@@ -53,11 +53,14 @@ export default function ProjectTasksPage() {
   const [myRole, setMyRole] = useState('');
   const [token, setToken] = useState('');
   const [projectId, setProjectId] = useState<number | null>(null);
+  const [projectName, setProjectName] = useState('');
   const [view, setView] = useState<'board' | 'list'>('board');
   const [filterGroup, setFilterGroup] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [dragTask, setDragTask] = useState<Task | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
   // inline create task form
   const [showForm, setShowForm] = useState(false);
@@ -76,6 +79,7 @@ export default function ProjectTasksPage() {
         if (!proj?.id) return;
         const pid = proj.id;
         setProjectId(pid);
+        setProjectName(proj.name || '');
         fetch(`/api/tasks?project_id=${pid}`, { headers: auth }).then(r => r.json()).then(d => Array.isArray(d) && setTasks(d));
         fetch(`/api/project-groups?project_id=${pid}`, { headers: auth }).then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
         fetch(`/api/projects/members?project_id=${pid}`, { headers: auth }).then(r => r.json()).then(d => {
@@ -121,6 +125,19 @@ export default function ProjectTasksPage() {
     }
   }
 
+  async function handleDrop(targetStatus: string) {
+    if (!dragTask || dragTask.status === targetStatus) { setDragTask(null); setDragOverCol(null); return; }
+    const updated = tasks.map(t => t.id === dragTask.id ? { ...t, status: targetStatus } : t);
+    setTasks(updated);
+    setDragTask(null);
+    setDragOverCol(null);
+    await fetch('/api/tasks', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: dragTask.id, status: targetStatus }),
+    });
+  }
+
   async function confirmDeleteTask() {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -149,9 +166,14 @@ export default function ProjectTasksPage() {
         <span className="font-bold" style={{ color: '#1d3557' }}>Tasks</span>
       </div>
 
+      {/* Heading */}
+      <div className="mb-5">
+        {projectName && <div className="text-xs font-black uppercase tracking-widest mb-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>📁 {projectName}</div>}
+        <h2 className="text-2xl font-black" style={{ color: '#1d3557' }}>Tasks <span className="text-base font-bold" style={{ color: '#94a3b8' }}>({filtered.length})</span></h2>
+      </div>
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>Tasks ({filtered.length})</h2>
         <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
           className="rounded-xl px-3 py-2 text-sm focus:outline-none"
           style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
@@ -235,16 +257,24 @@ export default function ProjectTasksPage() {
             const cfg = statusCfg[col];
             const colTasks = filtered.filter(t => t.status === col);
             return (
-              <div key={col} className="rounded-2xl overflow-hidden" style={{ background: cfg.bg, border: `1.5px solid ${cfg.border}` }}>
+              <div key={col} className="rounded-2xl overflow-hidden transition-all"
+                style={{ background: dragOverCol === col ? cfg.head : cfg.bg, border: `1.5px solid ${dragOverCol === col ? cfg.headText : cfg.border}` }}
+                onDragOver={e => { e.preventDefault(); setDragOverCol(col); }}
+                onDragLeave={() => setDragOverCol(null)}
+                onDrop={() => handleDrop(col)}>
                 <div className="px-4 py-3 flex items-center justify-between" style={{ background: cfg.head }}>
                   <span className="text-sm font-black" style={{ color: cfg.headText }}>{cfg.label}</span>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.7)', color: cfg.headText }}>{colTasks.length}</span>
                 </div>
                 <div className="p-3 space-y-2 min-h-24">
                   {colTasks.map(task => (
-                    <div key={task.id} onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
-                      className="bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md transition group relative"
-                      style={{ border: '1px solid #e8f0f7' }}>
+                    <div key={task.id}
+                      draggable
+                      onDragStart={() => setDragTask(task)}
+                      onDragEnd={() => { setDragTask(null); setDragOverCol(null); }}
+                      onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
+                      className="bg-white rounded-xl p-3 shadow-sm cursor-grab hover:shadow-md transition group relative"
+                      style={{ border: '1px solid #e8f0f7', opacity: dragTask?.id === task.id ? 0.4 : 1 }}>
                       {task.group_name && (
                         <span className="text-xs font-bold px-1.5 py-0.5 rounded text-white mb-1.5 inline-block"
                           style={{ background: task.group_color || '#457b9d' }}>
@@ -263,6 +293,7 @@ export default function ProjectTasksPage() {
                         </div>
                       </div>
                       {task.assignee_name && <div className="text-xs mt-1.5" style={{ color: '#6b7a8d' }}>→ {task.assignee_name}</div>}
+                      {task.creator_name && <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>by {task.creator_name}</div>}
                     </div>
                   ))}
                   {colTasks.length === 0 && <div className="text-center py-6 text-xs" style={{ color: '#94a3b8' }}>Empty</div>}
@@ -291,7 +322,10 @@ export default function ProjectTasksPage() {
                 {filtered.map(task => (
                   <tr key={task.id} onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
                     className="cursor-pointer hover:bg-[#f8fafc] transition" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td className="px-4 py-3 font-semibold" style={{ color: '#1d3557' }}>{task.title}</td>
+                    <td className="px-4 py-3 font-semibold" style={{ color: '#1d3557' }}>
+                      <div>{task.title}</div>
+                      {task.creator_name && <div className="text-xs font-normal mt-0.5" style={{ color: '#94a3b8' }}>by {task.creator_name}</div>}
+                    </td>
                     <td className="px-4 py-3">
                       {task.group_name && (
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>

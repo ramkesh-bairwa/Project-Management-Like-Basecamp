@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: 'test@projecthub.com', password: 'Test@123' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,13 +28,7 @@ export default function LoginPage() {
     if (!res.ok) { setError(data.error); setLoading(false); return; }
     localStorage.setItem('token', data.token);
     localStorage.setItem('userId', String(data.user.id));
-    // Set cookie via session endpoint then redirect
-    await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: data.token }),
-    });
-    window.location.replace('/dashboard');
+    window.location.href = '/dashboard';
   }
 
   return (

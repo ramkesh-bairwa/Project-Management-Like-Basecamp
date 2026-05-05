@@ -26,11 +26,13 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   if (task_id) {
     const rows = await query<{ project_id: number; group_id: number | null } & Record<string, unknown>[]>(
       `SELECT t.*, u.name as assignee_name, u.avatar as assignee_avatar,
+        cu.name as creator_name,
         pg.name as group_name, pg.color as group_color,
         (SELECT COUNT(*) FROM tasks WHERE parent_task_id = t.id) as subtask_count,
         (SELECT COUNT(*) FROM comments WHERE entity_type='task' AND entity_id = t.id) as comment_count
        FROM tasks t
        LEFT JOIN users u ON u.id = t.assignee_id
+       LEFT JOIN users cu ON cu.id = t.created_by
        LEFT JOIN project_groups pg ON pg.id = t.group_id
        WHERE (t.id = ? OR t.uuid = ? OR t.slug = ?) AND t.deleted_at IS NULL`,
       [task_id, task_id, task_id]
@@ -48,11 +50,13 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   }
 
   let sql = `SELECT t.*, u.name as assignee_name, u.avatar as assignee_avatar,
+    cu.name as creator_name,
     pg.name as group_name, pg.color as group_color,
     (SELECT COUNT(*) FROM tasks WHERE parent_task_id = t.id) as subtask_count,
     (SELECT COUNT(*) FROM comments WHERE entity_type='task' AND entity_id = t.id) as comment_count
    FROM tasks t
    LEFT JOIN users u ON u.id = t.assignee_id
+   LEFT JOIN users cu ON cu.id = t.created_by
    LEFT JOIN project_groups pg ON pg.id = t.group_id
    WHERE `;
 
@@ -86,7 +90,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     params.push(project_id!);
   }
 
-  sql += ' ORDER BY t.position ASC, t.created_at ASC';
+  sql += ' ORDER BY t.position ASC, t.created_at DESC';
   const rows = await query<unknown[]>(sql, params);
   return apiResponse(rows);
 });
@@ -178,8 +182,8 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
     );
     if (lastClose.length) {
       const closer = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [old.project_id, lastClose[0].changed_by]);
-      if (closer.length && ['owner','manager'].includes(closer[0].role)) {
-        return apiError('Task was closed by a manager. Only a manager or owner can reopen it.', 403);
+      if (closer.length && ['owner','admin','manager'].includes(closer[0].role)) {
+        return apiError('Task was closed by a manager. Only a manager, admin or owner can reopen it.', 403);
       }
     }
   }

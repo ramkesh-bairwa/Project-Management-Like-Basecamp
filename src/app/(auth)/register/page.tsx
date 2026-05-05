@@ -28,12 +28,7 @@ export default function RegisterPage() {
     if (!res.ok) { setError(data.error); setLoading(false); return; }
     localStorage.setItem('token', data.token);
     localStorage.setItem('userId', String(data.user?.id));
-    await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: data.token }),
-    });
-    window.location.replace('/dashboard');
+    window.location.href = '/dashboard';
   }
 
   return (

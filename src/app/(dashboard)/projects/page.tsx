@@ -5,6 +5,7 @@ import { getToken } from '@/lib/client-auth';
 import ConfirmModal from '@/components/ConfirmModal';
 
 interface Project { id: number; uuid: string; slug: string; name: string; description: string; status: string; priority: string; due_date: string; org_id: number | null }
+interface ProjectMember { id: number; name: string; role: string; }
 
 const statusCfg: Record<string, { dot: string; label: string; bg: string; text: string }> = {
   planning:  { dot: '#94a3b8', label: 'Planning',  bg: '#f1f5f9', text: '#475569' },
@@ -39,6 +40,8 @@ function fmtT(d: string | Date): string {
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [members, setMembers] = useState<Record<number, ProjectMember[]>>({});
+  const [activeMember, setActiveMember] = useState<{ member: ProjectMember; x: number; y: number } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState('all');
   const [form, setForm] = useState({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' });
@@ -50,7 +53,18 @@ export default function ProjectsPage() {
   useEffect(() => {
     const t = getToken();
     setToken(t);
-    fetch('/api/projects', { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()).then(d => Array.isArray(d) && setProjects(d));
+    fetch('/api/projects', { headers: { Authorization: `Bearer ${t}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (!Array.isArray(d)) return;
+        setProjects(d);
+        // Fetch members for all projects in parallel
+        d.forEach((p: Project) => {
+          fetch(`/api/projects/members?project_id=${p.id}`, { headers: { Authorization: `Bearer ${t}` } })
+            .then(r => r.json())
+            .then(m => Array.isArray(m) && setMembers(prev => ({ ...prev, [p.id]: m })));
+        });
+      });
   }, []);
 
   async function createProject(e: React.FormEvent) {
@@ -76,7 +90,7 @@ export default function ProjectsPage() {
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
 
   return (
-    <div>
+    <div onClick={() => setActiveMember(null)}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-2 flex-wrap">
           {['all', 'planning', 'active', 'on_hold', 'completed', 'archived'].map(f => (
@@ -100,10 +114,37 @@ export default function ProjectsPage() {
           const accent = accentColors[i % accentColors.length];
           return (
             <Link key={p.id} href={`/projects/${p.slug || p.id}`}
-              className="bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
+              className="bg-white rounded-2xl overflow-visible hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
               style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
-              <div className="h-1.5" style={{ background: accent }} />
-              <div className="p-5">
+              {/* Top accent bar with overlapping member avatars */}
+              <div className="relative h-2 rounded-t-2xl" style={{ background: accent }}>
+                {(members[p.id] || []).slice(0, 5).map((m, mi) => (
+                  <div key={m.id}
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const rect = (e.target as HTMLElement).getBoundingClientRect();
+                      setActiveMember({ member: m, x: rect.left, y: rect.bottom + 8 });
+                    }}
+                    className="absolute -bottom-3.5 w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-black cursor-pointer hover:scale-110 transition-transform"
+                    style={{
+                      left: `${10 + mi * 18}px`,
+                      background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`,
+                      zIndex: 10 - mi,
+                    }}>
+                    {m.name[0].toUpperCase()}
+                  </div>
+                ))}
+                {(members[p.id] || []).length > 5 && (
+                  <div
+                    onClick={e => { e.preventDefault(); e.stopPropagation(); }}
+                    className="absolute -bottom-3.5 w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-xs font-black"
+                    style={{ left: `${10 + 5 * 18}px`, background: '#94a3b8', color: '#fff', zIndex: 4 }}>
+                    +{(members[p.id] || []).length - 5}
+                  </div>
+                )}
+              </div>
+              <div className="p-5 pt-7">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="font-black text-[#1d3557] text-base leading-snug group-hover:text-[#e63946] transition">{p.name}</h3>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -148,6 +189,35 @@ export default function ProjectsPage() {
           onCancel={() => setDeleteTarget(null)}
           loading={deleting}
         />
+      )}
+
+      {/* Member info popup */}
+      {activeMember && (
+        <div
+          className="fixed z-[200] bg-white rounded-2xl shadow-2xl p-4"
+          style={{ top: activeMember.y, left: activeMember.x, minWidth: 200, border: '1.5px solid #d0dce8' }}
+          onClick={e => e.stopPropagation()}>
+          {/* Avatar */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-black flex-shrink-0"
+              style={{ background: `hsl(${(activeMember.member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+              {activeMember.member.name[0].toUpperCase()}
+            </div>
+            <div>
+              <div className="font-black text-sm" style={{ color: '#1d3557' }}>{activeMember.member.name}</div>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize"
+                style={{
+                  background: activeMember.member.role === 'owner' ? '#fef2f2' : activeMember.member.role === 'manager' ? '#eff6ff' : '#f0fdf9',
+                  color: activeMember.member.role === 'owner' ? '#e63946' : activeMember.member.role === 'manager' ? '#457b9d' : '#2a9d8f'
+                }}>
+                {activeMember.member.role}
+              </span>
+            </div>
+            <button onClick={() => setActiveMember(null)}
+              className="ml-auto w-6 h-6 rounded-lg flex items-center justify-center hover:bg-gray-100 transition text-xs"
+              style={{ color: '#94a3b8' }}>✕</button>
+          </div>
+        </div>
       )}
 
       {showForm && (

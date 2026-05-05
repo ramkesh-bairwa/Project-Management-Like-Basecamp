@@ -10,7 +10,8 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 
   if (id) {
     const rows = await query<unknown[]>(
-      `SELECT p.* FROM projects p
+      `SELECT p.*, u.name as creator_name FROM projects p
+       LEFT JOIN users u ON u.id = p.owner_id
        LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
        WHERE p.deleted_at IS NULL AND (p.owner_id = ? OR pm.user_id = ?)
          AND (p.id = ? OR p.uuid = ? OR p.slug = ?)`,

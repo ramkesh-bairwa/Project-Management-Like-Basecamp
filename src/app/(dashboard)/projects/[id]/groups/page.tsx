@@ -17,6 +17,7 @@ export default function ProjectGroupsPage() {
   const [myRole, setMyRole] = useState('');
   const [token, setToken] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [projectName, setProjectName] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', color: '#457b9d' });
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,7 @@ export default function ProjectGroupsPage() {
         if (!proj?.id) return;
         const pid = proj.id;
         setProjectId(pid);
+        setProjectName(proj.name || '');
         fetch(`/api/project-groups?project_id=${pid}`, { headers: auth })
           .then(r => r.json()).then(d => Array.isArray(d) && setGroups(d));
         fetch(`/api/projects/members?project_id=${pid}`, { headers: auth })
@@ -185,7 +187,10 @@ export default function ProjectGroupsPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>Groups ({groups.length})</h2>
+        <div>
+          {projectName && <div className="text-xs font-bold mb-0.5" style={{ color: '#457b9d' }}>📁 {projectName}</div>}
+          <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>Groups ({groups.length})</h2>
+        </div>
         {canManage && (
           <button onClick={() => { setShowForm(v => !v); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
             className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"

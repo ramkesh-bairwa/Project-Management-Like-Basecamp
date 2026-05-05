@@ -17,8 +17,14 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const { project_id, user_id, role } = await req.json();
   if (!project_id || !user_id) return apiError('project_id and user_id required');
 
-  const owner = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=? AND role IN ("owner","manager")', [project_id, user.id]);
+  const owner = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=? AND role IN ("owner","admin","manager")', [project_id, user.id]);
   if (!owner.length) return apiError('Not authorized', 403);
+
+  // Only owner can assign admin role
+  if (role === 'admin') {
+    const isOwner = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=? AND role="owner"', [project_id, user.id]);
+    if (!isOwner.length) return apiError('Only the project owner can grant admin role', 403);
+  }
 
   await query('INSERT INTO project_members (project_id, user_id, role) VALUES (?,?,?) ON DUPLICATE KEY UPDATE role=VALUES(role)',
     [project_id, user_id, role || 'developer']);
@@ -38,7 +44,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
 export const DELETE = withAuth(async (req: NextRequest, user) => {
   const { project_id, user_id } = await req.json();
-  const owner = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=? AND role IN ("owner","manager")', [project_id, user.id]);
+  const owner = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=? AND role IN ("owner","admin","manager")', [project_id, user.id]);
   if (!owner.length) return apiError('Not authorized', 403);
   await query('DELETE FROM project_members WHERE project_id=? AND user_id=?', [project_id, user_id]);
   return apiResponse({ message: 'Member removed' });

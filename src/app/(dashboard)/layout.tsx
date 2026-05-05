@@ -53,6 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [unread, setUnread] = useState(0);
   const [token, setToken] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Chat dropdown state
   const [chatOpen, setChatOpen] = useState(false);
@@ -71,7 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!t) return;
     fetch('/api/users/me', { headers: { Authorization: `Bearer ${t}` } })
       .then(r => r.json())
-      .then(d => { if (d?.name) setUserName(d.name); })
+      .then(d => { if (d?.name) setUserName(d.name); if (d?.role === 'admin') setIsAdmin(true); })
       .catch(() => {});
     fetch('/api/notifications', { headers: { Authorization: `Bearer ${t}` } })
       .then(r => r.json())
@@ -392,6 +393,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">👤 Profile</Link>
                   <Link href="/plans" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">💎 Plans</Link>
                   <Link href="/archive" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">🗃 Archive</Link>
+                  {isAdmin && (
+                    <Link href="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-red-50 transition" style={{ color: '#e63946' }}>🛡️ Admin Panel</Link>
+                  )}
                   <div className="border-t border-[#d0dce8] my-1" />
                   <button onClick={logout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">🚪 Sign out</button>
                 </div>

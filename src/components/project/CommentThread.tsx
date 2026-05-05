@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export interface CommentNode {
   id: number;
@@ -51,6 +52,8 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
   const [replying, setReplying] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isAuthor = comment.user_id === currentUserId;
   const canManage = isAuthor || ['owner','manager'].includes(userRole);
   const colorIdx = comment.user_id % avatarColors.length;
@@ -123,7 +126,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
             )}
             {canManage && (
               <button
-                onClick={() => onDelete(comment.id)}
+                onClick={() => setConfirmDelete(true)}
                 className="text-xs text-red-400 hover:text-red-600 transition font-bold"
                 title="Delete"
               >
@@ -171,6 +174,16 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
           </form>
         )}
       </div>
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="Delete Comment"
+          message="Delete this comment? This cannot be undone."
+          onConfirm={async () => { setDeleting(true); await onDelete(comment.id); setDeleting(false); setConfirmDelete(false); }}
+          onCancel={() => setConfirmDelete(false)}
+          loading={deleting}
+        />
+      )}
 
       {/* Nested children */}
       {comment.children && comment.children.length > 0 && (

@@ -21,7 +21,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   if (!grp.length) return apiError('Group not found', 404);
 
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [grp[0].project_id, user.id]);
-  if (!member.length || !['owner','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
+  if (!member.length || !['owner','admin','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
 
   // Add to group
   await query('INSERT INTO project_group_members (group_id, user_id, role) VALUES (?,?,?) ON DUPLICATE KEY UPDATE role=VALUES(role)',
@@ -55,7 +55,7 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   const grp = await query<{ project_id: number }[]>('SELECT project_id FROM project_groups WHERE id=?', [group_id]);
   if (!grp.length) return apiError('Group not found', 404);
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [grp[0].project_id, user.id]);
-  if (!member.length || !['owner','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
+  if (!member.length || !['owner','admin','manager'].includes(member[0].role)) return apiError('Not authorized', 403);
   await query('DELETE FROM project_group_members WHERE group_id=? AND user_id=?', [group_id, user_id]);
   return apiResponse({ message: 'Member removed' });
 });

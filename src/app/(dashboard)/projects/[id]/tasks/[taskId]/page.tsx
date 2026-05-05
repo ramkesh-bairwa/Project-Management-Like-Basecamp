@@ -11,6 +11,7 @@ interface Task {
   id: number; title: string; description: string; status: string; priority: string;
   assignee_id: number | null; assignee_name: string; due_date: string;
   group_name: string; group_color: string; project_id: number; created_at: string;
+  creator_name: string;
 }
 interface Subtask { id: number; title: string; status: string; priority: string }
 interface Member { id: number; name: string; role: string }
@@ -99,6 +100,7 @@ export default function TaskDetailPage() {
   const [myId, setMyId] = useState(0);
   const [token, setToken] = useState('');
   const [projectNumId, setProjectNumId] = useState(0);
+  const [projectName, setProjectName] = useState('');
   const [activeTab, setActiveTab] = useState<'activity' | 'subtasks'>('activity');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -110,6 +112,7 @@ export default function TaskDetailPage() {
   const [newSubtask, setNewSubtask] = useState('');
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
+  const [commentStatus, setCommentStatus] = useState('');
   const [deleteTaskConfirm, setDeleteTaskConfirm] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<Subtask | null>(null);
@@ -121,6 +124,7 @@ export default function TaskDetailPage() {
     setToken(t); setMyId(uid);
     if (!id || !taskId) return;
     const auth = { Authorization: `Bearer ${t}` };
+    fetch(`/api/projects?id=${id}`, { headers: auth }).then(r => r.json()).then(p => p?.name && setProjectName(p.name));
     fetch(`/api/projects/members?project_id=${id}`, { headers: auth })
       .then(r => r.json()).then(d => {
         if (!Array.isArray(d)) return;
@@ -165,7 +169,7 @@ export default function TaskDetailPage() {
   function loadComments(t = token) {
     if (!task) return;
     fetch(`/api/comments?entity_type=task&entity_id=${task.id}`, { headers: { Authorization: `Bearer ${t}` } })
-      .then(r => r.json()).then(d => Array.isArray(d) && setComments(d));
+      .then(r => r.json()).then(d => Array.isArray(d) && setComments(buildCommentTree(d)));
   }
   function loadHistory(t = token) {
     if (!task) return;
@@ -229,7 +233,12 @@ export default function TaskDetailPage() {
     if (!newComment.trim() || !task) return;
     setPosting(true);
     await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content: newComment }) });
-    setNewComment(''); setPosting(false); loadComments(); loadHistory();
+    if (commentStatus && commentStatus !== task.status) {
+      setEditStatus(commentStatus);
+      await updateTask({ status: commentStatus });
+    }
+    setNewComment(''); setCommentStatus(''); setPosting(false);
+    loadComments(); loadHistory();
   }
 
   async function replyComment(parentId: number, content: string) {
@@ -255,7 +264,7 @@ export default function TaskDetailPage() {
   }
 
   const commentTree = buildCommentTree(comments);
-  const canReopen = ['owner', 'manager'].includes(myRole);
+  const canReopen = ['owner', 'admin', 'manager'].includes(myRole);
 
   // Build feed: newest first — exclude comment_added (shown as actual comments)
   const feed: FeedItem[] = [
@@ -297,6 +306,7 @@ export default function TaskDetailPage() {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              {projectName && <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: '#eff6ff', color: '#457b9d' }}>📁 {projectName}</span>}
               {task.group_name && (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>{task.group_name}</span>
               )}
@@ -304,9 +314,19 @@ export default function TaskDetailPage() {
             </div>
             <h1 className="text-xl font-black" style={{ color: '#1d3557' }}>{task.title}</h1>
             {task.description && <p className="text-sm mt-1" style={{ color: '#6b7a8d' }}>{task.description}</p>}
+            {task.assignee_name && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                  style={{ background: `hsl(${(task.assignee_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                  {task.assignee_name[0].toUpperCase()}
+                </div>
+                <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{task.assignee_name}</span>
+                <span className="text-xs" style={{ color: '#94a3b8' }}>assigned</span>
+              </div>
+            )}
           </div>
           <button onClick={() => router.back()} className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-100 transition" style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>← Back</button>
-          {['owner', 'manager'].includes(myRole) && (
+          {['owner', 'admin', 'manager'].includes(myRole) && (
             <button onClick={() => setDeleteTaskConfirm(true)}
               className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-50 transition"
               style={{ color: '#e63946', border: '1px solid #fecaca' }}>
@@ -353,6 +373,10 @@ export default function TaskDetailPage() {
           {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
           {saveError && <span className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {saveError}</span>}
         </div>
+        <div className="flex items-center gap-2 mt-3 pt-3 text-xs" style={{ borderTop: '1px solid #f1f5f9', color: '#94a3b8' }}>
+          <span>🕐 Created {fmtDT(task.created_at)}</span>
+          {task.creator_name && <><span>·</span><span>by <strong style={{ color: '#6b7a8d' }}>{task.creator_name}</strong></span></>}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -374,30 +398,68 @@ export default function TaskDetailPage() {
         <div className="space-y-2">
           {/* Comment input */}
           <div className="bg-white rounded-2xl p-4 mb-2" style={{ border: '1px solid #d0dce8' }}>
-            <form onSubmit={postComment} className="flex gap-2">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                style={{ background: `hsl(${(myId * 37) % 360}, 55%, 50%)` }}>
-                {String.fromCharCode(65 + (myId % 26))}
+            <form onSubmit={postComment}>
+              <div className="flex gap-2 mb-3">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                  style={{ background: '#457b9d' }}>
+                  {members.find(m => m.id === myId)?.name?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <input value={newComment} onChange={e => setNewComment(e.target.value)}
+                  placeholder="Write a comment..."
+                  className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
               </div>
-              <input value={newComment} onChange={e => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
-                className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-              <button type="submit" disabled={posting || !newComment.trim()}
-                className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition"
-                style={{ background: '#457b9d' }}>
-                {posting ? '...' : 'Post'}
-              </button>
+              <div className="flex items-center gap-2 flex-wrap pl-9">
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#6b7a8d' }}>Status:</span>
+                {statusOptions.map(s => (
+                  <button type="button" key={s} onClick={() => setCommentStatus(s === commentStatus ? '' : s)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold transition"
+                    style={{
+                      background: (commentStatus || task.status) === s ? statusColors[s] : statusColors[s] + '15',
+                      color: (commentStatus || task.status) === s ? '#fff' : statusColors[s],
+                      border: `1.5px solid ${statusColors[s]}50`,
+                    }}>
+                    {(commentStatus || task.status) === s && '✓ '}{statusLabels[s]}
+                  </button>
+                ))}
+                <button type="submit" disabled={posting || !newComment.trim()}
+                  className="ml-auto px-4 py-1.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition flex-shrink-0"
+                  style={{ background: '#457b9d' }}>
+                  {posting ? '...' : 'Post'}
+                </button>
+              </div>
             </form>
           </div>
+
 
           {feed.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 text-center" style={{ border: '2px dashed #d0dce8' }}>
               <div className="text-3xl mb-2">📋</div>
               <div className="text-sm" style={{ color: '#6b7a8d' }}>No activity yet</div>
             </div>
-          ) : (
-            feed.map((item) => {
+          ) : (() => {
+            // Group feed items by date
+            const groups: { dateLabel: string; items: FeedItem[] }[] = [];
+            feed.forEach(item => {
+              const dt = new Date(item.time);
+              const today = new Date();
+              const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+              const isSameDay = (a: Date, b: Date) => a.getDate()===b.getDate() && a.getMonth()===b.getMonth() && a.getFullYear()===b.getFullYear();
+              const label = isSameDay(dt, today) ? 'Today' : isSameDay(dt, yesterday) ? 'Yesterday' : fmtD(dt);
+              const last = groups[groups.length - 1];
+              if (last && last.dateLabel === label) last.items.push(item);
+              else groups.push({ dateLabel: label, items: [item] });
+            });
+            return groups.map(group => (
+              <div key={group.dateLabel}>
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                  <span className="text-xs font-black px-3 py-1 rounded-full flex-shrink-0"
+                    style={{ background: '#f1f5f9', color: '#64748b' }}>{group.dateLabel}</span>
+                  <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                </div>
+                <div className="space-y-2">
+                {group.items.map((item) => {
               if (item.kind === 'history') {
                 const cfg = actionCfg[item.entry.action] || { icon: '•', color: '#94a3b8' };
                 const key = `h-${item.entry.id}`;
@@ -556,8 +618,11 @@ export default function TaskDetailPage() {
                   )}
                 </div>
               );
-            })
-          )}
+            })}
+                </div>
+              </div>
+            ));
+          })()}
         </div>
       )}
 
@@ -591,7 +656,7 @@ export default function TaskDetailPage() {
                     {sub.status.replace('_', ' ')}
                   </span>
                   <span className="text-xs font-bold" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
-                  {['owner', 'manager'].includes(myRole) && (
+                  {['owner', 'admin', 'manager'].includes(myRole) && (
                     <button onClick={() => setDeleteSubtaskTarget(sub)}
                       className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
                       style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>

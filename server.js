@@ -31,7 +31,7 @@ app.prepare().then(() => {
     }
 
     // Public page paths — no auth needed
-    const PUBLIC_PAGES = ['/login', '/register', '/logout'];
+    const PUBLIC_PAGES = ['/login', '/register', '/logout', '/admin/login'];
     const isPublicPage = PUBLIC_PAGES.some(p => pathname.startsWith(p));
 
     // Root redirect
@@ -41,6 +41,32 @@ app.prepare().then(() => {
       if (token) { try { jwt.verify(token, JWT_SECRET); valid = true; } catch { /* expired */ } }
       res.writeHead(307, { Location: valid ? '/dashboard' : '/login' });
       res.end();
+      return;
+    }
+
+    // Admin login page — always public
+    if (pathname === '/admin/login') {
+      handle(req, res, parsedUrl);
+      return;
+    }
+
+    // Admin routes — use admin_token cookie
+    if (pathname.startsWith('/admin')) {
+      const adminToken = getAdminCookieToken(req);
+      if (!adminToken) {
+        res.writeHead(307, { Location: '/admin/login' });
+        res.end();
+        return;
+      }
+      try {
+        const decoded = jwt.verify(adminToken, JWT_SECRET);
+        if (decoded.role !== 'admin') throw new Error('Not admin');
+      } catch {
+        res.writeHead(307, { Location: '/admin/login', 'Set-Cookie': 'admin_token=; Max-Age=0; Path=/admin; HttpOnly' });
+        res.end();
+        return;
+      }
+      handle(req, res, parsedUrl);
       return;
     }
 
@@ -76,12 +102,18 @@ app.prepare().then(() => {
   });
 
   // ── WebSocket Server ──────────────────────────────────────────────────────
-  const wss = new WebSocket.Server({ server });
+  const wss = new WebSocket.Server({ noServer: true });
   const clients = new Map();
   let clientIdCounter = 1;
 
+  server.on('upgrade', (req, socket, head) => {
+    if (req.url && req.url.includes('/_next/')) return;
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  });
+
   wss.on('connection', (ws, req) => {
-    // Optional: verify JWT from query param → ws://localhost:3000?token=xxx
     const { query } = parse(req.url, true);
     let user = null;
     if (query.token) {
@@ -135,5 +167,11 @@ app.prepare().then(() => {
 function getCookieToken(req) {
   const cookieHeader = req.headers.cookie || '';
   const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+  return match?.[1] || null;
+}
+
+function getAdminCookieToken(req) {
+  const cookieHeader = req.headers.cookie || '';
+  const match = cookieHeader.match(/(?:^|;\s*)admin_token=([^;]+)/);
   return match?.[1] || null;
 }
