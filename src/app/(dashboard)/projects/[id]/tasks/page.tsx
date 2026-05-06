@@ -67,6 +67,11 @@ export default function ProjectTasksPage() {
   const [form, setForm] = useState({ title: '', description: '', priority: 'medium', status: 'todo', group_id: '', assignee_id: '', due_date: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [taskAttachments, setTaskAttachments] = useState<{ type: 'image' | 'video' | 'link'; url: string; name: string }[]>([]);
+  const [taskLinkInput, setTaskLinkInput] = useState('');
+  const [showTaskLinkInput, setShowTaskLinkInput] = useState(false);
+  const [taskUploading, setTaskUploading] = useState(false);
+  const [taskPasteDragging, setTaskPasteDragging] = useState(false);
 
   useEffect(() => {
     const t = getToken();
@@ -98,10 +103,56 @@ export default function ProjectTasksPage() {
       .then(r => r.json()).then(d => Array.isArray(d) && setTasks(d));
   }
 
+  async function uploadTaskFile(file: File) {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) return;
+    setTaskUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/documents/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    setTaskUploading(false);
+    if (res.ok) {
+      const data = await res.json();
+      setTaskAttachments(prev => [...prev, { type: isImage ? 'image' : 'video', url: data.url, name: file.name }]);
+    }
+  }
+
+  function handleTaskPaste(e: React.ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { e.preventDefault(); uploadTaskFile(file); }
+      }
+    }
+  }
+
+  function handleTaskDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setTaskPasteDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach(f => uploadTaskFile(f));
+  }
+
+  function addTaskLink() {
+    const url = taskLinkInput.trim();
+    if (!url) return;
+    const isVideo = /youtube|youtu\.be|vimeo|\.mp4|\.webm/i.test(url);
+    setTaskAttachments(prev => [...prev, { type: isVideo ? 'video' : 'link', url, name: url }]);
+    setTaskLinkInput(''); setShowTaskLinkInput(false);
+  }
+
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim()) return;
     setSaving(true); setFormError('');
+    const attachmentText = taskAttachments.map(a =>
+      a.type === 'image' ? `\n![image](${a.url})` :
+      a.type === 'video' ? `\n\uD83C\uDFA5 [video](${a.url})` :
+      `\n\uD83D\uDD17 ${a.url}`
+    ).join('');
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -109,7 +160,8 @@ export default function ProjectTasksPage() {
         project_id: projectId,
         group_id: form.group_id ? Number(form.group_id) : null,
         assignee_id: form.assignee_id ? Number(form.assignee_id) : null,
-        title: form.title, description: form.description,
+        title: form.title,
+        description: (form.description + attachmentText).trim() || null,
         priority: form.priority, status: form.status,
         due_date: form.due_date || null,
       })
@@ -119,6 +171,7 @@ export default function ProjectTasksPage() {
       loadTasks();
       setShowForm(false);
       setForm({ title: '', description: '', priority: 'medium', status: 'todo', group_id: '', assignee_id: '', due_date: '' });
+      setTaskAttachments([]);
     } else {
       const d = await res.json();
       setFormError(d.error || 'Failed to create task');
@@ -211,9 +264,95 @@ export default function ProjectTasksPage() {
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required placeholder="Task title *" autoFocus
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none md:col-span-2"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Description (optional)" rows={2}
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                onPaste={handleTaskPaste}
+                placeholder="Description (optional) — paste image with Ctrl+V" rows={2}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none md:col-span-2"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+            </div>
+
+            {/* Attachment zone — prominent */}
+            <div
+              onDragOver={e => { e.preventDefault(); setTaskPasteDragging(true); }}
+              onDragLeave={() => setTaskPasteDragging(false)}
+              onDrop={handleTaskDrop}
+              style={{ border: `2px dashed ${taskPasteDragging ? '#457b9d' : '#a8dadc'}`, background: taskPasteDragging ? '#eff6ff' : '#f0fdf9', borderRadius: 16, padding: 16 }}>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="text-sm font-black" style={{ color: '#0f766e' }}>📎 Attachments</span>
+                {taskUploading && <span className="text-xs font-bold" style={{ color: '#457b9d' }}>Uploading...</span>}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                <label className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold cursor-pointer hover:opacity-80 transition text-white"
+                  style={{ background: '#2a9d8f' }}>
+                  🖼️ Upload Image
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => Array.from(e.target.files || []).forEach(uploadTaskFile)} />
+                </label>
+                <label className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold cursor-pointer hover:opacity-80 transition text-white"
+                  style={{ background: '#c2410c' }}>
+                  🎥 Upload Video
+                  <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && uploadTaskFile(e.target.files[0])} />
+                </label>
+                <button type="button" onClick={() => setShowTaskLinkInput(v => !v)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold hover:opacity-80 transition"
+                  style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                  🔗 Add Link
+                </button>
+              </div>
+              <div
+                tabIndex={0}
+                onPaste={handleTaskPaste}
+                onClick={e => (e.currentTarget as HTMLDivElement).focus()}
+                className="mt-2 rounded-xl text-center cursor-pointer outline-none transition flex flex-col items-center justify-center gap-2"
+                style={{ border: '2px dashed #94a3b8', color: '#94a3b8', background: '#f8fafc', minHeight: '100px', padding: '24px 16px' }}
+              >
+                <span style={{ fontSize: 32 }}>📸</span>
+                <span className="text-sm font-bold">Click here then Ctrl+V to paste screenshot</span>
+                <span className="text-xs font-normal">Supports PNG, JPG, GIF from clipboard</span>
+              </div>
+
+              {showTaskLinkInput && (
+                <div className="flex gap-2 mt-3">
+                  <input value={taskLinkInput} onChange={e => setTaskLinkInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTaskLink())}
+                    placeholder="Paste image/video URL and press Enter..."
+                    autoFocus
+                    className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    style={{ background: '#fff', border: '1.5px solid #bfdbfe', color: '#1d3557' }} />
+                  <button type="button" onClick={addTaskLink}
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90"
+                    style={{ background: '#457b9d' }}>Add</button>
+                </div>
+              )}
+
+              {taskAttachments.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+                  {taskAttachments.map((a, i) => (
+                    <div key={i} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
+                      {a.type === 'image' && (
+                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid #d0dce8', display: 'block' }} />
+                      )}
+                      {a.type === 'video' && (
+                        <div style={{ width: 120, height: 96, background: '#1d3557', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 28 }}>🎥</span>
+                          <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{a.name.length > 14 ? a.name.substring(0,14)+'...' : a.name}</span>
+                        </div>
+                      )}
+                      {a.type === 'link' && (
+                        <div style={{ padding: '8px 12px', border: '1.5px solid #bfdbfe', borderRadius: 12, background: '#eff6ff' }}>
+                          <span>🔗</span>
+                          <span style={{ color: '#457b9d', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => setTaskAttachments(prev => prev.filter((_, j) => j !== i))}
+                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 99, lineHeight: 1 }}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <select value={form.group_id} onChange={e => setForm(p => ({ ...p, group_id: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
@@ -240,8 +379,9 @@ export default function ProjectTasksPage() {
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
             </div>
+
             {formError && <p className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {formError}</p>}
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={saving || taskUploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-50"
               style={{ background: '#e63946' }}>
               {saving ? 'Creating...' : 'Create Task'}

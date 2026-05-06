@@ -82,6 +82,11 @@ export default function GroupDetailPage() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '' });
   const [taskSaving, setTaskSaving] = useState(false);
+  const [taskAttachments, setTaskAttachments] = useState<{ type: 'image' | 'video' | 'link'; url: string; name: string }[]>([]);
+  const [taskLinkInput, setTaskLinkInput] = useState('');
+  const [showTaskLinkInput, setShowTaskLinkInput] = useState(false);
+  const [taskUploading, setTaskUploading] = useState(false);
+  const [taskPasteDragging, setTaskPasteDragging] = useState(false);
 
   // inline accordions
   const [openCommentTaskId, setOpenCommentTaskId] = useState<number | null>(null);
@@ -272,16 +277,62 @@ export default function GroupDetailPage() {
     loadTasks();
   }
 
+  async function uploadTaskFile(file: File) {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) return;
+    setTaskUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/documents/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    setTaskUploading(false);
+    if (res.ok) {
+      const data = await res.json();
+      setTaskAttachments(prev => [...prev, { type: isImage ? 'image' : 'video', url: data.url, name: file.name }]);
+    }
+  }
+
+  function handleTaskPaste(e: React.ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { e.preventDefault(); uploadTaskFile(file); }
+      }
+    }
+  }
+
+  function handleTaskDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setTaskPasteDragging(false);
+    Array.from(e.dataTransfer.files).forEach(f => uploadTaskFile(f));
+  }
+
+  function addTaskLink() {
+    const url = taskLinkInput.trim();
+    if (!url) return;
+    const isVideo = /youtube|youtu\.be|vimeo|\.mp4|\.webm/i.test(url);
+    setTaskAttachments(prev => [...prev, { type: isVideo ? 'video' : 'link', url, name: url }]);
+    setTaskLinkInput(''); setShowTaskLinkInput(false);
+  }
+
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
     if (!group || !projectNumId) return;
     setTaskSaving(true);
+    const attachmentText = taskAttachments.map(a =>
+      a.type === 'image' ? `\n![image](${a.url})` :
+      a.type === 'video' ? `\n\uD83C\uDFA5 [video](${a.url})` :
+      `\n\uD83D\uDD17 ${a.url}`
+    ).join('');
     const res = await fetch('/api/tasks', {
       method: 'POST', headers: h,
       body: JSON.stringify({
         project_id: projectNumId,
         group_id: group.id,
-        title: taskForm.title, description: taskForm.description,
+        title: taskForm.title,
+        description: (taskForm.description + attachmentText).trim() || null,
         priority: taskForm.priority,
         assignee_id: taskForm.assignee_id ? Number(taskForm.assignee_id) : null,
         due_date: taskForm.due_date || null,
@@ -292,6 +343,7 @@ export default function GroupDetailPage() {
       loadTasks();
       setShowTaskForm(false);
       setTaskForm({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '' });
+      setTaskAttachments([]);
     }
   }
 
@@ -481,7 +533,8 @@ export default function GroupDetailPage() {
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none md:col-span-2"
                 style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
               <textarea value={taskForm.description} onChange={e => setTaskForm(p => ({ ...p, description: e.target.value }))}
-                placeholder="Description (optional)" rows={2}
+                onPaste={handleTaskPaste}
+                placeholder="Description (optional) — paste image with Ctrl+V" rows={2}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none md:col-span-2"
                 style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
               <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
@@ -499,7 +552,90 @@ export default function GroupDetailPage() {
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
             </div>
-            <button type="submit" disabled={taskSaving}
+
+            {/* Attachment zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setTaskPasteDragging(true); }}
+              onDragLeave={() => setTaskPasteDragging(false)}
+              onDrop={handleTaskDrop}
+              className="rounded-xl p-3 transition-all"
+              style={{ border: `2px dashed ${taskPasteDragging ? '#457b9d' : '#d0dce8'}`, background: taskPasteDragging ? '#eff6ff' : '#f8fafc' }}>
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>📎 Attach:</span>
+                <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition"
+                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  {taskUploading ? 'Uploading...' : 'Image'}
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => Array.from(e.target.files || []).forEach(uploadTaskFile)} />
+                </label>
+                <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition"
+                  style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                  Video
+                  <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && uploadTaskFile(e.target.files[0])} />
+                </label>
+                <button type="button" onClick={() => setShowTaskLinkInput(v => !v)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition"
+                  style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Link
+                </button>
+                {taskAttachments.length > 0 && (
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>{taskAttachments.length} attached</span>
+                )}
+              </div>
+              <div
+                tabIndex={0}
+                onPaste={handleTaskPaste}
+                onClick={e => (e.currentTarget as HTMLDivElement).focus()}
+                className="mt-2 rounded-xl text-center cursor-pointer outline-none transition flex flex-col items-center justify-center gap-2"
+                style={{ border: '2px dashed #94a3b8', color: '#94a3b8', background: '#f8fafc', minHeight: '100px', padding: '24px 16px' }}
+              >
+                <span style={{ fontSize: 32 }}>📸</span>
+                <span className="text-sm font-bold">Click here then Ctrl+V to paste screenshot</span>
+                <span className="text-xs font-normal">Supports PNG, JPG, GIF from clipboard</span>
+              </div>
+              {showTaskLinkInput && (
+                <div className="flex gap-2 mt-2">
+                  <input value={taskLinkInput} onChange={e => setTaskLinkInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTaskLink())}
+                    placeholder="Paste image/video URL..."
+                    className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    style={{ background: '#fff', border: '1.5px solid #bfdbfe', color: '#1d3557' }} />
+                  <button type="button" onClick={addTaskLink}
+                    className="px-3 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
+                    style={{ background: '#457b9d' }}>Add</button>
+                </div>
+              )}
+              {taskAttachments.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+                  {taskAttachments.map((a, i) => (
+                    <div key={i} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
+                      {a.type === 'image' && (
+                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid #d0dce8', display: 'block' }} />
+                      )}
+                      {a.type === 'video' && (
+                        <div style={{ width: 120, height: 96, background: '#1d3557', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 28 }}>🎥</span>
+                          <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{a.name.length > 14 ? a.name.substring(0,14)+'...' : a.name}</span>
+                        </div>
+                      )}
+                      {a.type === 'link' && (
+                        <div style={{ padding: '8px 12px', border: '1.5px solid #bfdbfe', borderRadius: 12, background: '#eff6ff' }}>
+                          <span>🔗</span>
+                          <span style={{ color: '#457b9d', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => setTaskAttachments(prev => prev.filter((_, j) => j !== i))}
+                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 99, lineHeight: 1 }}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button type="submit" disabled={taskSaving || taskUploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
               style={{ background: '#e63946' }}>
               {taskSaving ? 'Creating...' : 'Create Task'}

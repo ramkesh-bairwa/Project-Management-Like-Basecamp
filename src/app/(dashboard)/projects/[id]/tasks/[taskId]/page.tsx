@@ -113,10 +113,20 @@ export default function TaskDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
   const [commentStatus, setCommentStatus] = useState('');
+  const [attachments, setAttachments] = useState<{ type: 'image' | 'video' | 'link'; url: string; name: string }[]>([]);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [deleteTaskConfirm, setDeleteTaskConfirm] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<Subtask | null>(null);
   const [deletingSubtask, setDeletingSubtask] = useState(false);
+
+  useEffect(() => {
+    setAttachments([]);
+    setNewComment('');
+    setCommentStatus('');
+  }, [taskId]);
 
   useEffect(() => {
     const t = getToken();
@@ -228,16 +238,56 @@ export default function TaskDetailPage() {
     loadSubtasks();
   }
 
+  async function uploadFile(file: File) {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/documents/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    setUploading(false);
+    if (res.ok) {
+      const data = await res.json();
+      setAttachments(prev => [...prev, { type: isImage ? 'image' : 'video', url: data.url, name: file.name }]);
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { e.preventDefault(); uploadFile(file); }
+      }
+    }
+  }
+
+  function addLink() {
+    const url = linkInput.trim();
+    if (!url) return;
+    const isVideo = /youtube|youtu\.be|vimeo|\.mp4|\.webm/i.test(url);
+    setAttachments(prev => [...prev, { type: isVideo ? 'video' : 'link', url, name: url }]);
+    setLinkInput(''); setShowLinkInput(false);
+  }
+
   async function postComment(e: React.FormEvent) {
     e.preventDefault();
-    if (!newComment.trim() || !task) return;
+    if ((!newComment.trim() && attachments.length === 0) || !task) return;
     setPosting(true);
-    await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content: newComment }) });
+    const attachmentText = attachments.map(a =>
+      a.type === 'image' ? `\n![image](${a.url})` :
+      a.type === 'video' ? `\n🎥 [video](${a.url})` :
+      `\n🔗 ${a.url}`
+    ).join('');
+    const fullContent = newComment.trim() + attachmentText;
+    await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content: fullContent }) });
     if (commentStatus && commentStatus !== task.status) {
       setEditStatus(commentStatus);
       await updateTask({ status: commentStatus });
     }
-    setNewComment(''); setCommentStatus(''); setPosting(false);
+    setNewComment(''); setCommentStatus(''); setAttachments([]); setPosting(false);
     loadComments(); loadHistory();
   }
 
@@ -313,7 +363,25 @@ export default function TaskDetailPage() {
               <span className="text-xs" style={{ color: '#94a3b8' }}>#{task.id}</span>
             </div>
             <h1 className="text-xl font-black" style={{ color: '#1d3557' }}>{task.title}</h1>
-            {task.description && <p className="text-sm mt-1" style={{ color: '#6b7a8d' }}>{task.description}</p>}
+            {task.description && (
+              <div className="text-sm mt-2 space-y-1" style={{ color: '#6b7a8d' }}>
+                {task.description.split('\n').map((line, i) => {
+                  const imgMatch = line.match(/^!\[.*?\]\((.+?)\)$/);
+                  const videoMatch = line.match(/^🎥 \[video\]\((.+?)\)$/);
+                  const linkMatch = line.match(/^🔗 (.+)$/);
+                  if (imgMatch) return <img key={i} src={imgMatch[1]} alt="attachment" className="rounded-xl max-w-full max-h-64 object-contain mt-1" style={{ border: '1px solid #e2e8f0' }} />;
+                  if (videoMatch) return (
+                    <div key={i}>
+                      {/youtube|youtu\.be|vimeo/i.test(videoMatch[1])
+                        ? <a href={videoMatch[1]} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>🎥 Watch Video</a>
+                        : <video src={videoMatch[1]} controls className="rounded-xl max-w-full max-h-48 mt-1" style={{ border: '1px solid #e2e8f0' }} />}
+                    </div>
+                  );
+                  if (linkMatch) return <a key={i} href={linkMatch[1]} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs hover:underline" style={{ color: '#457b9d' }}>🔗 {linkMatch[1].length > 60 ? linkMatch[1].substring(0,60)+'...' : linkMatch[1]}</a>;
+                  return line ? <p key={i}>{line}</p> : null;
+                })}
+              </div>
+            )}
             {task.assignee_name && (
               <div className="flex items-center gap-1.5 mt-2">
                 <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
@@ -405,10 +473,87 @@ export default function TaskDetailPage() {
                   {members.find(m => m.id === myId)?.name?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <input value={newComment} onChange={e => setNewComment(e.target.value)}
-                  placeholder="Write a comment..."
+                  onPaste={handlePaste}
+                  placeholder="Write a comment... (paste image with Ctrl+V)"
                   className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
               </div>
+
+              {/* Attachment toolbar */}
+              <div className="flex items-center gap-2 mb-3 pl-9">
+                <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition hover:opacity-80"
+                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  {uploading ? 'Uploading...' : 'Image'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+                </label>
+                <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition hover:opacity-80"
+                  style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                  Video
+                  <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+                </label>
+                <button type="button" onClick={() => setShowLinkInput(v => !v)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition hover:opacity-80"
+                  style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Link
+                </button>
+                {attachments.length > 0 && (
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>
+                    {attachments.length} attached
+                  </span>
+                )}
+              </div>
+
+              {/* Link input */}
+              {showLinkInput && (
+                <div className="flex gap-2 mb-3 pl-9">
+                  <input value={linkInput} onChange={e => setLinkInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLink())}
+                    placeholder="Paste image/video URL..."
+                    className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', color: '#1d3557' }} />
+                  <button type="button" onClick={addLink}
+                    className="px-3 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
+                    style={{ background: '#457b9d' }}>Add</button>
+                </div>
+              )}
+
+              {/* Attachment previews */}
+              {(attachments.length > 0 || uploading) && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 8, marginBottom: 8, paddingLeft: 36 }}>
+                  {uploading && (
+                    <div style={{ width: 120, height: 96, borderRadius: 12, border: '2px dashed #d0dce8', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+                      <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>Uploading...</span>
+                    </div>
+                  )}
+                  {attachments.map((a, i) => (
+                    <div key={i} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
+                      {a.type === 'image' && (
+                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid #d0dce8', display: 'block' }} />
+                      )}
+                      {a.type === 'video' && (
+                        <div style={{ width: 120, height: 96, background: '#1d3557', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 28 }}>🎥</span>
+                          <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{a.name.length > 14 ? a.name.substring(0,14)+'...' : a.name}</span>
+                        </div>
+                      )}
+                      {a.type === 'link' && (
+                        <div style={{ padding: '8px 12px', border: '1.5px solid #bfdbfe', borderRadius: 12, background: '#eff6ff' }}>
+                          <span>🔗</span>
+                          <span style={{ color: '#457b9d', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', zIndex: 99 }}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-2 flex-wrap pl-9">
                 <span className="text-xs font-bold flex-shrink-0" style={{ color: '#6b7a8d' }}>Status:</span>
                 {statusOptions.map(s => (
@@ -422,7 +567,7 @@ export default function TaskDetailPage() {
                     {(commentStatus || task.status) === s && '✓ '}{statusLabels[s]}
                   </button>
                 ))}
-                <button type="submit" disabled={posting || !newComment.trim()}
+                <button type="submit" disabled={posting || uploading || (!newComment.trim() && attachments.length === 0)}
                   className="ml-auto px-4 py-1.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition flex-shrink-0"
                   style={{ background: '#457b9d' }}>
                   {posting ? '...' : 'Post'}

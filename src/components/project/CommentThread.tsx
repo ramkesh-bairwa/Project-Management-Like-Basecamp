@@ -137,7 +137,23 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
         </div>
 
         {/* Content */}
-        <p className="text-sm leading-relaxed pl-9" style={{ color: '#1d3557' }}>{comment.content}</p>
+        <div className="text-sm leading-relaxed pl-9" style={{ color: '#1d3557' }}>
+          {comment.content.split('\n').map((line, i) => {
+            const imgMatch = line.match(/^!\[.*?\]\((.+?)\)$/);
+            const videoMatch = line.match(/^🎥 \[video\]\((.+?)\)$/);
+            const linkMatch = line.match(/^🔗 (.+)$/);
+            if (imgMatch) return <img key={i} src={imgMatch[1]} alt="attachment" className="mt-2 rounded-xl max-w-full max-h-64 object-contain" style={{ border: '1px solid #e2e8f0' }} />;
+            if (videoMatch) return (
+              <div key={i} className="mt-2">
+                {/youtube|youtu\.be|vimeo/i.test(videoMatch[1])
+                  ? <a href={videoMatch[1]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold hover:opacity-80" style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>🎥 Watch Video</a>
+                  : <video src={videoMatch[1]} controls className="mt-1 rounded-xl max-w-full max-h-48" style={{ border: '1px solid #e2e8f0' }} />}
+              </div>
+            );
+            if (linkMatch) return <a key={i} href={linkMatch[1]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-1 text-xs hover:underline" style={{ color: '#457b9d' }}>🔗 {linkMatch[1].length > 50 ? linkMatch[1].substring(0,50)+'...' : linkMatch[1]}</a>;
+            return line ? <p key={i}>{line}</p> : <br key={i} />;
+          })}
+        </div>
 
         {/* Reply button */}
         {!comment.is_resolved && (
