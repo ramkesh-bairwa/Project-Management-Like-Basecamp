@@ -113,6 +113,31 @@ app.prepare().then(() => {
     });
   });
 
+  // chat_id -> Set of ws clients in that chat room
+  const chatRooms = new Map();
+
+  function joinRoom(ws, chatId) {
+    if (!chatRooms.has(chatId)) chatRooms.set(chatId, new Set());
+    chatRooms.get(chatId).add(ws);
+  }
+
+  function leaveRoom(ws, chatId) {
+    chatRooms.get(chatId)?.delete(ws);
+  }
+
+  function leaveAllRooms(ws) {
+    chatRooms.forEach(room => room.delete(ws));
+  }
+
+  function broadcastToRoom(chatId, payload, excludeWs) {
+    const room = chatRooms.get(chatId);
+    if (!room) return;
+    const msg = JSON.stringify(payload);
+    room.forEach(client => {
+      if (client !== excludeWs && client.readyState === WebSocket.OPEN) client.send(msg);
+    });
+  }
+
   wss.on('connection', (ws, req) => {
     const { query } = parse(req.url, true);
     let user = null;
@@ -134,18 +159,36 @@ app.prepare().then(() => {
 
       const sender = clients.get(ws);
 
-      // Broadcast to all connected clients
-      if (parsed.type === 'message') {
-        const payload = JSON.stringify({
-          type: 'message',
-          from: sender.user?.name || `Client-${sender.id}`,
-          fromId: sender.id,
-          text: parsed.text,
-          timestamp: new Date().toISOString(),
-        });
-        wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) client.send(payload);
-        });
+      if (parsed.type === 'join_chat') {
+        joinRoom(ws, parsed.chat_id);
+        return;
+      }
+
+      if (parsed.type === 'leave_chat') {
+        leaveRoom(ws, parsed.chat_id);
+        return;
+      }
+
+      if (parsed.type === 'chat_message') {
+        broadcastToRoom(parsed.chat_id, {
+          type: 'chat_message',
+          chat_id: parsed.chat_id,
+          id: parsed.id,
+          content: parsed.content,
+          sender_id: parsed.sender_id,
+          sender_name: parsed.sender_name,
+          created_at: parsed.created_at || new Date().toISOString(),
+        }, ws);
+        return;
+      }
+
+      if (parsed.type === 'typing') {
+        broadcastToRoom(parsed.chat_id, {
+          type: 'typing',
+          chat_id: parsed.chat_id,
+          sender_name: parsed.sender_name || sender.user?.name || 'Someone',
+        }, ws);
+        return;
       }
 
       if (parsed.type === 'ping') {
@@ -153,7 +196,7 @@ app.prepare().then(() => {
       }
     });
 
-    ws.on('close', () => clients.delete(ws));
+    ws.on('close', () => { leaveAllRooms(ws); clients.delete(ws); });
     ws.on('error', (err) => console.error(`[WS Error] Client ${clientId}:`, err.message));
   });
 

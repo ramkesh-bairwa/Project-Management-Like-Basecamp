@@ -10,6 +10,23 @@ interface Member { id: number; name: string; role: string; email: string }
 
 const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
 
+type ViewMode = 'grid' | 'list' | 'box';
+
+function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+      {(['grid','list','box'] as ViewMode[]).map(v => (
+        <button key={v} onClick={() => onChange(v)}
+          className="px-3 py-1.5 text-xs font-bold transition"
+          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          title={v.charAt(0).toUpperCase() + v.slice(1)}>
+          {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function ProjectGroupsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -26,6 +43,7 @@ export default function ProjectGroupsPage() {
   const [myId, setMyId] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [view, setView] = useState<ViewMode>('grid');
 
   // member dropdown
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
@@ -191,13 +209,16 @@ export default function ProjectGroupsPage() {
           {projectName && <div className="text-xs font-bold mb-0.5" style={{ color: '#457b9d' }}>📁 {projectName}</div>}
           <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>Groups ({groups.length})</h2>
         </div>
-        {canManage && (
-          <button onClick={() => { setShowForm(v => !v); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
-            className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-            style={{ background: showForm ? '#6b7a8d' : '#e63946' }}>
-            {showForm ? '✕ Cancel' : '+ New Group'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <ViewToggle view={view} onChange={setView} />
+          {canManage && (
+            <button onClick={() => { setShowForm(v => !v); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
+              className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+              style={{ background: showForm ? '#6b7a8d' : '#e63946' }}>
+              {showForm ? '✕ Cancel' : '+ New Group'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Create group form */}
@@ -382,8 +403,30 @@ export default function ProjectGroupsPage() {
             </button>
           )}
         </div>
+      ) : view === 'list' ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+          {groups.map((group, i) => (
+            <div key={group.id}
+              onClick={() => router.push(`/projects/${id}/groups/${group.slug || group.id}`)}
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
+              style={{ borderBottom: i < groups.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: group.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{group.name}</div>
+                {group.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{group.description}</div>}
+              </div>
+              <span className="text-xs" style={{ color: '#6b7a8d' }}>{group.task_count} tasks</span>
+              <span className="text-xs" style={{ color: '#6b7a8d' }}>👥 {group.member_count}</span>
+              {canManage && (
+                <button onClick={e => deleteGroup(e, group.id)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50 flex-shrink-0"
+                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+              )}
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={view === 'box' ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
           {groups.map(group => (
             <div key={group.id}
               onClick={() => router.push(`/projects/${id}/groups/${group.slug || group.id}`)}

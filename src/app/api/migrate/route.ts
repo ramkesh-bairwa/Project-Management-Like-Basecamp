@@ -367,6 +367,21 @@ export async function POST(req: NextRequest) {
       name: 'project_members.role add admin',
       sql: `ALTER TABLE project_members MODIFY COLUMN role ENUM('owner','admin','manager','developer','designer','viewer') DEFAULT 'developer'`
     },
+    {
+      name: 'task_attachments table',
+      sql: `CREATE TABLE IF NOT EXISTS task_attachments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        task_id INT NOT NULL,
+        uploaded_by INT NOT NULL,
+        file_url VARCHAR(500) NOT NULL,
+        file_name VARCHAR(300) NOT NULL,
+        file_type ENUM('image','video','link') DEFAULT 'image',
+        file_size INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
+      )`
+    },
   ];
 
   for (const step of steps) {

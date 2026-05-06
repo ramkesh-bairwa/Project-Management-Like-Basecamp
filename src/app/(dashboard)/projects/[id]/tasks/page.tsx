@@ -114,7 +114,7 @@ export default function ProjectTasksPage() {
     setTaskUploading(false);
     if (res.ok) {
       const data = await res.json();
-      setTaskAttachments(prev => [...prev, { type: isImage ? 'image' : 'video', url: data.url, name: file.name }]);
+      setTaskAttachments(prev => [...prev, { type: isImage ? 'image' : 'video', url: data.url, name: file.name, file: null }]);
     }
   }
 
@@ -148,11 +148,6 @@ export default function ProjectTasksPage() {
     e.preventDefault();
     if (!form.title.trim()) return;
     setSaving(true); setFormError('');
-    const attachmentText = taskAttachments.map(a =>
-      a.type === 'image' ? `\n![image](${a.url})` :
-      a.type === 'video' ? `\n\uD83C\uDFA5 [video](${a.url})` :
-      `\n\uD83D\uDD17 ${a.url}`
-    ).join('');
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -161,13 +156,22 @@ export default function ProjectTasksPage() {
         group_id: form.group_id ? Number(form.group_id) : null,
         assignee_id: form.assignee_id ? Number(form.assignee_id) : null,
         title: form.title,
-        description: (form.description + attachmentText).trim() || null,
+        description: form.description || null,
         priority: form.priority, status: form.status,
         due_date: form.due_date || null,
       })
     });
     setSaving(false);
     if (res.ok) {
+      const created = await res.json();
+      // Save attachments to task_attachments table
+      for (const a of taskAttachments) {
+        await fetch('/api/tasks/attachments', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task_id: created.id, file_url: a.url, file_name: a.name, file_type: a.type }),
+        });
+      }
       loadTasks();
       setShowForm(false);
       setForm({ title: '', description: '', priority: 'medium', status: 'todo', group_id: '', assignee_id: '', due_date: '' });

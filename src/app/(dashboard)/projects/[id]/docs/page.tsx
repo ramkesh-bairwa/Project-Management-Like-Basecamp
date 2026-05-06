@@ -37,6 +37,23 @@ function fmtT(d: string | Date): string {
   return `${h}:${m} ${ap}`;
 }
 
+type ViewMode = 'grid' | 'list' | 'box';
+
+function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+      {(['grid','list','box'] as ViewMode[]).map(v => (
+        <button key={v} onClick={() => onChange(v)}
+          className="px-3 py-1.5 text-xs font-bold transition"
+          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          title={v.charAt(0).toUpperCase() + v.slice(1)}>
+          {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function ProjectDocsPage() {
   const { id } = useParams();
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -57,6 +74,7 @@ export default function ProjectDocsPage() {
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null);
   const [deleteDocTarget, setDeleteDocTarget] = useState<Doc | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [view, setView] = useState<ViewMode>('grid');
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -273,6 +291,7 @@ export default function ProjectDocsPage() {
           {activeFolder ? `📁 ${activeFolder.name}` : 'Docs & Files'}
         </h2>
         <div className="flex gap-2 ml-auto">
+          <ViewToggle view={view} onChange={setView} />
           <button onClick={() => setShowFolderForm(true)}
             className="px-4 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition flex items-center gap-1"
             style={{ background: '#f1faee', color: '#1d3557', border: '1.5px solid #d0dce8' }}>
@@ -319,8 +338,42 @@ export default function ProjectDocsPage() {
             + Upload / New Doc
           </button>
         </div>
+      ) : view === 'list' ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+          {docs.map((doc, i) => (
+            <div key={doc.id}
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
+              style={{ borderBottom: i < docs.length - 1 ? '1px solid #f1f5f9' : 'none' }}
+              onClick={() => router.push(`/projects/${id}/docs/${doc.id}`)}>  
+              <span className="text-lg flex-shrink-0">{typeIcon[doc.type] || '📁'}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{doc.title}</div>
+                <div className="text-xs" style={{ color: '#6b7a8d' }}>by {doc.created_by_name}</div>
+              </div>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ background: (typeColors[doc.type] || '#94a3b8') + '20', color: typeColors[doc.type] || '#94a3b8' }}>
+                v{doc.current_version}
+              </span>
+              {doc.last_updated_at && <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>{fmtD(doc.last_updated_at)}</span>}
+              <button onClick={e => { e.stopPropagation(); downloadDoc(doc.id, doc.title); }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition flex-shrink-0"
+                style={{ background: '#1d3557' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </button>
+              <button onClick={e => deleteDoc(doc.id, e)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition flex-shrink-0"
+                style={{ background: '#e63946' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={view === 'box' ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}>
           {docs.map(doc => (
             <div key={doc.id}
               className="bg-white rounded-2xl p-5 hover:shadow-lg transition-all"

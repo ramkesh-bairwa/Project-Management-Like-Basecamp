@@ -56,6 +56,23 @@ function fmtT(d: string | Date): string {
   return `${h}:${m} ${ap}`;
 }
 
+type ViewMode = 'grid' | 'list' | 'box';
+
+function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+      {(['grid','list','box'] as ViewMode[]).map(v => (
+        <button key={v} onClick={() => onChange(v)}
+          className="px-3 py-1.5 text-xs font-bold transition"
+          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          title={v.charAt(0).toUpperCase() + v.slice(1)}>
+          {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function GroupDetailPage() {
   const { id, groupId } = useParams();
   const router = useRouter();
@@ -115,6 +132,7 @@ export default function GroupDetailPage() {
 
   // filter
   const [filterStatus, setFilterStatus] = useState('');
+  const [taskView, setTaskView] = useState<ViewMode>('list');
   const [deleteTaskTarget, setDeleteTaskTarget] = useState<{ id: number; title: string } | null>(null);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<{ id: number; title: string; parentId: number } | null>(null);
@@ -321,18 +339,13 @@ export default function GroupDetailPage() {
     e.preventDefault();
     if (!group || !projectNumId) return;
     setTaskSaving(true);
-    const attachmentText = taskAttachments.map(a =>
-      a.type === 'image' ? `\n![image](${a.url})` :
-      a.type === 'video' ? `\n\uD83C\uDFA5 [video](${a.url})` :
-      `\n\uD83D\uDD17 ${a.url}`
-    ).join('');
     const res = await fetch('/api/tasks', {
       method: 'POST', headers: h,
       body: JSON.stringify({
         project_id: projectNumId,
         group_id: group.id,
         title: taskForm.title,
-        description: (taskForm.description + attachmentText).trim() || null,
+        description: taskForm.description || null,
         priority: taskForm.priority,
         assignee_id: taskForm.assignee_id ? Number(taskForm.assignee_id) : null,
         due_date: taskForm.due_date || null,
@@ -340,6 +353,14 @@ export default function GroupDetailPage() {
     });
     setTaskSaving(false);
     if (res.ok) {
+      const created = await res.json();
+      for (const a of taskAttachments) {
+        await fetch('/api/tasks/attachments', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task_id: created.id, file_url: a.url, file_name: a.name, file_type: a.type }),
+        });
+      }
       loadTasks();
       setShowTaskForm(false);
       setTaskForm({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '' });
@@ -486,6 +507,7 @@ export default function GroupDetailPage() {
           ))}
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          <ViewToggle view={taskView} onChange={setTaskView} />
           {canManage && (
             <button onClick={openMembersPanel}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition hover:opacity-90"
@@ -653,6 +675,76 @@ export default function GroupDetailPage() {
           <button onClick={() => setShowTaskForm(true)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90" style={{ background: '#e63946' }}>
             + New Task
           </button>
+        </div>
+      ) : taskView === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map(task => (
+            <div key={task.id} className="bg-white rounded-2xl p-4 hover:shadow-md transition-all"
+              style={{ border: `1px solid #d0dce8`, borderTop: `3px solid ${statusColors[task.status]}`, opacity: updatingTask === task.id ? 0.6 : 1 }}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}>
+                  <div className="font-bold text-sm hover:text-[#e63946] transition truncate" style={{ color: '#1d3557' }}>{task.title}</div>
+                  <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{fmtD(task.created_at)}</div>
+                </div>
+                <button onClick={e => deleteTask(e, task.id)} className="text-xs px-1.5 py-1 rounded-lg hover:bg-red-50 flex-shrink-0" style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap mt-3">
+                <select value={task.status} onClick={e => e.stopPropagation()} onChange={e => updateTask(task, { status: e.target.value })}
+                  className="text-xs font-bold px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
+                  style={{ background: statusColors[task.status] + '18', color: statusColors[task.status], border: `1.5px solid ${statusColors[task.status]}40` }}>
+                  {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
+                </select>
+                <span className="text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
+                {task.assignee_name && <span className="text-xs" style={{ color: '#6b7a8d' }}>👤 {task.assignee_name}</span>}
+              </div>
+              {task.due_date && <div className="text-xs mt-2" style={{ color: '#854d0e' }}>📅 {fmtD(task.due_date)}</div>}
+              <button onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
+                className="mt-3 w-full text-xs px-3 py-1.5 rounded-lg font-bold hover:opacity-90 transition text-white"
+                style={{ background: '#1d3557' }}>Open →</button>
+            </div>
+          ))}
+        </div>
+      ) : taskView === 'box' ? (
+        <div className="grid grid-cols-1 gap-3">
+          {filtered.map(task => (
+            <div key={task.id} className="bg-white rounded-2xl overflow-hidden transition-all"
+              style={{ border: '1px solid #d0dce8', borderLeft: `4px solid ${statusColors[task.status]}`, opacity: updatingTask === task.id ? 0.6 : 1 }}>
+              <div className="flex items-start gap-4 p-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <div className="font-bold text-sm cursor-pointer hover:text-[#e63946] transition" style={{ color: '#1d3557' }}
+                      onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
+                    >{task.title}</div>
+                    <span className="text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
+                  </div>
+                  {task.description && <p className="text-xs mb-2 line-clamp-2" style={{ color: '#6b7a8d' }}>{task.description}</p>}
+                  <div className="flex items-center gap-3 flex-wrap text-xs" style={{ color: '#94a3b8' }}>
+                    <span>🕐 {fmtDT(task.created_at)}</span>
+                    {task.creator_name && <span>by <strong style={{ color: '#6b7a8d' }}>{task.creator_name}</strong></span>}
+                    {task.due_date && <span style={{ color: '#854d0e' }}>📅 {fmtD(task.due_date)}</span>}
+                    {task.assignee_name && <span>👤 {task.assignee_name}</span>}
+                    {task.subtask_count > 0 && <span>✓ {task.subtask_count} subtasks</span>}
+                    {task.comment_count > 0 && <span>💬 {task.comment_count}</span>}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <select value={task.status} onClick={e => e.stopPropagation()} onChange={e => updateTask(task, { status: e.target.value })}
+                    className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+                    style={{ background: statusColors[task.status] + '18', color: statusColors[task.status], border: `1.5px solid ${statusColors[task.status]}40` }}>
+                    {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
+                  </select>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
+                      className="text-xs px-3 py-1.5 rounded-lg font-bold hover:opacity-90 transition text-white"
+                      style={{ background: '#1d3557' }}>Open →</button>
+                    <button onClick={e => deleteTask(e, task.id)}
+                      className="text-xs px-2 py-1.5 rounded-lg font-bold transition hover:bg-red-50"
+                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-2">

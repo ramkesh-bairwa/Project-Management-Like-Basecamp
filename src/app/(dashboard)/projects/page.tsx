@@ -38,12 +38,30 @@ function fmtT(d: string | Date): string {
   return `${h}:${m} ${ap}`;
 }
 
+type ViewMode = 'grid' | 'list' | 'box';
+
+function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+      {(['grid','list','box'] as ViewMode[]).map(v => (
+        <button key={v} onClick={() => onChange(v)}
+          className="px-3 py-1.5 text-xs font-bold transition"
+          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          title={v.charAt(0).toUpperCase() + v.slice(1)}>
+          {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [members, setMembers] = useState<Record<number, ProjectMember[]>>({});
   const [activeMember, setActiveMember] = useState<{ member: ProjectMember; x: number; y: number } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [view, setView] = useState<ViewMode>('grid');
   const [form, setForm] = useState({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' });
 
   const [token, setToken] = useState('');
@@ -91,7 +109,7 @@ export default function ProjectsPage() {
 
   return (
     <div onClick={() => setActiveMember(null)}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap">
           {['all', 'planning', 'active', 'on_hold', 'completed', 'archived'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
@@ -101,20 +119,58 @@ export default function ProjectsPage() {
             </button>
           ))}
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition hover:opacity-90"
-          style={{ background: '#e63946' }}>
-          + New Project
-        </button>
+        <div className="flex items-center gap-2">
+          <ViewToggle view={view} onChange={setView} />
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition hover:opacity-90"
+            style={{ background: '#e63946' }}>
+            + New Project
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {view === 'list' ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+          {filtered.map((p, i) => {
+            const sc = statusCfg[p.status] || statusCfg.planning;
+            const accent = accentColors[i % accentColors.length];
+            return (
+              <Link key={p.id} href={`/projects/${p.slug || p.id}`}
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition group"
+                style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: accent }} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm group-hover:text-[#e63946] transition truncate" style={{ color: '#1d3557' }}>{p.name}</div>
+                  {p.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{p.description}</div>}
+                </div>
+                <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                  style={{ background: sc.bg, color: sc.text }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />{sc.label}
+                </span>
+                <span className="text-xs font-semibold capitalize flex-shrink-0" style={{ color: accent }}>{p.priority}</span>
+                {p.due_date && <span className="text-xs flex-shrink-0" style={{ color: '#6b7a8d' }}>{fmtD(p.due_date)}</span>}
+                <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
+                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+              </Link>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="p-16 text-center">
+              <div className="text-5xl mb-4">📋</div>
+              <div className="font-black text-[#1d3557] mb-2">No projects yet</div>
+              <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
+            </div>
+          )}
+        </div>
+      ) : (
+      <div className={view === 'box' ? 'grid grid-cols-1 gap-5' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'}>
         {filtered.map((p, i) => {
           const sc = statusCfg[p.status] || statusCfg.planning;
           const accent = accentColors[i % accentColors.length];
           return (
             <Link key={p.id} href={`/projects/${p.slug || p.id}`}
-              className="bg-white rounded-2xl overflow-visible hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
+              className={`bg-white rounded-2xl overflow-visible hover:-translate-y-0.5 hover:shadow-lg transition-all group relative${view === 'box' ? ' flex gap-5 items-start' : ''}`}
               style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
               {/* Top accent bar with overlapping member avatars */}
               <div className="relative h-2 rounded-t-2xl" style={{ background: accent }}>
@@ -180,6 +236,7 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+      )}
 
       {deleteTarget && (
         <ConfirmModal

@@ -14,6 +14,23 @@ const palette = [
   { bg: '#e9c46a', light: '#fefce8', border: '#fef08a', text: '#a16207' },
 ];
 
+type ViewMode = 'grid' | 'list' | 'box';
+
+function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+      {(['grid','list','box'] as ViewMode[]).map(v => (
+        <button key={v} onClick={() => onChange(v)}
+          className="px-3 py-1.5 text-xs font-bold transition"
+          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          title={v.charAt(0).toUpperCase() + v.slice(1)}>
+          {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function GroupsPage() {
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
@@ -22,6 +39,7 @@ export default function GroupsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [myId, setMyId] = useState(0);
+  const [view, setView] = useState<ViewMode>('grid');
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -55,7 +73,8 @@ export default function GroupsPage() {
 
   return (
     <div>
-      <div className="flex justify-end mb-5">
+      <div className="flex justify-end mb-5 gap-2">
+        <ViewToggle view={view} onChange={setView} />
         <button onClick={() => setShowForm(true)}
           className="px-4 py-2 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
           style={{ background: '#457b9d' }}>
@@ -63,7 +82,40 @@ export default function GroupsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {view === 'list' ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+          {groups.map((g, i) => {
+            const p = palette[i % palette.length];
+            return (
+              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
+                style={{ borderBottom: i < groups.length - 1 ? '1px solid #f1f5f9' : 'none' }}
+                onClick={() => router.push(`/groups/${g.id}`)}>  
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black flex-shrink-0" style={{ background: p.bg }}>
+                  {g.name[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm truncate" style={{ color: p.text }}>{g.name}</div>
+                  {g.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{g.description}</div>}
+                </div>
+                <span className="text-xs" style={{ color: '#6b7a8d' }}>{g.is_private ? '🔒 Private' : '🌐 Public'}</span>
+                {g.owner_id === myId && (
+                  <button onClick={e => { e.stopPropagation(); setDeleteTarget(g); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
+                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                )}
+              </div>
+            );
+          })}
+          {groups.length === 0 && (
+            <div className="p-16 text-center">
+              <div className="text-5xl mb-4">👥</div>
+              <div className="font-black text-[#1d3557] mb-2">No groups yet</div>
+              <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90" style={{ background: '#457b9d' }}>Create Group</button>
+            </div>
+          )}
+        </div>
+      ) : (
+      <div className={view === 'box' ? 'grid grid-cols-1 gap-5' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'}>
         {groups.map((g, i) => {
           const p = palette[i % palette.length];
           return (
@@ -115,6 +167,7 @@ export default function GroupsPage() {
           </div>
         )}
       </div>
+      )}
 
       {deleteTarget && (
         <ConfirmModal

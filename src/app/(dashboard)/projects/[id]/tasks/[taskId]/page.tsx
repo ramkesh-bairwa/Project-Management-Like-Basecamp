@@ -117,6 +117,8 @@ export default function TaskDetailPage() {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [uploading, setUploading] = useState(false);
+  // saved attachments from DB
+  const [savedAttachments, setSavedAttachments] = useState<{ id: number; file_url: string; file_name: string; file_type: string; uploaded_by_name: string }[]>([]);
   const [deleteTaskConfirm, setDeleteTaskConfirm] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<Subtask | null>(null);
@@ -154,11 +156,17 @@ export default function TaskDetailPage() {
           fetch(`/api/tasks?parent_task_id=${d.id}`, { headers: auth }).then(r => r.json()).then(r => Array.isArray(r) && setSubtasks(r));
           fetch(`/api/comments?entity_type=task&entity_id=${d.id}`, { headers: auth }).then(r => r.json()).then(r => Array.isArray(r) && setComments(buildCommentTree(r)));
           fetch(`/api/tasks/history?task_id=${d.id}`, { headers: auth }).then(r => r.json()).then(r => Array.isArray(r) && setHistory(r));
+          loadAttachments(d.id, t);
         } else {
           setAccessDenied(true);
         }
       });
   }, [id, taskId]);
+
+  function loadAttachments(taskNumId: number, t = token) {
+    fetch(`/api/tasks/attachments?task_id=${taskNumId}`, { headers: { Authorization: `Bearer ${t}` } })
+      .then(r => r.json()).then(d => Array.isArray(d) && setSavedAttachments(d));
+  }
 
   function loadTask(t = token) {
     fetch(`/api/tasks?task_id=${taskId}`, { headers: { Authorization: `Bearer ${t}` } })
@@ -245,11 +253,11 @@ export default function TaskDetailPage() {
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch('/api/documents/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    fd.append('task_id', String(task?.id));
+    const res = await fetch('/api/tasks/attachments', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
     setUploading(false);
-    if (res.ok) {
-      const data = await res.json();
-      setAttachments(prev => [...prev, { type: isImage ? 'image' : 'video', url: data.url, name: file.name }]);
+    if (res.ok && task) {
+      loadAttachments(task.id);
     }
   }
 
@@ -264,25 +272,28 @@ export default function TaskDetailPage() {
     }
   }
 
-  function addLink() {
+  async function addLink() {
     const url = linkInput.trim();
-    if (!url) return;
+    if (!url || !task) return;
     const isVideo = /youtube|youtu\.be|vimeo|\.mp4|\.webm/i.test(url);
-    setAttachments(prev => [...prev, { type: isVideo ? 'video' : 'link', url, name: url }]);
+    await fetch('/api/tasks/attachments', {
+      method: 'POST', headers: { ...h },
+      body: JSON.stringify({ task_id: task.id, file_url: url, file_name: url, file_type: isVideo ? 'video' : 'link' })
+    });
     setLinkInput(''); setShowLinkInput(false);
+    loadAttachments(task.id);
+  }
+
+  async function deleteSavedAttachment(attId: number) {
+    await fetch(`/api/tasks/attachments?id=${attId}`, { method: 'DELETE', headers: h });
+    if (task) loadAttachments(task.id);
   }
 
   async function postComment(e: React.FormEvent) {
     e.preventDefault();
     if ((!newComment.trim() && attachments.length === 0) || !task) return;
     setPosting(true);
-    const attachmentText = attachments.map(a =>
-      a.type === 'image' ? `\n![image](${a.url})` :
-      a.type === 'video' ? `\n🎥 [video](${a.url})` :
-      `\n🔗 ${a.url}`
-    ).join('');
-    const fullContent = newComment.trim() + attachmentText;
-    await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content: fullContent }) });
+    await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content: newComment.trim() }) });
     if (commentStatus && commentStatus !== task.status) {
       setEditStatus(commentStatus);
       await updateTask({ status: commentStatus });
@@ -392,6 +403,68 @@ export default function TaskDetailPage() {
                 <span className="text-xs" style={{ color: '#94a3b8' }}>assigned</span>
               </div>
             )}
+
+            {/* Saved Attachments */}
+            {savedAttachments.length > 0 && (
+              <div className="mt-3">
+                <div className="text-xs font-bold mb-2" style={{ color: '#6b7a8d' }}>📎 Attachments ({savedAttachments.length})</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
+                  {savedAttachments.map(a => {
+                    const ext = a.file_name.split('.').pop()?.toLowerCase() || '';
+                    const isInlineImage = ['jpg','jpeg','png','svg','webp','gif'].includes(ext);
+                    return (
+                      <div key={a.id} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
+                        {isInlineImage ? (
+                          // Show as image preview
+                          <a href={a.file_url} target="_blank" rel="noopener noreferrer">
+                            <img src={a.file_url} alt={a.file_name}
+                              style={{ width: 140, height: 110, objectFit: 'cover', borderRadius: 10, border: '2px solid #d0dce8', display: 'block' }} />
+                          </a>
+                        ) : a.file_type === 'video' ? (
+                          // Video — inline player
+                          /youtube|youtu\.be|vimeo/i.test(a.file_url)
+                            ? <a href={a.file_url} target="_blank" rel="noopener noreferrer"
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 140, height: 110, background: '#1d3557', borderRadius: 10, gap: 4, textDecoration: 'none' }}>
+                                <span style={{ fontSize: 30 }}>🎥</span>
+                                <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>Watch Video</span>
+                              </a>
+                            : <video src={a.file_url} controls
+                                style={{ width: 200, maxHeight: 140, borderRadius: 10, border: '2px solid #d0dce8', display: 'block' }} />
+                        ) : a.file_type === 'link' ? (
+                          // External link
+                          <a href={a.file_url} target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: '1.5px solid #bfdbfe', borderRadius: 10, background: '#eff6ff', maxWidth: 200, textDecoration: 'none' }}>
+                            <span style={{ fontSize: 18 }}>🔗</span>
+                            <span style={{ color: '#457b9d', fontSize: 11, fontWeight: 600, wordBreak: 'break-all' }}>{a.file_url.length > 30 ? a.file_url.substring(0,30)+'...' : a.file_url}</span>
+                          </a>
+                        ) : (
+                          // Other file types — download card
+                          <a href={a.file_url} download={a.file_name} target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, background: '#f8fafc', maxWidth: 200, textDecoration: 'none' }}>
+                            <span style={{ fontSize: 22 }}>
+                              {['mp4','webm','mov','avi'].includes(ext) ? '🎥' :
+                               ['pdf'].includes(ext) ? '📄' :
+                               ['doc','docx'].includes(ext) ? '📝' :
+                               ['xls','xlsx','csv'].includes(ext) ? '📊' :
+                               ['zip','rar','tar'].includes(ext) ? '🗂' : '📎'}
+                            </span>
+                            <div>
+                              <div style={{ color: '#1d3557', fontSize: 11, fontWeight: 700, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.file_name}</div>
+                              <div style={{ color: '#94a3b8', fontSize: 10 }}>{ext.toUpperCase()} • Download</div>
+                            </div>
+                          </a>
+                        )}
+                        <button
+                          onClick={() => deleteSavedAttachment(a.id)}
+                          style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 99 }}
+                        >×</button>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uploaded_by_name}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <button onClick={() => router.back()} className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-100 transition" style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>← Back</button>
           {['owner', 'admin', 'manager'].includes(myRole) && (
@@ -499,11 +572,6 @@ export default function TaskDetailPage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                   Link
                 </button>
-                {attachments.length > 0 && (
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>
-                    {attachments.length} attached
-                  </span>
-                )}
               </div>
 
               {/* Link input */}
@@ -520,38 +588,9 @@ export default function TaskDetailPage() {
                 </div>
               )}
 
-              {/* Attachment previews */}
-              {(attachments.length > 0 || uploading) && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 8, marginBottom: 8, paddingLeft: 36 }}>
-                  {uploading && (
-                    <div style={{ width: 120, height: 96, borderRadius: 12, border: '2px dashed #d0dce8', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-                      <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>Uploading...</span>
-                    </div>
-                  )}
-                  {attachments.map((a, i) => (
-                    <div key={i} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
-                      {a.type === 'image' && (
-                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid #d0dce8', display: 'block' }} />
-                      )}
-                      {a.type === 'video' && (
-                        <div style={{ width: 120, height: 96, background: '#1d3557', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                          <span style={{ fontSize: 28 }}>🎥</span>
-                          <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{a.name.length > 14 ? a.name.substring(0,14)+'...' : a.name}</span>
-                        </div>
-                      )}
-                      {a.type === 'link' && (
-                        <div style={{ padding: '8px 12px', border: '1.5px solid #bfdbfe', borderRadius: 12, background: '#eff6ff' }}>
-                          <span>🔗</span>
-                          <span style={{ color: '#457b9d', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
-                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', zIndex: 99 }}
-                      >×</button>
-                    </div>
-                  ))}
+              {uploading && (
+                <div style={{ paddingLeft: 36, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, color: "#457b9d", fontWeight: 700 }}>⏳ Uploading...</span>
                 </div>
               )}
               <div className="flex items-center gap-2 flex-wrap pl-9">
@@ -567,7 +606,7 @@ export default function TaskDetailPage() {
                     {(commentStatus || task.status) === s && '✓ '}{statusLabels[s]}
                   </button>
                 ))}
-                <button type="submit" disabled={posting || uploading || (!newComment.trim() && attachments.length === 0)}
+                <button type="submit" disabled={posting || uploading || !newComment.trim()}
                   className="ml-auto px-4 py-1.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition flex-shrink-0"
                   style={{ background: '#457b9d' }}>
                   {posting ? '...' : 'Post'}

@@ -55,7 +55,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userName, setUserName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Chat dropdown state
+  // Notification dropdown state
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: number; title: string; body: string; link: string; is_read: boolean; created_at: string; type: string }[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [totalUnreadChat, setTotalUnreadChat] = useState(0);
@@ -76,7 +79,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => {});
     fetch('/api/notifications', { headers: { Authorization: `Bearer ${t}` } })
       .then(r => r.json())
-      .then(d => Array.isArray(d) && setUnread(d.filter((n: { is_read: boolean }) => !n.is_read).length))
+      .then(d => {
+        if (!Array.isArray(d)) return;
+        setNotifications(d.slice(0, 20));
+        setUnread(d.filter((n: { is_read: boolean }) => !n.is_read).length);
+      })
       .catch(() => {});
   }, [pathname]);
 
@@ -96,9 +103,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Close chat dropdown on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (chatDropRef.current && !chatDropRef.current.contains(e.target as Node)) {
-        setChatOpen(false);
-      }
+      if (chatDropRef.current && !chatDropRef.current.contains(e.target as Node)) setChatOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
     }
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -124,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
   useWebSocket(token, handleWS);
 
-  useEffect(() => { if (pathname === '/notifications') setUnread(0); }, [pathname]);
+  useEffect(() => { if (pathname === '/notifications') { setUnread(0); setNotifOpen(false); } }, [pathname]);
   useEffect(() => { if (pathname === '/chats') { setTotalUnreadChat(0); setChatOpen(false); } }, [pathname]);
 
   function openChatDropdown() {
@@ -165,6 +171,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   function logout() {
     window.location.href = '/logout';
+  }
+
+  async function markAllRead() {
+    if (!token) return;
+    await fetch('/api/notifications', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }) });
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    setUnread(0);
+  }
+
+  function openNotifDropdown() {
+    setNotifOpen(o => !o);
+    setChatOpen(false);
   }
 
   const isHome = pathname === '/dashboard';
@@ -363,20 +381,86 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
 
-            {/* Notifications */}
-            <Link href="/notifications"
-              className="relative w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              {unread > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white font-black"
-                  style={{ background: '#e63946', fontSize: '9px' }}>
-                  {unread > 9 ? '9+' : unread}
-                </span>
+            {/* Notifications dropdown */}
+            <div className="relative" ref={notifRef}>
+              <button onClick={openNotifDropdown}
+                className="relative w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white font-black"
+                    style={{ background: '#e63946', fontSize: '9px' }}>
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-11 w-96 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  style={{ background: '#fff', border: '1.5px solid #d0dce8' }}>
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3" style={{ background: '#1d3557' }}>
+                    <div>
+                      <div className="font-black text-white text-sm">Notifications</div>
+                      {unread > 0 && <div className="text-xs text-white/50">{unread} unread</div>}
+                    </div>
+                    {unread > 0 && (
+                      <button onClick={markAllRead}
+                        className="text-xs font-bold text-white/60 hover:text-white transition px-2 py-1 rounded-lg hover:bg-white/10">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {/* List */}
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <div className="text-3xl mb-2">🔔</div>
+                        <div className="text-sm font-bold" style={{ color: '#1d3557' }}>No notifications</div>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <Link key={n.id} href={n.link || '/notifications'}
+                          onClick={() => {
+                            setNotifOpen(false);
+                            if (!n.is_read) {
+                              fetch('/api/notifications', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) });
+                              setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+                              setUnread(u => Math.max(0, u - 1));
+                            }
+                          }}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-[#f8fafc] transition"
+                          style={{ borderBottom: '1px solid #f1f5f9', background: n.is_read ? '#fff' : '#f0f7ff' }}>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{ background: n.type === 'task' ? '#eff6ff' : n.type === 'project' ? '#f0fdf9' : '#fff7ed' }}>
+                            <span style={{ fontSize: 14 }}>
+                              {n.type === 'task' ? '✅' : n.type === 'project' ? '📁' : '🔔'}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-bold truncate" style={{ color: '#1d3557' }}>{n.title}</div>
+                            {n.body && <div className="text-xs truncate mt-0.5" style={{ color: '#6b7a8d' }}>{n.body}</div>}
+                            <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>{timeAgo(n.created_at)}</div>
+                          </div>
+                          {!n.is_read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#e63946' }} />}
+                        </Link>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <Link href="/notifications" onClick={() => setNotifOpen(false)}
+                    className="flex items-center justify-center py-3 text-xs font-bold hover:bg-[#f8fafc] transition"
+                    style={{ borderTop: '1px solid #e2e8f0', color: '#457b9d' }}>
+                    View all notifications →
+                  </Link>
+                </div>
               )}
-            </Link>
+            </div>
 
             {/* User menu */}
             <div className="relative">

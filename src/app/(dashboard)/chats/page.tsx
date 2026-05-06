@@ -314,62 +314,64 @@ export default function ChatsPage() {
   );
 
   return (
-    <div className="flex rounded-2xl overflow-hidden shadow-sm" style={{ height: 'calc(100vh - 10rem)', border: '1px solid #d0dce8' }}>
+    <div className="flex rounded-2xl overflow-hidden shadow-lg" style={{ height: 'calc(100vh - 10rem)', border: '1px solid #d0dce8', background: '#f8fafc' }}>
 
       {/* Sidebar */}
-      <div className="w-72 flex flex-col flex-shrink-0" style={{ background: '#1d3557', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div>
-            <div className="font-black text-white">Direct Messages</div>
-            <div className="text-xs text-white/40">{chats.length} conversation{chats.length !== 1 ? 's' : ''}</div>
-          </div>
+      <div className="w-80 flex flex-col border-r" style={{ borderColor: '#d0dce8', background: '#fff' }}>
+        <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <div className="font-black text-lg" style={{ color: '#1d3557' }}>Messages</div>
           <button onClick={openNewChatModal}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold hover:bg-white/10 transition"
-            style={{ background: '#e63946' }}>+</button>
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white hover:opacity-90 transition"
+            style={{ background: '#e63946' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {loadingChats ? (
             <div className="flex items-center justify-center py-12">
-              <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <div className="w-6 h-6 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
             </div>
           ) : chats.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <div className="text-3xl mb-3">💬</div>
-              <div className="text-sm text-white/40 mb-2">No conversations yet</div>
-              <button onClick={openNewChatModal} className="text-xs font-bold hover:underline" style={{ color: '#a8dadc' }}>
-                Start a conversation
-              </button>
+            <div className="py-12 text-center px-4">
+              <div className="text-4xl mb-3">💬</div>
+              <div className="font-bold text-sm text-[#1d3557] mb-1">No conversations yet</div>
+              <div className="text-xs" style={{ color: '#6b7a8d' }}>Start a new chat to get going</div>
             </div>
           ) : (
             chats.map(chat => {
-              const displayName = chat.other_user_name || chat.name || 'User';
+              const displayName = chat.other_user_name || chat.name || 'Chat';
+              const isActive = chat.id === activeChat;
               return (
                 <button key={chat.id} onClick={() => selectChat(chat)}
-                  className="w-full text-left px-4 py-3.5 flex items-center gap-3 transition hover:bg-white/5"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: activeChat === chat.id ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-                    style={{ background: avatarBg(displayName) }}>
-                    {displayName[0]?.toUpperCase()}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f8fafc] transition text-left"
+                  style={{
+                    background: isActive ? '#f0f4f8' : 'transparent',
+                    borderLeft: isActive ? '3px solid #1d3557' : '3px solid transparent',
+                    borderBottom: '1px solid #f1f5f9',
+                  }}>
+                  <div className="relative flex-shrink-0">
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-black"
+                      style={{ background: avatarBg(displayName) }}>
+                      {displayName[0]?.toUpperCase()}
+                    </div>
+                    {chat.unread_count > 0 && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-black"
+                        style={{ background: '#e63946' }}>
+                        {chat.unread_count > 9 ? '9+' : chat.unread_count}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-sm font-bold text-white truncate">{displayName}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {chat.last_message_at && (
-                          <span className="text-xs text-white/30">{timeAgo(chat.last_message_at)}</span>
-                        )}
-                        {chat.unread_count > 0 && (
-                          <span className="text-xs font-black text-white rounded-full w-5 h-5 flex items-center justify-center"
-                            style={{ background: '#2a9d8f', fontSize: '9px' }}>
-                            {chat.unread_count > 9 ? '9+' : chat.unread_count}
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{displayName}</span>
+                      {chat.last_message_at && (
+                        <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>{timeAgo(chat.last_message_at)}</span>
+                      )}
                     </div>
-                    {chat.last_message && (
-                      <div className="text-xs text-white/30 truncate mt-0.5">{chat.last_message}</div>
-                    )}
+                    <div className="text-xs truncate" style={{ color: chat.unread_count > 0 ? '#1d3557' : '#94a3b8', fontWeight: chat.unread_count > 0 ? 600 : 400 }}>
+                      {chat.last_message || 'No messages yet'}
+                    </div>
                   </div>
                 </button>
               );
@@ -379,71 +381,93 @@ export default function ChatsPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col" style={{ background: '#f1faee' }}>
+      <div className="flex-1 flex flex-col" style={{ background: '#f8fafc' }}>
         {activeChat ? (
           <>
             {/* Header */}
-            <div className="px-6 py-4 flex items-center gap-3 bg-white" style={{ borderBottom: '1px solid #d0dce8' }}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black"
-                style={{ background: avatarBg(activeName) }}>
-                {activeName[0]?.toUpperCase()}
+            <div className="px-6 py-4 flex items-center gap-4" style={{ background: '#1d3557', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="relative">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-black shadow-lg"
+                  style={{ background: avatarBg(activeName) }}>
+                  {activeName[0]?.toUpperCase()}
+                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1d3557]" style={{ background: '#2a9d8f' }} />
               </div>
               <div className="flex-1">
-                <div className="font-black text-[#1d3557] text-sm">{activeName}</div>
-                <div className="text-xs" style={{ color: '#6b7a8d' }}>
+                <div className="font-black text-white text-base">{activeName}</div>
+                <div className="text-xs text-white/50">
                   {typingUsers.length > 0
-                    ? <span className="font-semibold animate-pulse" style={{ color: '#2a9d8f' }}>{typingUsers.join(', ')} typing…</span>
-                    : `${messages.length} message${messages.length !== 1 ? 's' : ''}`}
+                    ? <span className="font-semibold text-[#a8dadc] animate-pulse">{typingUsers.join(', ')} is typing…</span>
+                    : <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2a9d8f] animate-pulse inline-block" />Online</span>}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#2a9d8f' }}>
-                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#2a9d8f' }} />
-                Live
-              </div>
+
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4" style={{ background: 'linear-gradient(180deg, #f0f4f8 0%, #f8fafc 100%)' }}>
               {loadingMessages ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="text-center py-12 text-sm" style={{ color: '#6b7a8d' }}>No messages yet. Say hello! 👋</div>
+                <div className="flex flex-col items-center justify-center h-full py-20 text-center">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-4 shadow-lg"
+                    style={{ background: avatarBg(activeName) }}>
+                    {activeName[0]?.toUpperCase()}
+                  </div>
+                  <div className="font-black text-lg mb-1" style={{ color: '#1d3557' }}>{activeName}</div>
+                  <div className="text-sm mb-1" style={{ color: '#6b7a8d' }}>This is the beginning of your conversation</div>
+                  <div className="text-2xl mt-2">👋</div>
+                </div>
               ) : (
-                messages.map(m => {
+                messages.map((m, idx) => {
                   const isMe = m.sender_id === myId;
+                  const prevMsg = messages[idx - 1];
+                  const showAvatar = !prevMsg || prevMsg.sender_id !== m.sender_id;
+                  const showTime = !prevMsg || new Date(m.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000;
                   return (
-                    <div key={m.id} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''}`}>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                        style={{ background: avatarBg(m.sender_name) }}>
-                        {m.sender_name?.[0]?.toUpperCase()}
-                      </div>
-                      <div className={`flex flex-col max-w-xs ${isMe ? 'items-end' : 'items-start'}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-[#1d3557]">{isMe ? 'You' : m.sender_name}</span>
-                          <span className="text-xs text-[#6b7a8d]">
-                            {fmtT(m.created_at)}
-                          </span>
+                    <div key={m.id}>
+                      {showTime && (
+                        <div className="flex items-center gap-3 my-3">
+                          <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#e2e8f0', color: '#94a3b8' }}>{fmtDT(m.created_at)}</span>
+                          <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
                         </div>
-                        <div className="flex items-end gap-1.5">
-                          <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
-                            style={isMe
-                              ? { background: '#1d3557', color: '#fff', borderBottomRightRadius: 4 }
-                              : { background: '#fff', color: '#1d3557', border: '1px solid #d0dce8', borderBottomLeftRadius: 4 }}>
-                            {m.content}
+                      )}
+                      <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-1'}`}>
+                        {showAvatar ? (
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0 shadow-sm"
+                            style={{ background: avatarBg(m.sender_name) }}>
+                            {m.sender_name?.[0]?.toUpperCase()}
                           </div>
-                          {isMe && (
-                            <button onClick={() => deleteMessage(m.id)}
-                              className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80"
-                              style={{ background: '#e63946' }} title="Delete">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                <path d="M10 11v6M14 11v6"/>
-                              </svg>
-                            </button>
+                        ) : <div className="w-9 flex-shrink-0" />}
+                        <div className={`flex flex-col max-w-lg ${isMe ? 'items-end' : 'items-start'}`}>
+                          {showAvatar && (
+                            <span className="text-xs font-bold mb-1 px-1" style={{ color: '#6b7a8d' }}>
+                              {isMe ? 'You' : m.sender_name}
+                            </span>
                           )}
+                          <div className="flex items-end gap-2">
+                            {isMe && (
+                              <button onClick={() => deleteMessage(m.id)}
+                                className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity mb-0.5"
+                                style={{ background: '#fef2f2', color: '#e63946', border: '1px solid #fecaca' }} title="Delete">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                              </button>
+                            )}
+                            <div className="px-4 py-2.5 text-sm leading-relaxed shadow-sm"
+                              style={isMe ? {
+                                background: '#1d3557', color: '#fff',
+                                borderRadius: '18px 18px 4px 18px',
+                              } : {
+                                background: '#fff', color: '#1d3557',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '18px 18px 18px 4px',
+                              }}>
+                              {m.content}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
