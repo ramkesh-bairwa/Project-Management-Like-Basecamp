@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const NAV = [
   { icon: '⊞', label: 'Dashboard', path: '/admin' },
@@ -9,16 +9,22 @@ const NAV = [
   { icon: '💎', label: 'Plans', path: '/admin/plans' },
   { icon: '💳', label: 'Payments', path: '/admin/payments' },
   { icon: '⚙️', label: 'Gateways', path: '/admin/gateways' },
+  { icon: '🎨', label: 'Settings', path: '/admin/settings' },
 ];
+
+interface SiteSettings { site_name?: string; site_logo_url?: string; logo_letter?: string; primary_color?: string; accent_color?: string; }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [settings, setSettings] = useState<SiteSettings>({});
 
   useEffect(() => {
     if (pathname === '/admin/login') return;
     const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-    if (!token) router.push('/admin/login');
+    if (!token) { router.push('/admin/login'); return; }
+    fetch('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setSettings(d)).catch(() => {});
   }, [pathname, router]);
 
   if (pathname?.startsWith('/admin/login')) return <>{children}</>;
@@ -48,10 +54,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside style={{ width: 240, background: '#0f172a', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', flexShrink: 0 }}>
         <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid #1e293b' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>A</div>
+            {settings.site_logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settings.site_logo_url} alt="logo" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
+            ) : (
+              <div style={{ borderRadius: 10, background: `linear-gradient(135deg, ${settings.accent_color || '#e63946'}, ${settings.primary_color || '#1d3557'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, height: 36, padding: '0 8px', fontSize: (settings.logo_letter?.length || 1) > 2 ? 11 : (settings.logo_letter?.length || 1) > 1 ? 13 : 16, fontWeight: 900, color: '#fff', letterSpacing: '0.04em' }}>
+                {settings.logo_letter || 'P'}
+              </div>
+            )}
             <div>
               <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>Admin Panel</div>
-              <div style={{ color: '#475569', fontSize: 11 }}>ProjectHub</div>
+              <div style={{ color: '#475569', fontSize: 11 }}>{settings.site_name || 'ProjectHub'}</div>
             </div>
           </div>
         </div>

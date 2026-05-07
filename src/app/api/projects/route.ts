@@ -39,8 +39,23 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 });
 
 export const POST = withAuth(async (req: NextRequest, user) => {
-  const { name, description, org_id, status, priority, visibility, start_date, due_date } = await req.json();
+  const { name, description, org_id, status, priority, visibility, start_date, due_date, image } = await req.json();
   if (!name) return apiError('Project name required');
+
+  // Require an active plan — no plan = no project creation
+  const userPlan = await query<{ plan_id: number | null; plan_expires_at: string | null }[]>('SELECT plan_id, plan_expires_at FROM users WHERE id=?', [user.id]);
+  const planId = userPlan[0]?.plan_id;
+  // NULL expires_at = free plan (never expires)
+  const expired = userPlan[0]?.plan_expires_at ? new Date(userPlan[0].plan_expires_at) < new Date() : false;
+  if (!planId || expired) return apiError('You must activate a plan before creating projects.', 403);
+
+  // Plan limit check
+  const pl = await query<{ max_projects: number }[]>('SELECT max_projects FROM plans WHERE id=?', [planId]);
+  const maxProjects = pl[0]?.max_projects ?? -1;
+  if (maxProjects !== -1) {
+    const [cnt] = await query<{ c: number }[]>('SELECT COUNT(*) as c FROM projects WHERE owner_id=? AND deleted_at IS NULL', [user.id]);
+    if ((cnt?.c ?? 0) >= maxProjects) return apiError(`Plan limit reached: your plan allows ${maxProjects} project${maxProjects === 1 ? '' : 's'}. Upgrade to create more.`, 403);
+  }
 
   if (org_id) {
     const member = await query<unknown[]>('SELECT id FROM org_members WHERE org_id=? AND user_id=?', [org_id, user.id]);
@@ -48,8 +63,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   }
 
   const result = await query<{ insertId: number }>(
-    'INSERT INTO projects (owner_id, org_id, name, description, status, priority, visibility, start_date, due_date) VALUES (?,?,?,?,?,?,?,?,?)',
-    [user.id, org_id || null, name, description || null, status || 'planning', priority || 'medium', visibility || 'private', start_date || null, due_date || null]
+    'INSERT INTO projects (owner_id, org_id, name, description, image, status, priority, visibility, start_date, due_date) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    [user.id, org_id || null, name, description || null, image || null, status || 'planning', priority || 'medium', visibility || 'private', start_date || null, due_date || null]
   );
   const uuid = generateUUID();
   const slug = await uniqueSlug('projects', 'slug', name);

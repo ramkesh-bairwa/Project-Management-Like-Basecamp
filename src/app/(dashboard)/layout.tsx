@@ -46,6 +46,9 @@ function timeAgo(d: string) {
   return `${Math.floor(h / 24)}d`;
 }
 
+interface SiteSettings { site_name: string; site_logo_url: string; logo_letter: string; primary_color: string; accent_color: string; secondary_color: string; }
+const DEFAULT_SETTINGS: SiteSettings = { site_name: 'ProjectHub', site_logo_url: '', logo_letter: 'P', primary_color: '#1d3557', accent_color: '#e63946', secondary_color: '#457b9d' };
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -53,7 +56,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [unread, setUnread] = useState(0);
   const [token, setToken] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [site, setSite] = useState<SiteSettings>(DEFAULT_SETTINGS);
 
   // Notification dropdown state
   const [notifOpen, setNotifOpen] = useState(false);
@@ -68,6 +73,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [startingChat, setStartingChat] = useState<number | null>(null);
   const chatDropRef = useRef<HTMLDivElement>(null);
 
+  // Load site settings once
+  useEffect(() => {
+    fetch('/api/settings').then(r => r.json()).then(d => setSite({ ...DEFAULT_SETTINGS, ...d })).catch(() => {});
+  }, []);
+
   // Load token + notifications on mount/route change
   useEffect(() => {
     const t = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
@@ -75,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!t) return;
     fetch('/api/users/me', { headers: { Authorization: `Bearer ${t}` } })
       .then(r => r.json())
-      .then(d => { if (d?.name) setUserName(d.name); if (d?.role === 'admin') setIsAdmin(true); })
+      .then(d => { if (d?.name) setUserName(d.name); if (d?.avatar) setUserAvatar(d.avatar); if (d?.role === 'admin') setIsAdmin(true); })
       .catch(() => {});
     fetch('/api/notifications', { headers: { Authorization: `Bearer ${t}` } })
       .then(r => r.json())
@@ -194,13 +204,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen" style={{ background: '#f1faee' }}>
       <AuthGuard />
-      <header style={{ background: '#1d3557' }} className="sticky top-0 z-50 shadow-md">
+      <header style={{ background: site.primary_color }} className="sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
 
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-base" style={{ background: '#e63946', color: '#fff' }}>P</div>
-            <span className="font-black text-white text-lg tracking-tight hidden sm:block">ProjectHub</span>
+            {site.site_logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={site.site_logo_url} alt="logo" className="w-8 h-8 rounded-lg object-cover" />
+            ) : (
+              <div className="rounded-lg flex items-center justify-center font-black" style={{ background: `linear-gradient(135deg, ${site.accent_color}, ${site.primary_color})`, color: '#fff', minWidth: 36, height: 32, padding: '0 8px', fontSize: site.logo_letter.length > 2 ? 11 : site.logo_letter.length > 1 ? 13 : 15, letterSpacing: '0.04em' }}>{site.logo_letter}</div>
+            )}
+            <span className="font-black text-white text-lg tracking-tight hidden sm:block">{site.site_name}</span>
           </Link>
 
           {/* Nav */}
@@ -467,14 +482,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button onClick={() => setMenuOpen(o => !o)}
                 className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 transition">
                 <span className="text-sm font-bold text-white hidden sm:block">{userName || 'User'}</span>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white"
-                  style={{ background: '#457b9d' }}>
-                  {userName ? userName[0].toUpperCase() : 'U'}
-                </div>
+                {userAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={userAvatar} alt={userName} className="w-8 h-8 rounded-full object-cover" style={{ border: '2px solid rgba(255,255,255,0.3)' }} />
+                ) : (
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white"
+                    style={{ background: '#457b9d' }}>
+                    {userName ? userName[0].toUpperCase() : 'U'}
+                  </div>
+                )}
               </button>
               {menuOpen && (
                 <div className="absolute right-0 top-10 bg-white border border-[#d0dce8] rounded-xl shadow-xl w-44 py-1 z-50">
-                  <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">👤 Profile</Link>
+                  <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">👤 Profile</Link>
                   <Link href="/plans" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">💎 Plans</Link>
                   <Link href="/archive" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1d3557] hover:bg-[#f1faee] transition">🗃 Archive</Link>
                   {isAdmin && (
@@ -492,7 +512,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Mobile nav */}
         {menuOpen && (
-          <div className="md:hidden border-t border-white/10 px-4 py-3 flex flex-col gap-1" style={{ background: '#152840' }}>
+          <div className="md:hidden border-t border-white/10 px-4 py-3 flex flex-col gap-1" style={{ background: site.primary_color }}>
             {nav.map(item => (
               <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
                 className="px-3 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition">
@@ -505,7 +525,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Page header band */}
       {!isHome && (
-        <div style={{ background: '#1d3557' }} className="border-b border-white/10">
+        <div style={{ background: site.primary_color }} className="border-b border-white/10">
           <div className="max-w-7xl mx-auto px-5 py-5">
             <h1 className="text-xl font-black text-white capitalize">
               {pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') || 'Dashboard'}

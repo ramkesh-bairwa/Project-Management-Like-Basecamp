@@ -4,9 +4,11 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 import ConfirmModal from '@/components/ConfirmModal';
+import PlanLimitBanner from '@/components/PlanLimitBanner';
 
 interface Group { id: number; uuid: string; slug: string; name: string; description: string; color: string; task_count: number; member_count: number; created_by_name: string; created_at: string; }
 interface Member { id: number; name: string; role: string; email: string }
+interface PlanInfo { plan: string; limits: { max_projects: number; max_members: number; max_tasks: number; max_groups: number; max_storage_gb: number }; usage: { projects: number; tasks: number; groups: number; members: number } }
 
 const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
 
@@ -44,6 +46,7 @@ export default function ProjectGroupsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
 
   // member dropdown
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
@@ -79,6 +82,8 @@ export default function ProjectGroupsPage() {
             setMyId(uid);
             setLoaded(true);
           });
+        fetch('/api/user/plan-limits', { headers: auth })
+          .then(r => r.json()).then(d => d?.plan && setPlanInfo(d));
       });
   }, [id]);
 
@@ -156,9 +161,12 @@ export default function ProjectGroupsPage() {
       setInviteEmails([]);
       setInviteInput('');
       setSaving(false);
+      setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, groups: prev.usage.groups + 1 } } : prev);
       router.push(`/projects/${id}/groups/${data.slug || data.id}`);
     } else {
+      const err = await res.json();
       setSaving(false);
+      alert(err.error || 'Failed to create group');
     }
   }
 
@@ -181,6 +189,7 @@ export default function ProjectGroupsPage() {
   }
 
   const canManage = true;
+  const atGroupLimit = planInfo ? (planInfo.limits.max_groups !== -1 && planInfo.usage.groups >= planInfo.limits.max_groups) : false;
 
   // filtered members for dropdown (exclude self + already selected)
   const selectedIds = new Set(selectedMembers.map(m => m.id));
@@ -203,6 +212,8 @@ export default function ProjectGroupsPage() {
         <span className="font-bold" style={{ color: '#1d3557' }}>Groups</span>
       </div>
 
+      {planInfo && <PlanLimitBanner plan={planInfo.plan} limits={planInfo.limits} usage={planInfo.usage} show={['groups']} />}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
@@ -212,9 +223,10 @@ export default function ProjectGroupsPage() {
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
           {canManage && (
-            <button onClick={() => { setShowForm(v => !v); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
+            <button onClick={() => !atGroupLimit && (setShowForm(v => !v), setSelectedMembers([]), setInviteEmails([]), setInviteInput(''))}
               className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-              style={{ background: showForm ? '#6b7a8d' : '#e63946' }}>
+              style={{ background: showForm ? '#6b7a8d' : atGroupLimit ? '#94a3b8' : '#e63946', cursor: atGroupLimit ? 'not-allowed' : 'pointer' }}
+              title={atGroupLimit ? `Limit reached: ${planInfo?.usage.groups}/${planInfo?.limits.max_groups} groups` : ''}>
               {showForm ? '✕ Cancel' : '+ New Group'}
             </button>
           )}

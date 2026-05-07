@@ -40,6 +40,26 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
   if (!member.length) return apiError('Not a project member', 403);
   if (!['owner','admin','manager'].includes(member[0].role)) return apiError('Only owner, admin or manager can create groups', 403);
+
+  // Plan limit check (count groups across all projects owned by this user)
+  const projOwner = await query<{ owner_id: number }[]>('SELECT owner_id FROM projects WHERE id=?', [project_id]);
+  if (projOwner.length && projOwner[0].owner_id === user.id) {
+    const userPlan = await query<{ plan_id: number | null; plan_expires_at: string | null }[]>('SELECT plan_id, plan_expires_at FROM users WHERE id=?', [user.id]);
+    let maxGroups = 3;
+    if (userPlan[0]?.plan_id) {
+      const expired = userPlan[0].plan_expires_at && new Date(userPlan[0].plan_expires_at) < new Date();
+      if (!expired) {
+        const pl = await query<{ max_groups: number }[]>('SELECT max_groups FROM plans WHERE id=?', [userPlan[0].plan_id]);
+        if (pl.length) maxGroups = pl[0].max_groups;
+      }
+    }
+    if (maxGroups !== -1) {
+      const [cnt] = await query<{ c: number }[]>(
+        `SELECT COUNT(*) as c FROM project_groups pg JOIN projects p ON p.id=pg.project_id WHERE p.owner_id=? AND pg.deleted_at IS NULL`, [user.id]
+      );
+      if ((cnt?.c ?? 0) >= maxGroups) return apiError(`Plan limit reached: your plan allows ${maxGroups} group${maxGroups === 1 ? '' : 's'}. Upgrade to create more.`, 403);
+    }
+  }
   const result = await query<{ insertId: number }>(
     'INSERT INTO project_groups (project_id, name, description, color, created_by) VALUES (?,?,?,?,?)',
     [project_id, name, description || null, color || '#457b9d', user.id]

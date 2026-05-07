@@ -12,10 +12,7 @@ export async function POST(req: NextRequest) {
   if ((existing as unknown[]).length > 0) return apiError('Email already registered');
 
   const hashed = await bcrypt.hash(password, 10);
-  const plans = await query<{ id: number }[]>('SELECT id FROM plans WHERE price = 0 LIMIT 1');
-  const planId = plans[0]?.id || null;
-
-  const result = await query<{ insertId: number }>('INSERT INTO users (name, email, password, plan_id) VALUES (?, ?, ?, ?)', [name, email, hashed, planId]);
+  const result = await query<{ insertId: number }>('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashed]);
   const token = signToken({ id: result.insertId, email, role: 'user', is_org: false });
 
   const res = NextResponse.json({ user: { id: result.insertId, name, email, role: 'user', is_org: false }, token }, { status: 201 });

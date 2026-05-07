@@ -56,6 +56,7 @@ export default function AdminGatewaysPage() {
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
 
   const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || localStorage.getItem('token') || '') : '';
 
@@ -64,12 +65,27 @@ export default function AdminGatewaysPage() {
     fetch('/api/admin/gateways', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then((data: Gateway[]) => {
+        if (!Array.isArray(data) || data.length === 0) {
+          // Auto-setup if empty
+          setupGateways().then(load);
+          return;
+        }
         setGateways(data);
         const c: Record<string, Record<string, string>> = {};
         data.forEach(g => { c[g.provider] = { ...g.config }; });
         setConfigs(c);
       })
       .finally(() => setLoading(false));
+  }
+
+  async function setupGateways() {
+    setSetupLoading(true);
+    await fetch('/api/payment/setup', {
+      method: 'POST',
+      headers: { 'x-migrate-secret': 'run-migration-now' },
+    });
+    setSetupLoading(false);
+    showToast('✓ Gateways initialized');
   }
 
   useEffect(() => { load(); }, []);
@@ -134,11 +150,17 @@ export default function AdminGatewaysPage() {
             Active: <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{activeGateway?.display_name || 'None'}</span>
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, background: activeGateway?.provider === 'sandbox' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)', border: `1px solid ${activeGateway?.provider === 'sandbox' ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}` }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeGateway?.provider === 'sandbox' ? '#f59e0b' : '#10b981' }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: activeGateway?.provider === 'sandbox' ? '#f59e0b' : '#10b981' }}>
-            {activeGateway?.provider === 'sandbox' ? 'Test Mode' : 'Live Mode'}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, background: activeGateway?.provider === 'sandbox' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)', border: `1px solid ${activeGateway?.provider === 'sandbox' ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}` }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeGateway?.provider === 'sandbox' ? '#f59e0b' : '#10b981' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: activeGateway?.provider === 'sandbox' ? '#f59e0b' : '#10b981' }}>
+              {activeGateway?.provider === 'sandbox' ? 'Test Mode' : 'Live Mode'}
+            </span>
+          </div>
+          <button onClick={() => setupGateways().then(load)} disabled={setupLoading}
+            style={{ padding: '8px 16px', borderRadius: 10, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700, fontSize: 12, border: '1px solid rgba(245,158,11,0.3)', cursor: 'pointer', opacity: setupLoading ? 0.6 : 1 }}>
+            {setupLoading ? 'Setting up...' : '🧪 Setup Gateways'}
+          </button>
         </div>
       </div>
 

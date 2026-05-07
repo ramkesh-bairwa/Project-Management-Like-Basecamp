@@ -52,7 +52,7 @@ export default function SandboxPaymentPage() {
     }
 
     const t = getToken();
-    const res = await fetch('/api/payment/webhook', {
+    const res = await fetch('/api/payment/webhook/sandbox', {
       method: 'POST',
       headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ payment_id: Number(paymentId), action: 'confirm' }),
@@ -70,7 +70,7 @@ export default function SandboxPaymentPage() {
 
   async function cancel() {
     const t = getToken();
-    await fetch('/api/payment/webhook', {
+    await fetch('/api/payment/webhook/sandbox', {
       method: 'POST',
       headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ payment_id: Number(paymentId), action: 'cancel' }),

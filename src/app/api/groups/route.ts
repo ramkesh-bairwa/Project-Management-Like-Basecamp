@@ -12,12 +12,12 @@ export const GET = withAuth(async (_req, user) => {
 });
 
 export const POST = withAuth(async (req: NextRequest, user) => {
-  const { name, description, org_id, is_private } = await req.json();
+  const { name, description, org_id, is_private, image } = await req.json();
   if (!name) return apiError('Group name required');
 
   const result = await query<{ insertId: number }>(
-    'INSERT INTO groups (owner_id, org_id, name, description, is_private) VALUES (?,?,?,?,?)',
-    [user.id, org_id || null, name, description || null, is_private ? 1 : 0]
+    'INSERT INTO groups (owner_id, org_id, name, description, image, is_private) VALUES (?,?,?,?,?,?)',
+    [user.id, org_id || null, name, description || null, image || null, is_private ? 1 : 0]
   );
   await query('INSERT INTO group_members (group_id, user_id, role) VALUES (?,?,?)', [result.insertId, user.id, 'owner']);
   return apiResponse({ id: result.insertId, name }, 201);

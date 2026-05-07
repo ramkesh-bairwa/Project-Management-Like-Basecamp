@@ -1,11 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { getToken } from '@/lib/client-auth';
 import ConfirmModal from '@/components/ConfirmModal';
+import PlanLimitBanner from '@/components/PlanLimitBanner';
 
-interface Project { id: number; uuid: string; slug: string; name: string; description: string; status: string; priority: string; due_date: string; org_id: number | null }
-interface ProjectMember { id: number; name: string; role: string; }
+interface Project { id: number; uuid: string; slug: string; name: string; description: string; status: string; priority: string; due_date: string; org_id: number | null; image: string | null }
+interface ProjectMember { id: number; name: string; role: string; avatar?: string; }
+interface PlanInfo { plan: string; has_plan: boolean; limits: { max_projects: number; max_members: number; max_tasks: number; max_groups: number; max_storage_gb: number }; usage: { projects: number; tasks: number; groups: number; members: number } }
+interface Plan { id: number; name: string; price: number; billing_cycle: string; max_projects: number; max_groups: number; max_tasks: number; max_members: number; max_storage_gb: number; features: string[] }
 
 const statusCfg: Record<string, { dot: string; label: string; bg: string; text: string }> = {
   planning:  { dot: '#94a3b8', label: 'Planning',  bg: '#f1f5f9', text: '#475569' },
@@ -62,11 +65,20 @@ export default function ProjectsPage() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState('all');
   const [view, setView] = useState<ViewMode>('grid');
-  const [form, setForm] = useState({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' });
-
+  const [form, setForm] = useState({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning', image: '' });
   const [token, setToken] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  // Plan picker modal
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [activatingPlan, setActivatingPlan] = useState<number | null>(null);
+  const [confirmFreePlan, setConfirmFreePlan] = useState<Plan | null>(null);
+  const [planSuccess, setPlanSuccess] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const t = getToken();
@@ -76,21 +88,52 @@ export default function ProjectsPage() {
       .then(d => {
         if (!Array.isArray(d)) return;
         setProjects(d);
-        // Fetch members for all projects in parallel
         d.forEach((p: Project) => {
           fetch(`/api/projects/members?project_id=${p.id}`, { headers: { Authorization: `Bearer ${t}` } })
             .then(r => r.json())
             .then(m => Array.isArray(m) && setMembers(prev => ({ ...prev, [p.id]: m })));
         });
       });
+    fetch('/api/user/plan-limits', { headers: { Authorization: `Bearer ${t}` } })
+      .then(r => r.json()).then(d => d?.plan && setPlanInfo(d));
+    // Pre-load plans for the picker modal
+    fetch('/api/plans').then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setPlans(d.map((p: Plan & { features: string | string[]; max_tasks?: number; max_groups?: number }) => ({
+        ...p,
+        features: typeof p.features === 'string' ? JSON.parse(p.features || '[]') : (p.features || []),
+        max_tasks: p.max_tasks ?? -1,
+        max_groups: p.max_groups ?? -1,
+      })));
+    });
   }, []);
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImagePreview(URL.createObjectURL(file));
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/projects/image', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    const data = await res.json();
+    setUploading(false);
+    if (data.url) setForm(p => ({ ...p, image: data.url }));
+  }
 
   async function createProject(e: React.FormEvent) {
     e.preventDefault();
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const res = await fetch('/api/projects', { method: 'POST', headers, body: JSON.stringify(form) });
     const data = await res.json();
-    if (res.ok) { setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]); setShowForm(false); setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning' }); }
+    if (res.ok) {
+      setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]);
+      setShowForm(false);
+      setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning', image: '' });
+      setImagePreview('');
+      setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev);
+    } else {
+      alert(data.error || 'Failed to create project');
+    }
   }
 
   async function deleteProject() {
@@ -105,10 +148,44 @@ export default function ProjectsPage() {
     setProjects(p => p.filter(x => x.id !== deleteTarget.id));
   }
 
+  async function activateFreePlan(plan: Plan) {
+    setActivatingPlan(plan.id);
+    const res = await fetch('/api/plans/subscribe', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: plan.id, payment_ref: `FREE-${Date.now()}` }),
+    });
+    const data = await res.json();
+    setActivatingPlan(null);
+    if (res.ok) {
+      setConfirmFreePlan(null);
+      setPlanSuccess(`✅ ${plan.name} plan activated! You can now create projects.`);
+      // Refresh plan info from server
+      const limitsRes = await fetch('/api/user/plan-limits', { headers: { Authorization: `Bearer ${token}` } });
+      const limitsData = await limitsRes.json();
+      if (limitsData?.plan) setPlanInfo(limitsData);
+      // Close modal and open project form
+      setTimeout(() => { setShowPlanModal(false); setPlanSuccess(''); setShowForm(true); }, 1200);
+    } else {
+      alert(data.error || 'Failed to activate plan. Please try again.');
+    }
+  }
+
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
+  const planLoaded = planInfo !== null;
+  const noPlan = !planLoaded || !planInfo.has_plan;
+  const atProjectLimit = planLoaded && planInfo.limits.max_projects !== -1 && planInfo.usage.projects >= planInfo.limits.max_projects;
+
+  function handleNewProject() {
+    if (!planLoaded) return;
+    if (noPlan) { setShowPlanModal(true); return; }
+    if (atProjectLimit) return;
+    setShowForm(true);
+  }
 
   return (
     <div onClick={() => setActiveMember(null)}>
+      {planInfo && <PlanLimitBanner plan={planInfo.plan} limits={planInfo.limits} usage={planInfo.usage} show={['projects']} />}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap">
           {['all', 'planning', 'active', 'on_hold', 'completed', 'archived'].map(f => (
@@ -121,9 +198,10 @@ export default function ProjectsPage() {
         </div>
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
-          <button onClick={() => setShowForm(true)}
+          <button onClick={handleNewProject}
             className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition hover:opacity-90"
-            style={{ background: '#e63946' }}>
+            style={{ background: !planLoaded || atProjectLimit ? '#94a3b8' : '#e63946', cursor: !planLoaded || atProjectLimit ? 'not-allowed' : 'pointer' }}
+            title={!planLoaded ? 'Loading...' : noPlan ? 'Select a plan to create projects' : atProjectLimit ? `Limit reached: ${planInfo?.usage.projects}/${planInfo?.limits.max_projects} projects` : ''}>
             + New Project
           </button>
         </div>
@@ -135,31 +213,71 @@ export default function ProjectsPage() {
             const sc = statusCfg[p.status] || statusCfg.planning;
             const accent = accentColors[i % accentColors.length];
             return (
-              <Link key={p.id} href={`/projects/${p.slug || p.id}`}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition group"
-                style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: accent }} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm group-hover:text-[#e63946] transition truncate" style={{ color: '#1d3557' }}>{p.name}</div>
-                  {p.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{p.description}</div>}
-                </div>
-                <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-                  style={{ background: sc.bg, color: sc.text }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />{sc.label}
-                </span>
-                <span className="text-xs font-semibold capitalize flex-shrink-0" style={{ color: accent }}>{p.priority}</span>
-                {p.due_date && <span className="text-xs flex-shrink-0" style={{ color: '#6b7a8d' }}>{fmtD(p.due_date)}</span>}
-                <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
-                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
-              </Link>
+              <div key={p.id} className="relative">
+                <Link href={`/projects/${p.slug || p.id}`}
+                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition group"
+                  style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                  {p.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: accent }} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm group-hover:text-[#e63946] transition truncate" style={{ color: '#1d3557' }}>{p.name}</div>
+                    {p.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{p.description}</div>}
+                  </div>
+                  <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                    style={{ background: sc.bg, color: sc.text }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />{sc.label}
+                  </span>
+                  <span className="text-xs font-semibold capitalize flex-shrink-0" style={{ color: accent }}>{p.priority}</span>
+                  {p.due_date && <span className="text-xs flex-shrink-0" style={{ color: '#6b7a8d' }}>{fmtD(p.due_date)}</span>}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {(members[p.id] || []).slice(0, 3).map((m, mi) => {
+                      const memberData = m as ProjectMember & { avatar?: string };
+                      return (
+                        <div key={m.id}
+                          onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const rect = (e.target as HTMLElement).getBoundingClientRect();
+                            setActiveMember({ member: m, x: rect.left, y: rect.bottom + 8 });
+                          }}
+                          className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-black cursor-pointer hover:scale-110 transition-transform overflow-hidden"
+                          style={{
+                            background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`,
+                            marginLeft: mi > 0 ? '-8px' : '0',
+                            zIndex: 10 - mi,
+                          }}>
+                          {memberData.avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={memberData.avatar} alt={m.name} className="w-full h-full object-cover" />
+                          ) : (
+                            m.name[0].toUpperCase()
+                          )}
+                        </div>
+                      );
+                    })}
+                    {(members[p.id] || []).length > 3 && (
+                      <div className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-xs font-black"
+                        style={{ background: '#94a3b8', color: '#fff', marginLeft: '-8px', zIndex: 4 }}>
+                        +{(members[p.id] || []).length - 3}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
+                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                </Link>
+              </div>
             );
           })}
           {filtered.length === 0 && (
             <div className="p-16 text-center">
               <div className="text-5xl mb-4">📋</div>
               <div className="font-black text-[#1d3557] mb-2">No projects yet</div>
-              <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
+              <button onClick={handleNewProject} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
             </div>
           )}
         </div>
@@ -170,37 +288,57 @@ export default function ProjectsPage() {
           const accent = accentColors[i % accentColors.length];
           return (
             <Link key={p.id} href={`/projects/${p.slug || p.id}`}
-              className={`bg-white rounded-2xl overflow-visible hover:-translate-y-0.5 hover:shadow-lg transition-all group relative${view === 'box' ? ' flex gap-5 items-start' : ''}`}
+              className={`bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group relative${view === 'box' ? ' flex gap-5 items-start' : ''}`}
               style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
-              {/* Top accent bar with overlapping member avatars */}
-              <div className="relative h-2 rounded-t-2xl" style={{ background: accent }}>
-                {(members[p.id] || []).slice(0, 5).map((m, mi) => (
-                  <div key={m.id}
-                    onClick={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const rect = (e.target as HTMLElement).getBoundingClientRect();
-                      setActiveMember({ member: m, x: rect.left, y: rect.bottom + 8 });
-                    }}
-                    className="absolute -bottom-3.5 w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-black cursor-pointer hover:scale-110 transition-transform"
-                    style={{
-                      left: `${10 + mi * 18}px`,
-                      background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`,
-                      zIndex: 10 - mi,
-                    }}>
-                    {m.name[0].toUpperCase()}
-                  </div>
-                ))}
+              {/* Top image or accent bar with overlapping member avatars */}
+              <div className="relative" style={{ height: p.image ? '120px' : '12px' }}>
+                {p.image ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                    {/* Dark overlay for better avatar visibility */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)' }} />
+                  </>
+                ) : (
+                  <div className="h-full rounded-t-2xl" style={{ background: 'rgb(208 208 208)' }} />
+                )}
+                {/* Member avatars */}
+                {(members[p.id] || []).slice(0, 5).map((m, mi) => {
+                  const memberData = m as ProjectMember & { avatar?: string };
+                  return (
+                    <div key={m.id}
+                      onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const rect = (e.target as HTMLElement).getBoundingClientRect();
+                        setActiveMember({ member: m, x: rect.left, y: rect.bottom + 8 });
+                      }}
+                      className="absolute w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-black cursor-pointer hover:scale-110 transition-transform overflow-hidden"
+                      style={{
+                        left: `${10 + mi * 18}px`,
+                        bottom: '-14px',
+                        background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`,
+                        zIndex: 10 - mi,
+                      }}>
+                      {memberData.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={memberData.avatar} alt={m.name} className="w-full h-full object-cover" />
+                      ) : (
+                        m.name[0].toUpperCase()
+                      )}
+                    </div>
+                  );
+                })}
                 {(members[p.id] || []).length > 5 && (
                   <div
                     onClick={e => { e.preventDefault(); e.stopPropagation(); }}
-                    className="absolute -bottom-3.5 w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-xs font-black"
-                    style={{ left: `${10 + 5 * 18}px`, background: '#94a3b8', color: '#fff', zIndex: 4 }}>
+                    className="absolute w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-xs font-black"
+                    style={{ left: `${10 + 5 * 18}px`, bottom: '-14px', background: '#94a3b8', color: '#fff', zIndex: 4 }}>
                     +{(members[p.id] || []).length - 5}
                   </div>
                 )}
               </div>
-              <div className="p-5 pt-7">
+              <div className={p.image ? 'p-5 pt-7' : 'p-5 pt-7'}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="font-black text-[#1d3557] text-base leading-snug group-hover:text-[#e63946] transition">{p.name}</h3>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -232,7 +370,7 @@ export default function ProjectsPage() {
             <div className="text-5xl mb-4">📋</div>
             <div className="font-black text-[#1d3557] mb-2">No projects yet</div>
             <div className="text-[#6b7a8d] text-sm mb-6">Create your first project to get started</div>
-            <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
+            <button onClick={handleNewProject} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
           </div>
         )}
       </div>
@@ -298,6 +436,24 @@ export default function ProjectsPage() {
                   className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition resize-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
               </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project Image</label>
+                <div className="flex items-center gap-4">
+                  {(imagePreview || form.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imagePreview || form.image} alt="preview" className="w-20 h-20 rounded-xl object-cover"
+                      style={{ border: '2px solid #d0dce8' }} />
+                  )}
+                  <div className="flex-1">
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                      className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
+                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
+                      {uploading ? 'Uploading…' : '📷 Choose Image'}
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Priority</label>
@@ -327,6 +483,133 @@ export default function ProjectsPage() {
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee]" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Plan picker modal — shown when user has no plan */}
+      {showPlanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(15,23,42,0.75)' }}>
+          <div className="bg-white rounded-2xl w-full shadow-2xl overflow-hidden" style={{ maxWidth: 900, maxHeight: '90vh', border: '1px solid #d0dce8', display: 'flex', flexDirection: 'column' }}>
+
+            {/* Header */}
+            <div className="px-8 py-6 flex items-center justify-between flex-shrink-0" style={{ background: '#1d3557' }}>
+              <div>
+                <div className="font-black text-white text-xl">Choose a Plan to Get Started</div>
+                <div className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Select any plan — Free plan requires no payment</div>
+              </div>
+              <button onClick={() => { setShowPlanModal(false); setConfirmFreePlan(null); setPlanSuccess(''); }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition text-lg">✕</button>
+            </div>
+
+            {/* Success banner */}
+            {planSuccess && (
+              <div className="mx-6 mt-4 px-4 py-3 rounded-xl text-sm font-bold text-center flex-shrink-0"
+                style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                {planSuccess}
+              </div>
+            )}
+
+            {/* Plans grid */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {confirmFreePlan ? (
+                /* Free plan confirmation */
+                <div className="max-w-md mx-auto">
+                  <div className="text-center mb-6">
+                    <div className="text-5xl mb-3">🎉</div>
+                    <div className="font-black text-xl" style={{ color: '#1d3557' }}>Activate Free Plan</div>
+                    <div className="text-sm mt-1" style={{ color: '#6b7a8d' }}>No credit card required</div>
+                  </div>
+                  <div className="rounded-2xl p-5 mb-5" style={{ background: '#f8fafc', border: '1.5px solid #d0dce8' }}>
+                    <div className="font-black text-sm mb-3" style={{ color: '#1d3557' }}>You will get:</div>
+                    <ul className="space-y-2">
+                      {[
+                        `${confirmFreePlan.max_projects === -1 ? 'Unlimited' : confirmFreePlan.max_projects} projects`,
+                        `${confirmFreePlan.max_groups === -1 ? 'Unlimited' : confirmFreePlan.max_groups} groups`,
+                        `${confirmFreePlan.max_tasks === -1 ? 'Unlimited' : confirmFreePlan.max_tasks} tasks`,
+                        `${confirmFreePlan.max_members === -1 ? 'Unlimited' : confirmFreePlan.max_members} members`,
+                        `${confirmFreePlan.max_storage_gb}GB storage`,
+                        ...confirmFreePlan.features,
+                      ].map(f => (
+                        <li key={f} className="flex items-center gap-2 text-sm" style={{ color: '#1d3557' }}>
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style={{ background: '#2a9d8f' }}>✓</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => activateFreePlan(confirmFreePlan)} disabled={activatingPlan === confirmFreePlan.id}
+                      className="flex-1 py-3 rounded-xl font-black text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+                      style={{ background: '#2a9d8f' }}>
+                      {activatingPlan === confirmFreePlan.id ? 'Activating...' : '✓ Activate Free Plan'}
+                    </button>
+                    <button onClick={() => setConfirmFreePlan(null)}
+                      className="flex-1 py-3 rounded-xl font-black text-sm transition hover:bg-gray-50"
+                      style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>
+                      ← Back
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {plans.map(plan => {
+                    const isFree = Number(plan.price) === 0;
+                    const colors: Record<string, { bg: string; border: string; btn: string; text: string; muted: string }> = {
+                      Free:       { bg: '#fff',     border: '#d0dce8', btn: '#1d3557', text: '#1d3557', muted: '#6b7a8d' },
+                      Pro:        { bg: '#1d3557',  border: '#1d3557', btn: '#e63946', text: '#fff',    muted: 'rgba(255,255,255,0.55)' },
+                      Business:   { bg: '#457b9d',  border: '#457b9d', btn: '#fff',    text: '#fff',    muted: 'rgba(255,255,255,0.55)' },
+                      Enterprise: { bg: '#152840',  border: '#152840', btn: '#e63946', text: '#fff',    muted: 'rgba(255,255,255,0.4)' },
+                    };
+                    const c = colors[plan.name] || colors.Free;
+                    return (
+                      <div key={plan.id} className="rounded-2xl p-5 flex flex-col"
+                        style={{ background: c.bg, border: `2px solid ${c.border}` }}>
+                        <div className="font-black text-lg mb-1" style={{ color: c.text }}>{plan.name}</div>
+                        <div className="text-3xl font-black mb-1" style={{ color: c.text }}>
+                          ${plan.price}
+                          {isFree
+                            ? <span className="text-sm font-bold ml-1" style={{ color: c.muted }}>/forever</span>
+                            : <span className="text-sm font-bold ml-1" style={{ color: c.muted }}>/{plan.billing_cycle}</span>}
+                        </div>
+                        <ul className="space-y-1.5 my-4 flex-1">
+                          {[
+                            `${plan.max_projects === -1 ? 'Unlimited' : plan.max_projects} projects`,
+                            `${plan.max_groups === -1 ? 'Unlimited' : plan.max_groups} groups`,
+                            `${plan.max_tasks === -1 ? 'Unlimited' : plan.max_tasks} tasks`,
+                            `${plan.max_members === -1 ? 'Unlimited' : plan.max_members} members`,
+                            `${plan.max_storage_gb}GB storage`,
+                            ...plan.features,
+                          ].map(f => (
+                            <li key={f} className="flex items-center gap-1.5 text-xs" style={{ color: c.muted }}>
+                              <span className="font-black text-xs" style={{ color: c.text }}>✓</span> {f}
+                            </li>
+                          ))}
+                        </ul>
+                        {isFree ? (
+                          <>
+                            <button
+                              onClick={() => setConfirmFreePlan(plan)}
+                              className="w-full py-2.5 rounded-xl font-black text-sm transition hover:opacity-90"
+                              style={{ background: '#2a9d8f', color: '#fff' }}>
+                              Get started free
+                            </button>
+                            <p className="text-xs text-center mt-1.5 font-medium" style={{ color: c.muted }}>No credit card needed</p>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => window.location.href = '/plans'}
+                            className="w-full py-2.5 rounded-xl font-black text-sm transition hover:opacity-90"
+                            style={{ background: c.btn, color: '#fff' }}>
+                            View paid plan →
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

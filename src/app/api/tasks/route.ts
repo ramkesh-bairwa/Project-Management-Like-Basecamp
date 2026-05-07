@@ -96,15 +96,36 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 });
 
 export const POST = withAuth(async (req: NextRequest, user) => {
-  const { project_id, group_id, parent_task_id, title, description, assignee_id, status, priority, due_date, estimated_hours } = await req.json();
+  const { project_id, group_id, parent_task_id, title, description, assignee_id, status, priority, due_date, estimated_hours, image } = await req.json();
   if (!project_id || !title) return apiError('project_id and title required');
 
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
   if (!member.length) return apiError('Not a project member', 403);
 
+  // Plan limit check (only for top-level tasks, not subtasks)
+  if (!parent_task_id) {
+    const projOwner = await query<{ owner_id: number }[]>('SELECT owner_id FROM projects WHERE id=?', [project_id]);
+    const ownerId = projOwner[0]?.owner_id ?? user.id;
+    const userPlan = await query<{ plan_id: number | null; plan_expires_at: string | null }[]>('SELECT plan_id, plan_expires_at FROM users WHERE id=?', [ownerId]);
+    let maxTasks = 20;
+    if (userPlan[0]?.plan_id) {
+      const expired = userPlan[0].plan_expires_at && new Date(userPlan[0].plan_expires_at) < new Date();
+      if (!expired) {
+        const pl = await query<{ max_tasks: number }[]>('SELECT max_tasks FROM plans WHERE id=?', [userPlan[0].plan_id]);
+        if (pl.length) maxTasks = pl[0].max_tasks;
+      }
+    }
+    if (maxTasks !== -1) {
+      const [cnt] = await query<{ c: number }[]>(
+        `SELECT COUNT(*) as c FROM tasks t JOIN projects p ON p.id=t.project_id WHERE p.owner_id=? AND t.deleted_at IS NULL AND t.parent_task_id IS NULL`, [ownerId]
+      );
+      if ((cnt?.c ?? 0) >= maxTasks) return apiError(`Plan limit reached: your plan allows ${maxTasks} task${maxTasks === 1 ? '' : 's'}. Upgrade to create more.`, 403);
+    }
+  }
+
   const result = await query<{ insertId: number }>(
-    'INSERT INTO tasks (project_id, group_id, created_by, assignee_id, parent_task_id, title, description, status, priority, due_date, estimated_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-    [project_id, group_id || null, user.id, assignee_id || null, parent_task_id || null, title, description || null, status || 'todo', priority || 'medium', due_date || null, estimated_hours || null]
+    'INSERT INTO tasks (project_id, group_id, created_by, assignee_id, parent_task_id, title, description, image, status, priority, due_date, estimated_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    [project_id, group_id || null, user.id, assignee_id || null, parent_task_id || null, title, description || null, image || null, status || 'todo', priority || 'medium', due_date || null, estimated_hours || null]
   );
   const uuid = generateUUID();
   const slug = await uniqueSlug('tasks', 'slug', title);
@@ -163,7 +184,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 });
 
 export const PUT = withAuth(async (req: NextRequest, user) => {
-  const { id, title, description, assignee_id, status, priority, due_date, actual_hours, position, group_id } = await req.json();
+  const { id, title, description, assignee_id, status, priority, due_date, actual_hours, position, group_id, image } = await req.json();
   if (!id) return apiError('Task id required');
 
   const tasks = await query<TaskRow[]>('SELECT * FROM tasks WHERE id=?', [id]);
@@ -189,8 +210,8 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
   }
 
   await query(
-    'UPDATE tasks SET title=?, description=?, assignee_id=?, status=?, priority=?, due_date=?, actual_hours=?, position=?, group_id=? WHERE id=?',
-    [title ?? old.title, description ?? null, assignee_id ?? null, status ?? old.status, priority ?? old.priority, due_date ?? null, actual_hours ?? null, position ?? 0, group_id ?? old.group_id, id]
+    'UPDATE tasks SET title=?, description=?, assignee_id=?, status=?, priority=?, due_date=?, actual_hours=?, position=?, group_id=?, image=? WHERE id=?',
+    [title ?? old.title, description ?? null, assignee_id ?? null, status ?? old.status, priority ?? old.priority, due_date ?? null, actual_hours ?? null, position ?? 0, group_id ?? old.group_id, image ?? null, id]
   );
 
   // Log each change

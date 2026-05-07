@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 import TaskCommentAccordion from '@/components/project/TaskCommentAccordion';
 import ConfirmModal from '@/components/ConfirmModal';
+import PlanLimitBanner from '@/components/PlanLimitBanner';
 
 interface Group { id: number; uuid: string; slug: string; project_id: number; name: string; description: string; color: string; task_count: number; member_count: number; created_by_name: string }
 interface Task {
@@ -23,11 +24,10 @@ interface GroupActivity {
   id: number; kind: 'history' | 'comment';
   created_at: string; user_name: string;
   task_id: number; task_title: string;
-  // history fields
   action?: string; old_value?: string | null; new_value?: string | null;
-  // comment fields
   content?: string; is_resolved?: boolean;
 }
+interface PlanInfo { plan: string; limits: { max_projects: number; max_members: number; max_tasks: number; max_groups: number; max_storage_gb: number }; usage: { projects: number; tasks: number; groups: number; members: number } }
 
 const statusOptions = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'];
 const statusColors: Record<string, string> = { todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946' };
@@ -133,6 +133,7 @@ export default function GroupDetailPage() {
   // filter
   const [filterStatus, setFilterStatus] = useState('');
   const [taskView, setTaskView] = useState<ViewMode>('list');
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [deleteTaskTarget, setDeleteTaskTarget] = useState<{ id: number; title: string } | null>(null);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<{ id: number; title: string; parentId: number } | null>(null);
@@ -166,6 +167,8 @@ export default function GroupDetailPage() {
             if (!me) { setAccessDenied(true); return; }
             setMyRole(me.role);
           });
+        fetch('/api/user/plan-limits', { headers: auth })
+          .then(r => r.json()).then(d => d?.plan && setPlanInfo(d));
       });
   }, [id, groupId]);
 
@@ -365,6 +368,10 @@ export default function GroupDetailPage() {
       setShowTaskForm(false);
       setTaskForm({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '' });
       setTaskAttachments([]);
+      setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, tasks: prev.usage.tasks + 1 } } : prev);
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Failed to create task');
     }
   }
 
@@ -426,6 +433,7 @@ export default function GroupDetailPage() {
   const canManage = ['owner', 'admin', 'manager'].includes(myRole);
   const filtered = filterStatus ? tasks.filter(t => t.status === filterStatus) : tasks;
   const doneTasks = tasks.filter(t => t.status === 'done').length;
+  const atTaskLimit = planInfo ? (planInfo.limits.max_tasks !== -1 && planInfo.usage.tasks >= planInfo.limits.max_tasks) : false;
 
   if (accessDenied) return (
     <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -491,6 +499,8 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
+      {planInfo && <PlanLimitBanner plan={planInfo.plan} limits={planInfo.limits} usage={planInfo.usage} show={['tasks']} />}
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="flex gap-1 flex-wrap">
@@ -536,9 +546,10 @@ export default function GroupDetailPage() {
             </svg>
             Meeting
           </button>
-          <button onClick={() => setShowTaskForm(v => !v)}
+          <button onClick={() => !atTaskLimit && setShowTaskForm(v => !v)}
             className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
-            style={{ background: showTaskForm ? '#6b7a8d' : '#e63946' }}>
+            style={{ background: showTaskForm ? '#6b7a8d' : atTaskLimit ? '#94a3b8' : '#e63946', cursor: atTaskLimit ? 'not-allowed' : 'pointer' }}
+            title={atTaskLimit ? `Limit reached: ${planInfo?.usage.tasks}/${planInfo?.limits.max_tasks} tasks` : ''}>
             {showTaskForm ? '✕ Cancel' : '+ New Task'}
           </button>
         </div>

@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ConfirmModal from '@/components/ConfirmModal';
 
-interface Group { id: number; name: string; description: string; is_private: boolean; org_id: number | null; owner_id: number }
+interface Group { id: number; name: string; description: string; is_private: boolean; org_id: number | null; owner_id: number; image: string | null }
 
 const palette = [
   { bg: '#457b9d', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -35,11 +35,14 @@ export default function GroupsPage() {
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', is_private: false });
+  const [form, setForm] = useState({ name: '', description: '', is_private: false, image: '' });
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [myId, setMyId] = useState(0);
   const [view, setView] = useState<ViewMode>('grid');
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -51,13 +54,27 @@ export default function GroupsPage() {
       .then(r => r.json()).then(d => d?.id && setMyId(d.id));
   }, []);
 
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImagePreview(URL.createObjectURL(file));
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/groups/image', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    const data = await res.json();
+    setUploading(false);
+    if (data.url) setForm(p => ({ ...p, image: data.url }));
+  }
+
   async function createGroup(e: React.FormEvent) {
     e.preventDefault();
     const res = await fetch('/api/groups', { method: 'POST', headers: authHeader, body: JSON.stringify(form) });
     const data = await res.json();
     if (res.ok) {
       setShowForm(false);
-      setForm({ name: '', description: '', is_private: false });
+      setForm({ name: '', description: '', is_private: false, image: '' });
+      setImagePreview('');
       router.push(`/groups/${data.id}`);
     }
   }
@@ -90,9 +107,14 @@ export default function GroupsPage() {
               <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
                 style={{ borderBottom: i < groups.length - 1 ? '1px solid #f1f5f9' : 'none' }}
                 onClick={() => router.push(`/groups/${g.id}`)}>  
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black flex-shrink-0" style={{ background: p.bg }}>
-                  {g.name[0].toUpperCase()}
-                </div>
+                {g.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={g.image} alt={g.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black flex-shrink-0" style={{ background: p.bg }}>
+                    {g.name[0].toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm truncate" style={{ color: p.text }}>{g.name}</div>
                   {g.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{g.description}</div>}
@@ -121,7 +143,12 @@ export default function GroupsPage() {
           return (
             <div key={g.id} className="rounded-2xl overflow-hidden hover:shadow-lg transition-all relative group"
               style={{ background: p.light, border: `1.5px solid ${p.border}` }}>
-              <div className="h-1.5" style={{ background: p.bg }} />
+              {g.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={g.image} alt={g.name} className="w-full h-32 object-cover" />
+              ) : (
+                <div className="h-1.5" style={{ background: p.bg }} />
+              )}
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-black flex-shrink-0"
@@ -202,6 +229,24 @@ export default function GroupsPage() {
                   onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
                   className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none resize-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Group Image</label>
+                <div className="flex items-center gap-4">
+                  {(imagePreview || form.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imagePreview || form.image} alt="preview" className="w-20 h-20 rounded-xl object-cover"
+                      style={{ border: '2px solid #d0dce8' }} />
+                  )}
+                  <div className="flex-1">
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                      className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
+                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
+                      {uploading ? 'Uploading…' : '📷 Choose Image'}
+                    </button>
+                  </div>
+                </div>
               </div>
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl"
                 style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
