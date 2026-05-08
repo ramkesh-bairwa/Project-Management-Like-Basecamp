@@ -15,7 +15,10 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
 export const PUT = withAuth(async (req: NextRequest, user) => {
   if (user.role !== 'admin') return apiError('Admin only', 403);
   const body = await req.json() as Record<string, string>;
-  const allowed = ['site_name', 'site_logo_url', 'primary_color', 'accent_color', 'secondary_color', 'logo_letter'];
+  const allowed = [
+    'site_name', 'site_logo_url', 'primary_color', 'accent_color', 'secondary_color', 'logo_letter',
+    'email_verification_enabled', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from',
+  ];
   for (const key of allowed) {
     if (key in body) {
       await query(

@@ -23,7 +23,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 
   const [users, total] = await Promise.all([
     query<unknown[]>(
-      `SELECT u.id, u.name, u.email, u.role, u.is_org, u.created_at,
+      `SELECT u.id, u.name, u.email, u.role, u.is_org, u.created_at, u.email_verified,
         p.name as plan_name, u.plan_expires_at,
         (SELECT COUNT(*) FROM projects WHERE owner_id=u.id AND deleted_at IS NULL) as project_count,
         (SELECT COUNT(*) FROM subscriptions WHERE user_id=u.id AND status='active') as active_subs
@@ -40,13 +40,13 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 // PUT /api/admin/users — update user role or plan
 export const PUT = withAuth(async (req: NextRequest, user) => {
   try { adminOnly(user); } catch { return apiError('Admin only', 403); }
-  const { id, role, plan_id, is_org, ban } = await req.json();
+  const { id, role, plan_id, is_org, ban, email_verified } = await req.json();
   if (!id) return apiError('id required');
   if (role !== undefined) await query('UPDATE users SET role=? WHERE id=?', [role, id]);
   if (plan_id !== undefined) await query('UPDATE users SET plan_id=? WHERE id=?', [plan_id, id]);
   if (is_org !== undefined) await query('UPDATE users SET is_org=? WHERE id=?', [is_org ? 1 : 0, id]);
+  if (email_verified !== undefined) await query('UPDATE users SET email_verified=?, verification_token=NULL, verification_token_expires=NULL WHERE id=?', [email_verified ? 1 : 0, id]);
   if (ban !== undefined) {
-    // Soft ban: set role to 'banned' or restore to 'user'
     await query('UPDATE users SET role=? WHERE id=?', [ban ? 'banned' : 'user', id]);
   }
   return apiResponse({ message: 'User updated' });

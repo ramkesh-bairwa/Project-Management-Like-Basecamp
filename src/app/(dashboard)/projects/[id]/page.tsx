@@ -48,10 +48,15 @@ export default function ProjectOverviewPage() {
   const [token, setToken] = useState('');
   const [projectId, setProjectId] = useState<number | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
-  const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState('developer');
   const [addError, setAddError] = useState('');
   const [myId, setMyId] = useState(0);
+  const [contacts, setContacts] = useState<{ user_id: number; name: string; email: string }[]>([]);
+  const [contactSearch, setContactSearch] = useState('');
+  const [selectedContact, setSelectedContact] = useState<{ user_id: number; name: string; email: string } | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [addTab, setAddTab] = useState<'contacts'|'email'>('contacts');
+  const [inviteEmail, setInviteEmail] = useState('');
 
   useEffect(() => {
     const t = getToken();
@@ -101,19 +106,40 @@ export default function ProjectOverviewPage() {
     reloadMembers();
   }
 
+  async function openAddMember() {
+    setShowAddMember(true);
+    setAddError(''); setSelectedContact(null); setContactSearch(''); setShowDropdown(false); setAddTab('contacts'); setInviteEmail('');
+    const res = await fetch('/api/connections', { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      const accepted = data
+        .filter((c: { status: string }) => c.status === 'accepted')
+        .map((c: { user_id: number; name: string; email: string }) => ({ user_id: c.user_id, name: c.name, email: c.email }));
+      setContacts(accepted);
+    }
+  }
+
   async function addMember(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
     const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-    const res = await fetch(`/api/users?email=${encodeURIComponent(memberEmail)}`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    if (!res.ok || !data.id) { setAddError('User not found'); return; }
-    const r2 = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: data.id, role: memberRole }) });
-    if (r2.ok) {
-      reloadMembers();
-      setShowAddMember(false); setMemberEmail(''); setMemberRole('developer');
+    if (addTab === 'contacts') {
+      if (!selectedContact) { setAddError('Please select a contact'); return; }
+      const r = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: selectedContact.user_id, role: memberRole }) });
+      if (r.ok) {
+        reloadMembers();
+        setShowAddMember(false); setSelectedContact(null); setContactSearch(''); setMemberRole('developer');
+      } else { const e2 = await r.json(); setAddError(e2.error || 'Failed'); }
     } else {
-      const e2 = await r2.json(); setAddError(e2.error || 'Failed');
+      if (!inviteEmail) { setAddError('Enter an email'); return; }
+      const res = await fetch(`/api/users?email=${encodeURIComponent(inviteEmail)}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (!res.ok || !data.id) { setAddError('User not found'); return; }
+      const r = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: data.id, role: memberRole }) });
+      if (r.ok) {
+        reloadMembers();
+        setShowAddMember(false); setInviteEmail(''); setMemberRole('developer');
+      } else { const e2 = await r.json(); setAddError(e2.error || 'Failed'); }
     }
   }
 
@@ -151,7 +177,7 @@ export default function ProjectOverviewPage() {
             </div>
           </div>
           {canManage && (
-            <button onClick={() => setShowAddMember(true)}
+            <button onClick={openAddMember}
               className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition flex-shrink-0"
               style={{ background: '#457b9d' }}>
               + Add Member
@@ -179,7 +205,7 @@ export default function ProjectOverviewPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-black text-base" style={{ color: '#1d3557' }}>Members ({members.length})</h2>
           {canManage && (
-            <button onClick={() => setShowAddMember(true)}
+            <button onClick={openAddMember}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
               style={{ background: '#457b9d' }}>
               + Add Member
@@ -226,7 +252,7 @@ export default function ProjectOverviewPage() {
             );
           })}
           {canManage && (
-            <button onClick={() => setShowAddMember(true)}
+            <button onClick={openAddMember}
               className="flex items-center justify-center gap-2 rounded-xl p-3 transition hover:border-[#457b9d] hover:bg-[#eff6ff]"
               style={{ border: '2px dashed #d0dce8', color: '#457b9d' }}>
               <span className="text-lg font-black">+</span>
@@ -241,15 +267,83 @@ export default function ProjectOverviewPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-black text-lg" style={{ color: '#1d3557' }}>Add Member</h3>
-              <button onClick={() => { setShowAddMember(false); setAddError(''); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition" style={{ color: '#6b7a8d' }}>✕</button>
+              <button onClick={() => setShowAddMember(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition" style={{ color: '#6b7a8d' }}>✕</button>
+            </div>
+            {/* Tabs */}
+            <div className="flex rounded-xl overflow-hidden mb-5" style={{ border: '1.5px solid #d0dce8' }}>
+              {(['contacts','email'] as const).map(tab => (
+                <button key={tab} type="button" onClick={() => { setAddTab(tab); setAddError(''); }}
+                  className="flex-1 py-2 text-sm font-bold transition"
+                  style={{ background: addTab === tab ? '#457b9d' : '#f8fafc', color: addTab === tab ? '#fff' : '#6b7a8d' }}>
+                  {tab === 'contacts' ? '👥 From Contacts' : '✉️ By Email'}
+                </button>
+              ))}
             </div>
             <form onSubmit={addMember} className="space-y-4">
+              {addTab === 'contacts' ? (
+              <div className="relative">
+                <label className="block text-sm font-bold mb-1.5" style={{ color: '#1d3557' }}>Search contact by name</label>
+                {selectedContact ? (
+                  <div className="flex items-center justify-between rounded-xl px-4 py-2.5" style={{ background: '#f0fdf9', border: '1.5px solid #2a9d8f' }}>
+                    <div>
+                      <span className="text-sm font-bold" style={{ color: '#1d3557' }}>{selectedContact.name}</span>
+                      <span className="text-xs ml-2" style={{ color: '#6b7a8d' }}>{selectedContact.email}</span>
+                    </div>
+                    <button type="button" onClick={() => { setSelectedContact(null); setContactSearch(''); }}
+                      className="text-xs font-bold" style={{ color: '#e63946' }}>✕</button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={contactSearch}
+                      onChange={e => { setContactSearch(e.target.value); setShowDropdown(true); }}
+                      onFocus={() => setShowDropdown(true)}
+                      placeholder="Type a name..."
+                      className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}
+                    />
+                    {showDropdown && (
+                      <div className="absolute z-10 w-full mt-1 rounded-xl overflow-hidden shadow-lg" style={{ border: '1px solid #d0dce8', background: '#fff' }}>
+                        {contacts.filter(c =>
+                          !members.some(m => m.id === c.user_id) &&
+                          c.name.toLowerCase().includes(contactSearch.toLowerCase())
+                        ).length === 0 ? (
+                          <div className="px-4 py-3 text-sm" style={{ color: '#6b7a8d' }}>
+                            {contacts.length === 0 ? 'No contacts found' : 'No matching contacts'}
+                          </div>
+                        ) : (
+                          contacts
+                            .filter(c =>
+                              !members.some(m => m.id === c.user_id) &&
+                              c.name.toLowerCase().includes(contactSearch.toLowerCase())
+                            )
+                            .map(c => (
+                              <button key={c.user_id} type="button"
+                                onMouseDown={() => { setSelectedContact(c); setShowDropdown(false); setContactSearch(''); }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f1faee] transition">
+                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                                  style={{ background: '#457b9d' }}>{c.name[0]}</div>
+                                <div>
+                                  <div className="text-sm font-bold" style={{ color: '#1d3557' }}>{c.name}</div>
+                                  <div className="text-xs" style={{ color: '#6b7a8d' }}>{c.email}</div>
+                                </div>
+                              </button>
+                            ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              ) : (
               <div>
                 <label className="block text-sm font-bold mb-1.5" style={{ color: '#1d3557' }}>User email</label>
-                <input type="email" value={memberEmail} onChange={e => setMemberEmail(e.target.value)} required placeholder="user@example.com"
+                <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required placeholder="user@example.com"
                   className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
               </div>
+              )}
               <div>
                 <label className="block text-sm font-bold mb-1.5" style={{ color: '#1d3557' }}>Role</label>
                 <select value={memberRole} onChange={e => setMemberRole(e.target.value)}
@@ -260,8 +354,10 @@ export default function ProjectOverviewPage() {
               </div>
               {addError && <p className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {addError}</p>}
               <div className="flex gap-3 pt-1">
-                <button type="submit" className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>Add</button>
-                <button type="button" onClick={() => { setShowAddMember(false); setAddError(''); }}
+                <button type="submit" className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>
+                  {addTab === 'contacts' ? 'Add' : 'Invite'}
+                </button>
+                <button type="button" onClick={() => setShowAddMember(false)}
                   className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition" style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>Cancel</button>
               </div>
             </form>

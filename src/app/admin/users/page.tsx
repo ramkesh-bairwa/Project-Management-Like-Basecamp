@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 interface User {
   id: number; name: string; email: string; role: string;
   plan_name: string | null; project_count: number; active_subs: number;
-  created_at: string; is_org: number;
+  created_at: string; is_org: number; email_verified: number;
 }
 
 function Avatar({ name, size = 32 }: { name: string; size?: number }) {
@@ -36,24 +36,24 @@ export default function AdminUsersPage() {
   const [actionId, setActionId] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<{ id: number; type: 'delete' | 'ban' | 'unban' } | null>(null);
 
-  const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || localStorage.getItem('token') || '') : '';
   const limit = 20;
+  function getToken() { return localStorage.getItem('admin_token') || localStorage.getItem('token') || ''; }
   const totalPages = Math.ceil(total / limit);
 
   const load = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), search, role });
-    fetch(`/api/admin/users?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/admin/users?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
       .then(d => { setUsers(d.users || []); setTotal(d.total || 0); })
       .finally(() => setLoading(false));
-  }, [page, search, role, token]);
+  }, [page, search, role]);
 
   useEffect(() => { load(); }, [load]);
 
   async function updateUser(id: number, body: object) {
     setActionId(id);
-    await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ id, ...body }) });
+    await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` }, body: JSON.stringify({ id, ...body }) });
     setActionId(null);
     setConfirm(null);
     load();
@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
 
   async function deleteUser(id: number) {
     setActionId(id);
-    await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
     setActionId(null);
     setConfirm(null);
     load();
@@ -97,19 +97,19 @@ export default function AdminUsersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                {['User', 'Email', 'Role', 'Plan', 'Projects', 'Joined', 'Actions'].map(h => (
+                {['User', 'Email', 'Verified', 'Role', 'Plan', 'Projects', 'Joined', 'Actions'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center' }}>
                   <div style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
                 </td></tr>
               )}
               {!loading && users.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No users found</td></tr>
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No users found</td></tr>
               )}
               {!loading && users.map(u => {
                 const rc = roleColor[u.role] || roleColor.user;
@@ -125,6 +125,19 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 13 }}>{u.email}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <button
+                        onClick={() => updateUser(u.id, { email_verified: u.email_verified ? 0 : 1 })}
+                        disabled={actionId === u.id}
+                        title={u.email_verified ? 'Click to unverify' : 'Click to verify'}
+                        style={{
+                          fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                          background: u.email_verified ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                          color: u.email_verified ? '#059669' : '#ef4444',
+                        }}>
+                        {u.email_verified ? '✓ Verified' : '✗ Unverified'}
+                      </button>
+                    </td>
                     <td style={{ padding: '12px 16px' }}>
                       <select value={u.role} disabled={actionId === u.id}
                         onChange={e => updateUser(u.id, { role: e.target.value })}

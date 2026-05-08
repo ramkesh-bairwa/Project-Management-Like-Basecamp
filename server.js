@@ -31,7 +31,7 @@ app.prepare().then(() => {
     }
 
     // Public page paths — no auth needed
-    const PUBLIC_PAGES = ['/login', '/register', '/logout', '/admin/login'];
+    const PUBLIC_PAGES = ['/login', '/register', '/logout', '/admin/login', '/verify-email', '/plans'];
     const isPublicPage = PUBLIC_PAGES.some(p => pathname.startsWith(p));
 
     // Root redirect

@@ -368,6 +368,18 @@ export async function POST(req: NextRequest) {
       sql: `ALTER TABLE project_members MODIFY COLUMN role ENUM('owner','admin','manager','developer','designer','viewer') DEFAULT 'developer'`
     },
     {
+      name: 'users.email_verified column',
+      sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified TINYINT(1) DEFAULT 1 AFTER password`
+    },
+    {
+      name: 'users.verification_token column',
+      sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(100) NULL AFTER email_verified`
+    },
+    {
+      name: 'users.verification_token_expires column',
+      sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP NULL AFTER verification_token`
+    },
+    {
       name: 'task_attachments table',
       sql: `CREATE TABLE IF NOT EXISTS task_attachments (
         id INT AUTO_INCREMENT PRIMARY KEY,
