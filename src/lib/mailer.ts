@@ -378,3 +378,14 @@ export async function sendTestEmail(toEmail: string) {
     html: emailLayout(cfg, content),
   });
 }
+
+export async function sendMail(options: { to: string; subject: string; html: string }) {
+  const cfg = await getSmtpSettings();
+  const transporter = await createTransporter(cfg);
+  await transporter.sendMail({
+    from: `"${cfg.site_name}" <${cfg.smtp_from || cfg.smtp_user}>`,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+  });
+}

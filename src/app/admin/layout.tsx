@@ -6,6 +6,7 @@ const NAV = [
   { icon: '⊞', label: 'Dashboard', path: '/admin' },
   { icon: '👥', label: 'Users', path: '/admin/users' },
   { icon: '📁', label: 'Projects', path: '/admin/projects' },
+  { icon: '📄', label: 'Page Content', path: '/admin/content' },
   { icon: '💎', label: 'Plans', path: '/admin/plans' },
   { icon: '💳', label: 'Payments', path: '/admin/payments' },
   { icon: '⚙️', label: 'Gateways', path: '/admin/gateways' },
@@ -59,6 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.2s ease; }
+        @keyframes cms-spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Sidebar */}

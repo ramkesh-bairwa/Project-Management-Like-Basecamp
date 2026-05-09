@@ -30,17 +30,20 @@ app.prepare().then(() => {
       return;
     }
 
-    // Public page paths — no auth needed
-    const PUBLIC_PAGES = ['/login', '/register', '/logout', '/admin/login', '/verify-email', '/plans'];
-    const isPublicPage = PUBLIC_PAGES.some(p => pathname.startsWith(p));
+    // Fully public pages — no auth needed, serve immediately
+    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact'];
+    const isPublicPage = PUBLIC_PAGES.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
-    // Root redirect
-    if (pathname === '/') {
-      const token = getCookieToken(req);
-      let valid = false;
-      if (token) { try { jwt.verify(token, JWT_SECRET); valid = true; } catch { /* expired */ } }
-      res.writeHead(307, { Location: valid ? '/dashboard' : '/login' });
-      res.end();
+    if (isPublicPage) {
+      // Logged-in user hits login/register → redirect to dashboard
+      if (pathname === '/login' || pathname === '/register') {
+        const token = getCookieToken(req);
+        if (token) {
+          try { jwt.verify(token, JWT_SECRET); res.writeHead(307, { Location: '/dashboard' }); res.end(); return; }
+          catch { /* invalid token, show page */ }
+        }
+      }
+      handle(req, res, parsedUrl);
       return;
     }
 
@@ -70,32 +73,19 @@ app.prepare().then(() => {
       return;
     }
 
-    // Logged-in user hits login/register → redirect to dashboard
-    if (pathname === '/login' || pathname === '/register') {
-      const token = getCookieToken(req);
-      if (token) {
-        try { jwt.verify(token, JWT_SECRET); res.writeHead(307, { Location: '/dashboard' }); res.end(); return; }
-        catch { /* invalid token, show page */ }
-      }
-      handle(req, res, parsedUrl);
+    // All other pages require auth
+    const token = getCookieToken(req);
+    if (!token) {
+      res.writeHead(307, { Location: `/login?from=${encodeURIComponent(pathname)}` });
+      res.end();
       return;
     }
-
-    // All other pages require auth
-    if (!isPublicPage) {
-      const token = getCookieToken(req);
-      if (!token) {
-        res.writeHead(307, { Location: `/login?from=${encodeURIComponent(pathname)}` });
-        res.end();
-        return;
-      }
-      try {
-        jwt.verify(token, JWT_SECRET);
-      } catch {
-        res.writeHead(307, { Location: '/login', 'Set-Cookie': 'token=; Max-Age=0; Path=/; HttpOnly' });
-        res.end();
-        return;
-      }
+    try {
+      jwt.verify(token, JWT_SECRET);
+    } catch {
+      res.writeHead(307, { Location: '/login', 'Set-Cookie': 'token=; Max-Age=0; Path=/; HttpOnly' });
+      res.end();
+      return;
     }
 
     handle(req, res, parsedUrl);

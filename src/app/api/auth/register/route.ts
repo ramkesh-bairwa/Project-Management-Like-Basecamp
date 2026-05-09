@@ -7,7 +7,7 @@ import { apiError } from '@/lib/api';
 import { sendVerificationEmail } from '@/lib/mailer';
 
 export async function POST(req: NextRequest) {
-  const { name, email, password } = await req.json();
+  const { name, email, password, invite_token } = await req.json();
   if (!name || !email || !password) return apiError('All fields required');
 
   const existing = await query<{ id: number; email_verified: number }[]>(
@@ -38,6 +38,11 @@ export async function POST(req: NextRequest) {
       [name, email, hashed, token, expires.toISOString().slice(0, 19).replace('T', ' ')]
     );
 
+    // Handle invitation if present
+    if (invite_token) {
+      await handleInvitation(invite_token, result.insertId);
+    }
+
     let emailError = '';
     try {
       await sendVerificationEmail(email, name, token);
@@ -66,6 +71,12 @@ export async function POST(req: NextRequest) {
     'INSERT INTO users (name, email, password, email_verified) VALUES (?, ?, ?, 1)',
     [name, email, hashed]
   );
+  
+  // Handle invitation if present
+  if (invite_token) {
+    await handleInvitation(invite_token, result.insertId);
+  }
+  
   const token = signToken({ id: result.insertId, email, role: 'user', is_org: false });
 
   const res = NextResponse.json(
@@ -74,4 +85,28 @@ export async function POST(req: NextRequest) {
   );
   res.cookies.set('token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'lax' });
   return res;
+}
+
+async function handleInvitation(token: string, userId: number) {
+  const invites = await query<{ id: number; project_id: number; email: string; status: string; expires_at: string }[]>(
+    'SELECT id, project_id, email, status, expires_at FROM project_invitations WHERE token = ?',
+    [token]
+  );
+  
+  if (!invites.length || invites[0].status !== 'pending') return;
+  if (new Date(invites[0].expires_at) < new Date()) return;
+  
+  const invite = invites[0];
+  
+  // Add user to project
+  await query(
+    'INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?)',
+    [invite.project_id, userId, 'developer']
+  );
+  
+  // Mark invitation as accepted
+  await query(
+    'UPDATE project_invitations SET status = ?, accepted_at = NOW() WHERE id = ?',
+    ['accepted', invite.id]
+  );
 }

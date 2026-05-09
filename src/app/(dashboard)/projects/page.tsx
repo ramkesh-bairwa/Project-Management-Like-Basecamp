@@ -79,6 +79,12 @@ export default function ProjectsPage() {
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  // Member selection
+  const [availableUsers, setAvailableUsers] = useState<{ id: number; name: string; email: string; avatar?: string }[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [searchMember, setSearchMember] = useState('');
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState('');
 
   useEffect(() => {
     const t = getToken();
@@ -105,6 +111,21 @@ export default function ProjectsPage() {
         max_groups: p.max_groups ?? -1,
       })));
     });
+    // Load available users for member selection (only connections)
+    fetch('/api/connections?status=accepted', { headers: { Authorization: `Bearer ${t}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) {
+          // Extract connected users from connections
+          const connectedUsers = d.map((conn: { requester: { id: number; name: string; email: string; avatar?: string }; receiver: { id: number; name: string; email: string; avatar?: string }; requester_id: number; receiver_id: number }) => {
+            // Get current user ID from token
+            const currentUserId = JSON.parse(atob(t.split('.')[1])).id;
+            // Return the other user in the connection
+            return conn.requester_id === currentUserId ? conn.receiver : conn.requester;
+          });
+          setAvailableUsers(connectedUsers);
+        }
+      });
   }, []);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -124,16 +145,51 @@ export default function ProjectsPage() {
     e.preventDefault();
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const res = await fetch('/api/projects', { method: 'POST', headers, body: JSON.stringify(form) });
-    const data = await res.json();
-    if (res.ok) {
-      setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]);
-      setShowForm(false);
-      setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning', image: '' });
-      setImagePreview('');
-      setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev);
-    } else {
-      alert(data.error || 'Failed to create project');
+    
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = 'Failed to create project';
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data.error || errorMsg;
+      } catch {
+        errorMsg = text || errorMsg;
+      }
+      alert(errorMsg);
+      return;
     }
+    
+    const data = await res.json();
+    
+    // Add existing members to the project
+    if (selectedMembers.length > 0) {
+      await Promise.all(selectedMembers.map(userId => 
+        fetch('/api/projects/members', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ project_id: data.id, user_id: userId, role: 'developer' })
+        })
+      ));
+    }
+    
+    // Send email invitations for non-existing users
+    if (inviteEmails.length > 0) {
+      await fetch('/api/projects/invite', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ project_id: data.id, emails: inviteEmails })
+      });
+    }
+    
+    setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]);
+    setShowForm(false);
+    setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning', image: '' });
+    setImagePreview('');
+    setSelectedMembers([]);
+    setSearchMember('');
+    setInviteEmails([]);
+    setEmailInput('');
+    setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev);
   }
 
   async function deleteProject() {
@@ -290,75 +346,82 @@ export default function ProjectsPage() {
             <Link key={p.id} href={`/projects/${p.slug || p.id}`}
               className={`bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group relative${view === 'box' ? ' flex gap-5 items-start' : ''}`}
               style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
-              {/* Top image or accent bar with overlapping member avatars */}
-              <div className="relative" style={{ height: p.image ? '120px' : '12px' }}>
-                {p.image ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                    {/* Dark overlay for better avatar visibility */}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)' }} />
-                  </>
-                ) : (
-                  <div className="h-full rounded-t-2xl" style={{ background: 'rgb(208 208 208)' }} />
-                )}
-                {/* Member avatars */}
-                {(members[p.id] || []).slice(0, 5).map((m, mi) => {
-                  const memberData = m as ProjectMember & { avatar?: string };
-                  return (
-                    <div key={m.id}
-                      onClick={e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const rect = (e.target as HTMLElement).getBoundingClientRect();
-                        setActiveMember({ member: m, x: rect.left, y: rect.bottom + 8 });
-                      }}
-                      className="absolute w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-black cursor-pointer hover:scale-110 transition-transform overflow-hidden"
-                      style={{
-                        left: `${10 + mi * 18}px`,
-                        bottom: '-14px',
-                        background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`,
-                        zIndex: 10 - mi,
-                      }}>
-                      {memberData.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={memberData.avatar} alt={m.name} className="w-full h-full object-cover" />
-                      ) : (
-                        m.name[0].toUpperCase()
-                      )}
+              {/* Top accent bar */}
+              <div className="relative" style={{ height: '8px', background: accent }} />
+              
+              <div className='p-5'>
+                {/* Header with icon, title and members */}
+                <div className="flex items-start gap-3 mb-3">
+                  {/* Project icon */}
+                  {p.image ? (
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden" style={{ border: '2px solid #d0dce8' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                     </div>
-                  );
-                })}
-                {(members[p.id] || []).length > 5 && (
-                  <div
-                    onClick={e => { e.preventDefault(); e.stopPropagation(); }}
-                    className="absolute w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-xs font-black"
-                    style={{ left: `${10 + 5 * 18}px`, bottom: '-14px', background: '#94a3b8', color: '#fff', zIndex: 4 }}>
-                    +{(members[p.id] || []).length - 5}
-                  </div>
-                )}
-              </div>
-              <div className={p.image ? 'p-5 pt-7' : 'p-5 pt-7'}>
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <h3 className="font-black text-[#1d3557] text-base leading-snug group-hover:text-[#e63946] transition">{p.name}</h3>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xl font-black"
+                      style={{ background: accent }}>
+                      {p.name[0].toUpperCase()}
+                    </div>
+                  )}
+                  
+                  {/* Title */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-black text-[#1d3557] text-base leading-snug group-hover:text-[#e63946] transition truncate">{p.name}</h3>
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full inline-flex mt-1"
                       style={{ background: sc.bg, color: sc.text }}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
                       {sc.label}
                     </span>
-                    <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50"
-                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                  </div>
+                  
+                  {/* Member avatars - top right */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {(members[p.id] || []).slice(0, 3).map((m, mi) => {
+                      const memberData = m as ProjectMember & { avatar?: string };
+                      return (
+                        <div key={m.id}
+                          onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const rect = (e.target as HTMLElement).getBoundingClientRect();
+                            setActiveMember({ member: m, x: rect.left, y: rect.bottom + 8 });
+                          }}
+                          className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-black cursor-pointer hover:scale-110 transition-transform overflow-hidden"
+                          style={{
+                            background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`,
+                            marginLeft: mi > 0 ? '-10px' : '0',
+                            zIndex: 10 - mi,
+                          }}>
+                          {memberData.avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={memberData.avatar} alt={m.name} className="w-full h-full object-cover" />
+                          ) : (
+                            m.name[0].toUpperCase()
+                          )}
+                        </div>
+                      );
+                    })}
+                    {(members[p.id] || []).length > 3 && (
+                      <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-black"
+                        style={{ background: '#94a3b8', color: '#fff', marginLeft: '-10px', zIndex: 4 }}>
+                        +{(members[p.id] || []).length - 3}
+                      </div>
+                    )}
                   </div>
                 </div>
+                
                 {p.description && <p className="text-sm text-[#6b7a8d] mb-4 line-clamp-2">{p.description}</p>}
-                <div className="flex items-center justify-between text-xs text-[#6b7a8d]">
-                  <span className="font-semibold capitalize" style={{ color: accent }}>{p.priority}</span>
-                  <div className="flex items-center gap-3">
-                    {p.due_date && <span>{fmtD(p.due_date)}</span>}
+                
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold capitalize px-2.5 py-1 rounded-full" style={{ background: `${accent}15`, color: accent }}>{p.priority}</span>
+                  <div className="flex items-center gap-3 text-[#6b7a8d]">
+                    {p.due_date && <span>📅 {fmtD(p.due_date)}</span>}
                     {p.org_id && <span style={{ color: '#2a9d8f' }}>🏢 Org</span>}
                   </div>
+                  <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50"
+                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
                 </div>
               </div>
             </Link>
@@ -477,6 +540,94 @@ export default function ProjectsPage() {
                 <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))}
                   className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
                   style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Add Members (Optional)</label>
+                <div className="flex gap-2 mb-2">
+                  <input type="text" placeholder="Search users or enter email..." value={searchMember} onChange={e => setSearchMember(e.target.value)}
+                    className="flex-1 rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
+                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                  {searchMember && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchMember) && (
+                    <button type="button"
+                      onClick={() => {
+                        const email = searchMember.toLowerCase().trim();
+                        if (!inviteEmails.includes(email) && !availableUsers.some(u => u.email.toLowerCase() === email)) {
+                          setInviteEmails(prev => [...prev, email]);
+                          setSearchMember('');
+                        }
+                      }}
+                      className="px-4 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 flex-shrink-0"
+                      style={{ background: '#f59e0b' }}>
+                      📧 Add Email
+                    </button>
+                  )}
+                </div>
+                {/* Selected members and invited emails */}
+                {(selectedMembers.length > 0 || inviteEmails.length > 0) && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {selectedMembers.map(userId => {
+                      const user = availableUsers.find(u => u.id === userId);
+                      if (!user) return null;
+                      return (
+                        <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                          style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                          <span>{user.name}</span>
+                          <button type="button" onClick={() => setSelectedMembers(prev => prev.filter(id => id !== userId))}
+                            className="text-xs hover:opacity-70">✕</button>
+                        </div>
+                      );
+                    })}
+                    {inviteEmails.map(email => (
+                      <div key={email} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                        style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                        <span>📧 {email}</span>
+                        <button type="button" onClick={() => setInviteEmails(prev => prev.filter(e => e !== email))}
+                          className="text-xs hover:opacity-70">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* User list */}
+                {searchMember && (
+                  <div className="rounded-xl" style={{ border: '1.5px solid #d0dce8', background: '#fff' }}>
+                    {(() => {
+                      const matchingUsers = availableUsers.filter(u => 
+                        !selectedMembers.includes(u.id) && 
+                        (u.name.toLowerCase().includes(searchMember.toLowerCase()) || u.email.toLowerCase().includes(searchMember.toLowerCase()))
+                      ).slice(0, 5);
+                      
+                      return (
+                        <div className="max-h-48 overflow-y-auto">
+                          {matchingUsers.map(user => (
+                            <button key={user.id} type="button"
+                              onClick={() => { setSelectedMembers(prev => [...prev, user.id]); setSearchMember(''); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left">
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                                style={{ background: `hsl(${(user.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                                {user.avatar ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                  user.name[0].toUpperCase()
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-bold text-[#1d3557] truncate">{user.name}</div>
+                                <div className="text-xs text-[#6b7a8d] truncate">{user.email}</div>
+                              </div>
+                            </button>
+                          ))}
+                          {matchingUsers.length === 0 && (
+                            <div className="px-4 py-3 text-sm text-[#6b7a8d] text-center">
+                              No users found. Enter a valid email to invite.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                <p className="text-xs text-[#6b7a8d] mt-2">💡 Add existing users or enter emails to send invitations. Multiple emails can be added.</p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90" style={{ background: '#e63946' }}>Create Project</button>

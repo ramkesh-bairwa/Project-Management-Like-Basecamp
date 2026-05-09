@@ -57,6 +57,7 @@ export default function ProjectOverviewPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [addTab, setAddTab] = useState<'contacts'|'email'>('contacts');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     const t = getToken();
@@ -122,23 +123,32 @@ export default function ProjectOverviewPage() {
   async function addMember(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
+    setSending(true);
     const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     if (addTab === 'contacts') {
-      if (!selectedContact) { setAddError('Please select a contact'); return; }
+      if (!selectedContact) { setAddError('Please select a contact'); setSending(false); return; }
       const r = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: selectedContact.user_id, role: memberRole }) });
+      setSending(false);
       if (r.ok) {
         reloadMembers();
         setShowAddMember(false); setSelectedContact(null); setContactSearch(''); setMemberRole('developer');
       } else { const e2 = await r.json(); setAddError(e2.error || 'Failed'); }
     } else {
-      if (!inviteEmail) { setAddError('Enter an email'); return; }
-      const res = await fetch(`/api/users?email=${encodeURIComponent(inviteEmail)}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (!res.ok || !data.id) { setAddError('User not found'); return; }
-      const r = await fetch('/api/projects/members', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, user_id: data.id, role: memberRole }) });
+      if (!inviteEmail) { setAddError('Enter an email'); setSending(false); return; }
+      // Send invitation (works for both existing and new users)
+      const r = await fetch('/api/projects/invite', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectId, emails: [inviteEmail] }) });
+      setSending(false);
       if (r.ok) {
-        reloadMembers();
-        setShowAddMember(false); setInviteEmail(''); setMemberRole('developer');
+        const data = await r.json();
+        const result = data.results?.[0];
+        if (result?.status === 'added' || result?.status === 'invited') {
+          reloadMembers();
+          setShowAddMember(false); setInviteEmail(''); setMemberRole('developer');
+        } else if (result?.status === 'already_member') {
+          setAddError('Already a member');
+        } else {
+          setAddError(result?.message || 'Failed');
+        }
       } else { const e2 = await r.json(); setAddError(e2.error || 'Failed'); }
     }
   }
@@ -354,11 +364,11 @@ export default function ProjectOverviewPage() {
               </div>
               {addError && <p className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {addError}</p>}
               <div className="flex gap-3 pt-1">
-                <button type="submit" className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>
-                  {addTab === 'contacts' ? 'Add' : 'Invite'}
+                <button type="submit" disabled={sending} className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: '#457b9d' }}>
+                  {sending ? (addTab === 'email' ? 'Sending...' : 'Adding...') : (addTab === 'contacts' ? 'Add' : 'Invite')}
                 </button>
-                <button type="button" onClick={() => setShowAddMember(false)}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition" style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>Cancel</button>
+                <button type="button" onClick={() => setShowAddMember(false)} disabled={sending}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition disabled:opacity-60 disabled:cursor-not-allowed" style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>Cancel</button>
               </div>
             </form>
           </div>
