@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
-import { sendMail } from '@/lib/mailer';
+import { sendProjectInvitationEmail } from '@/lib/invitation-mailer';
 import crypto from 'crypto';
 
 export const GET = async (req: NextRequest) => {
@@ -112,129 +112,13 @@ export const POST = withAuth(async (req: NextRequest, user) => {
         const registerLink = `${process.env.NEXT_PUBLIC_APP_URL}/register?invite=${token}`;
         
         try {
-          await sendMail({
-            to: emailLower,
-            subject: `${user.email} invited you to join "${project.name}" on ProjectHub`,
-            html: `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              </head>
-              <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background-color: #f8fafc;">
-                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 40px 20px;">
-                  <tr>
-                    <td align="center">
-                      <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                        <!-- Header -->
-                        <tr>
-                          <td style="background: linear-gradient(135deg, #e63946, #c1121f); padding: 40px 40px 30px; text-align: center;">
-                            <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-                              <span style="font-size: 32px;">🚀</span>
-                            </div>
-                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">You're Invited!</h1>
-                          </td>
-                        </tr>
-                        
-                        <!-- Content -->
-                        <tr>
-                          <td style="padding: 40px;">
-                            <p style="margin: 0 0 20px; color: #1d3557; font-size: 16px; line-height: 1.6;">
-                              Hi there! 👋
-                            </p>
-                            <p style="margin: 0 0 20px; color: #1d3557; font-size: 16px; line-height: 1.6;">
-                              <strong style="color: #e63946;">${user.email}</strong> has invited you to collaborate on the project:
-                            </p>
-                            <div style="background: #f1faee; border-left: 4px solid #e63946; padding: 16px 20px; margin: 0 0 30px; border-radius: 8px;">
-                              <div style="font-size: 18px; font-weight: 700; color: #1d3557; margin-bottom: 4px;">📋 ${project.name}</div>
-                              <div style="font-size: 14px; color: #6b7a8d;">Join the team and start collaborating!</div>
-                            </div>
-                            
-                            <p style="margin: 0 0 24px; color: #6b7a8d; font-size: 14px; line-height: 1.6;">
-                              Click the button below to get started:
-                            </p>
-                            
-                            <!-- CTA Buttons -->
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td align="center" style="padding-bottom: 16px;">
-                                  <a href="${registerLink}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #e63946, #c1121f); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);">
-                                    ✨ Create Account & Join Project
-                                  </a>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td align="center" style="padding-bottom: 20px;">
-                                  <p style="margin: 0 0 8px; color: #6b7a8d; font-size: 13px;">Already have an account?</p>
-                                  <a href="${loginLink}" style="display: inline-block; padding: 12px 28px; background: #f1faee; color: #1d3557; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; border: 2px solid #d0dce8;">
-                                    🔐 Sign In
-                                  </a>
-                                </td>
-                              </tr>
-                            </table>
-                            
-                            <!-- Features -->
-                            <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 30px 0;">
-                              <div style="font-size: 14px; font-weight: 700; color: #1d3557; margin-bottom: 12px;">What you can do:</div>
-                              <table width="100%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                  <td style="padding: 6px 0;">
-                                    <span style="color: #2a9d8f; font-weight: 700;">✓</span>
-                                    <span style="color: #6b7a8d; font-size: 14px; margin-left: 8px;">Manage tasks and track progress</span>
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td style="padding: 6px 0;">
-                                    <span style="color: #2a9d8f; font-weight: 700;">✓</span>
-                                    <span style="color: #6b7a8d; font-size: 14px; margin-left: 8px;">Collaborate with team members</span>
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td style="padding: 6px 0;">
-                                    <span style="color: #2a9d8f; font-weight: 700;">✓</span>
-                                    <span style="color: #6b7a8d; font-size: 14px; margin-left: 8px;">Share documents and files</span>
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td style="padding: 6px 0;">
-                                    <span style="color: #2a9d8f; font-weight: 700;">✓</span>
-                                    <span style="color: #6b7a8d; font-size: 14px; margin-left: 8px;">Real-time chat and updates</span>
-                                  </td>
-                                </tr>
-                              </table>
-                            </div>
-                            
-                            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
-                              <p style="margin: 0 0 8px; color: #6b7a8d; font-size: 13px; line-height: 1.5;">
-                                ⏰ This invitation expires in <strong>7 days</strong>.
-                              </p>
-                              <p style="margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.5;">
-                                If you didn't expect this invitation, you can safely ignore this email.
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                        
-                        <!-- Footer -->
-                        <tr>
-                          <td style="background: #f8fafc; padding: 30px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
-                            <p style="margin: 0 0 8px; color: #1d3557; font-size: 16px; font-weight: 700;">
-                              ProjectHub
-                            </p>
-                            <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-                              Collaborate better, deliver faster
-                            </p>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
-              </body>
-              </html>
-            `,
-          });
+          await sendProjectInvitationEmail(
+            emailLower,
+            user.email,
+            project.name,
+            loginLink,
+            registerLink
+          );
           results.push({ email: emailLower, status: 'invited', message: 'Invitation sent successfully' });
         } catch (error) {
           console.error('Failed to send invitation email:', error);
