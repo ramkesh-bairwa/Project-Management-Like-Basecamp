@@ -23,8 +23,9 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       );
     } catch { /* ignore if subscriptions insert fails */ }
 
+    // Free plan: keep is_org as-is (don't downgrade if already org)
     await query(
-      'UPDATE users SET plan_id = ?, plan_expires_at = NULL, is_org = FALSE WHERE id = ?',
+      'UPDATE users SET plan_id = ?, plan_expires_at = NULL WHERE id = ?',
       [plan_id, user.id]
     );
 
@@ -37,8 +38,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
   // --- PAID PLAN via SANDBOX: create pending payment record, return payment_id ---
   if (gateway === 'sandbox' || payment_ref?.startsWith('SANDBOX-')) {
-    let amount = Number(plan.price);
-    const ref = payment_ref || `SANDBOX-${Date.now()}`;
+    const amount = Number(plan.price);
+    const ref = `SANDBOX-${Date.now()}`;
 
     const result = await query<{ insertId: number }>(
       `INSERT INTO payments (user_id, plan_id, billing_cycle, amount, currency, status, provider, provider_ref, metadata)
@@ -55,17 +56,19 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   else if (plan.billing_cycle === 'yearly') expires.setFullYear(expires.getFullYear() + 1);
   else expires.setFullYear(expires.getFullYear() + 100);
 
+  const expiresStr = expires.toISOString().slice(0, 19).replace('T', ' ');
+
   try {
     await query(
       'INSERT INTO subscriptions (user_id, org_id, plan_id, expires_at, payment_ref, amount_paid) VALUES (?, ?, ?, ?, ?, ?)',
-      [user.id, org_id || null, plan_id, expires, payment_ref || null, plan.price]
+      [user.id, org_id || null, plan_id, expiresStr, payment_ref || null, plan.price]
     );
   } catch { /* ignore */ }
 
   await query(
     'UPDATE users SET plan_id = ?, plan_expires_at = ?, is_org = TRUE WHERE id = ?',
-    [plan_id, expires, user.id]
+    [plan_id, expiresStr, user.id]
   );
 
-  return apiResponse({ message: 'Subscription activated', expires_at: expires, is_org: true }, 201);
+  return apiResponse({ message: 'Subscription activated', expires_at: expiresStr, is_org: true }, 201);
 });

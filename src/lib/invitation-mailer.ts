@@ -21,11 +21,11 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
   const s: Record<string, string> = {};
   for (const r of rows) s[r.key] = r.value;
   return {
-    smtp_host: s.smtp_host || '',
-    smtp_port: s.smtp_port || '587',
-    smtp_user: s.smtp_user || '',
-    smtp_pass: s.smtp_pass || '',
-    smtp_from: s.smtp_from || s.smtp_user || 'noreply@example.com',
+    smtp_host: s.smtp_host || process.env.SMTP_HOST || '',
+    smtp_port: s.smtp_port || process.env.SMTP_PORT || '587',
+    smtp_user: s.smtp_user || process.env.SMTP_USER || '',
+    smtp_pass: s.smtp_pass || process.env.SMTP_PASS || '',
+    smtp_from: s.smtp_from || s.smtp_user || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@example.com',
     site_name: s.site_name || 'ProjectHub',
     primary_color: s.primary_color || '#1d3557',
     accent_color: s.accent_color || '#e63946',
@@ -152,78 +152,39 @@ export async function sendProjectInvitationEmail(
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:${cfg.primary_color};text-align:center;letter-spacing:-0.5px;">
       You're Invited!
     </h1>
-    <p style="margin:0 0 20px;font-size:15px;color:#64748b;text-align:center;line-height:1.6;">
-      Hi there! 👋<br/>
-      <strong style="color:${cfg.accent_color};">${inviterEmail}</strong> has invited you to collaborate on:
+    <p style="margin:0 0 28px;font-size:15px;color:#64748b;text-align:center;line-height:1.6;">
+      Hi there! <strong style="color:${cfg.accent_color};">${inviterEmail}</strong> has invited you to collaborate on <strong style="color:${cfg.primary_color};">${projectName}</strong>.<br/>
+      Click the button below to join the project.
     </p>
-
-    <!-- Project Box -->
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-      <tr>
-        <td style="background:${cfg.primary_color}08;border-left:4px solid ${cfg.accent_color};padding:16px 20px;border-radius:8px;">
-          <div style="font-size:18px;font-weight:700;color:${cfg.primary_color};margin-bottom:4px;">📋 ${projectName}</div>
-          <div style="font-size:14px;color:#6b7a8d;">Join the team and start collaborating!</div>
-        </td>
-      </tr>
-    </table>
 
     <!-- Button -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td align="center" style="padding-bottom:16px;">
+        <td align="center" style="padding-bottom:28px;">
           <a href="${registerLink}"
             style="display:inline-block;background:${cfg.accent_color};color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;letter-spacing:0.2px;">
-            ✨ Create Account & Join Project
+            ✨ &nbsp;Create Account & Join Project
           </a>
         </td>
       </tr>
     </table>
 
-    <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">Already have an account?</p>
+    <!-- Divider -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td align="center" style="padding-bottom:28px;">
-          <a href="${loginLink}"
-            style="display:inline-block;background:#f1f5f9;color:${cfg.primary_color};font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:10px;border:2px solid #e2e8f0;">
-            🔐 Sign In
-          </a>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Features -->
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;padding:20px;margin-bottom:24px;">
-      <tr>
-        <td>
-          <div style="font-size:14px;font-weight:700;color:${cfg.primary_color};margin-bottom:12px;">What you can do:</div>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="padding:6px 0;font-size:14px;color:#6b7a8d;">
-                <span style="color:#2a9d8f;font-weight:700;">✓</span> Manage tasks and track progress
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;font-size:14px;color:#6b7a8d;">
-                <span style="color:#2a9d8f;font-weight:700;">✓</span> Collaborate with team members
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;font-size:14px;color:#6b7a8d;">
-                <span style="color:#2a9d8f;font-weight:700;">✓</span> Share documents and files
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;font-size:14px;color:#6b7a8d;">
-                <span style="color:#2a9d8f;font-weight:700;">✓</span> Real-time chat and updates
-              </td>
-            </tr>
-          </table>
+        <td style="border-top:1px solid #f1f5f9;padding-top:24px;">
+          <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;text-align:center;">
+            Already have an account? Click here:
+          </p>
+          <p style="margin:0;font-size:13px;text-align:center;">
+            <a href="${loginLink}" style="color:${cfg.primary_color};text-decoration:underline;font-weight:600;">🔐 Sign In</a>
+          </p>
         </td>
       </tr>
     </table>
 
     <!-- Warning -->
-    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
       <tr>
         <td style="background:#fff7ed;border-radius:10px;padding:14px 16px;border-left:3px solid #f97316;">
           <p style="margin:0;font-size:12px;color:#92400e;line-height:1.5;">

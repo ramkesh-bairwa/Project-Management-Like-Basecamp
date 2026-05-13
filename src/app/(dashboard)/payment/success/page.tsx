@@ -1,8 +1,27 @@
 'use client';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.token) {
+            localStorage.setItem('token', d.token);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#f1faee' }}>
       <div className="bg-white rounded-2xl p-10 text-center shadow-2xl max-w-sm w-full" style={{ border: '1px solid #d0dce8' }}>

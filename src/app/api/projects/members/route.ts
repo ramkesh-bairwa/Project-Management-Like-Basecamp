@@ -44,8 +44,35 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
 export const DELETE = withAuth(async (req: NextRequest, user) => {
   const { project_id, user_id } = await req.json();
+  if (!project_id || !user_id) return apiError('project_id and user_id required');
   const owner = await query<unknown[]>('SELECT id FROM project_members WHERE project_id=? AND user_id=? AND role IN ("owner","admin","manager")', [project_id, user.id]);
   if (!owner.length) return apiError('Not authorized', 403);
+
+  // Remove from project
   await query('DELETE FROM project_members WHERE project_id=? AND user_id=?', [project_id, user_id]);
+
+  // Remove from all project groups
+  const groups = await query<{ id: number; chat_id: number | null }[]>(
+    'SELECT id, chat_id FROM project_groups WHERE project_id=? AND deleted_at IS NULL', [project_id]
+  );
+  for (const grp of groups) {
+    await query('DELETE FROM project_group_members WHERE group_id=? AND user_id=?', [grp.id, user_id]);
+    // Remove from group chat
+    if (grp.chat_id) {
+      await query('DELETE FROM chat_participants WHERE chat_id=? AND user_id=?', [grp.chat_id, user_id]);
+    }
+  }
+
+  // Unassign tasks assigned to this user in this project
+  await query('UPDATE tasks SET assignee_id=NULL WHERE project_id=? AND assignee_id=? AND deleted_at IS NULL', [project_id, user_id]);
+
+  // Notify removed user
+  const proj = await query<{ name: string; slug: string }[]>('SELECT name, slug FROM projects WHERE id=?', [project_id]);
+  await createNotification(user_id, 'project',
+    `You have been removed from project "${proj[0]?.name || 'a project'}"`,
+    'You no longer have access to this project, its groups, tasks and chats.',
+    '/projects'
+  );
+
   return apiResponse({ message: 'Member removed' });
 });

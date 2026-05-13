@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
-import { sendProjectInvitationEmail } from '@/lib/invitation-mailer';
+import { sendProjectInvitationEmail } from '@/lib/mailer';
 import crypto from 'crypto';
 
 export const GET = async (req: NextRequest) => {
@@ -42,7 +42,13 @@ export const GET = async (req: NextRequest) => {
 export const POST = withAuth(async (req: NextRequest, user) => {
   const { project_id, emails } = await req.json();
   
+  console.log('📧 [INVITE] Received invitation request');
+  console.log('📧 [INVITE] Project ID:', project_id);
+  console.log('📧 [INVITE] Emails:', emails);
+  console.log('📧 [INVITE] Inviter:', user.email);
+  
   if (!project_id || !Array.isArray(emails) || emails.length === 0) {
+    console.error('❌ [INVITE] Invalid request: missing project_id or emails');
     return apiError('Project ID and emails are required');
   }
 
@@ -55,81 +61,73 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   );
 
   if (!projectCheck.length) {
+    console.error('❌ [INVITE] Project not found or access denied');
     return apiError('Project not found or access denied', 403);
   }
 
   const project = projectCheck[0];
+  console.log('✅ [INVITE] Project found:', project.name);
   const results = [];
 
   for (const email of emails) {
     const emailLower = email.toLowerCase().trim();
+    console.log(`\n📧 [INVITE] Processing email: ${emailLower}`);
     
-    // Check if user already exists
-    const existingUser = await query<{ id: number; email: string }[]>(
-      'SELECT id, email FROM users WHERE email = ?',
-      [emailLower]
+    let token: string;
+    
+    // Check if invitation already exists
+    const existingInvite = await query<{ id: number; token: string }[]>(
+      'SELECT id, token FROM project_invitations WHERE project_id = ? AND email = ? AND status = ?',
+      [project_id, emailLower, 'pending']
     );
 
-    if (existingUser.length > 0) {
-      // User exists, add them directly to the project
-      const userId = existingUser[0].id;
-      
-      // Check if already a member
-      const memberCheck = await query<{ id: number }[]>(
-        'SELECT id FROM project_members WHERE project_id = ? AND user_id = ?',
-        [project_id, userId]
-      );
-
-      if (memberCheck.length === 0) {
-        await query(
-          'INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?)',
-          [project_id, userId, 'developer']
-        );
-        results.push({ email: emailLower, status: 'added', message: 'User added to project' });
-      } else {
-        results.push({ email: emailLower, status: 'already_member', message: 'Already a member' });
-      }
-    } else {
-      // User doesn't exist, create invitation
-      const token = crypto.randomBytes(32).toString('hex');
+    if (existingInvite.length === 0) {
+      // Create new invitation
+      token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-      // Check if invitation already exists
-      const existingInvite = await query<{ id: number }[]>(
-        'SELECT id FROM project_invitations WHERE project_id = ? AND email = ? AND status = ?',
-        [project_id, emailLower, 'pending']
+      await query(
+        `INSERT INTO project_invitations (project_id, email, token, invited_by, expires_at, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [project_id, emailLower, token, user.id, expiresAt, 'pending']
       );
+      console.log(`✅ [INVITE] Invitation created for: ${emailLower}`);
+    } else {
+      // Use existing token
+      token = existingInvite[0].token;
+      console.log(`ℹ️ [INVITE] Using existing invitation for: ${emailLower}`);
+    }
 
-      if (existingInvite.length === 0) {
-        await query(
-          `INSERT INTO project_invitations (project_id, email, token, invited_by, expires_at, status)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [project_id, emailLower, token, user.id, expiresAt, 'pending']
-        );
-
-        // Send invitation email
-        const loginLink = `${process.env.NEXT_PUBLIC_APP_URL}/login?email=${encodeURIComponent(emailLower)}&invite=${token}`;
-        const registerLink = `${process.env.NEXT_PUBLIC_APP_URL}/register?invite=${token}`;
-        
-        try {
-          await sendProjectInvitationEmail(
-            emailLower,
-            user.email,
-            project.name,
-            loginLink,
-            registerLink
-          );
-          results.push({ email: emailLower, status: 'invited', message: 'Invitation sent successfully' });
-        } catch (error) {
-          console.error('Failed to send invitation email:', error);
-          // Still mark as invited even if email fails, user can access via invitation token
-          results.push({ email: emailLower, status: 'invited', message: 'Invitation created (email delivery pending)' });
-        }
+    // Send invitation email
+    const loginLink = `${process.env.NEXT_PUBLIC_APP_URL}/login?email=${encodeURIComponent(emailLower)}&invite=${token}`;
+    const registerLink = `${process.env.NEXT_PUBLIC_APP_URL}/register?invite=${token}`;
+    
+    console.log(`📧 [INVITE] Sending email to: ${emailLower}`);
+    console.log(`📧 [INVITE] Login link: ${loginLink}`);
+    console.log(`📧 [INVITE] Register link: ${registerLink}`);
+    
+    try {
+      await sendProjectInvitationEmail(
+        emailLower,
+        user.email,
+        project.name,
+        loginLink,
+        registerLink
+      );
+      console.log(`✅ [INVITE] Email sent successfully to: ${emailLower}`);
+      results.push({ email: emailLower, status: 'invited', message: 'Invitation sent successfully' });
+    } catch (error) {
+      console.error(`❌ [INVITE] Failed to send email to ${emailLower}:`, error);
+      console.error(`❌ [INVITE] Error details:`, error instanceof Error ? error.message : String(error));
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('SMTP not configured')) {
+        results.push({ email: emailLower, status: 'error', message: 'SMTP not configured. Please configure SMTP in Admin Settings.' });
       } else {
-        results.push({ email: emailLower, status: 'already_invited', message: 'Already invited' });
+        results.push({ email: emailLower, status: 'error', message: `Failed to send email: ${errorMsg}` });
       }
     }
   }
 
+  console.log('\n✅ [INVITE] All invitations processed');
+  console.log('📊 [INVITE] Results:', results);
   return apiResponse({ message: 'Invitations processed', results });
-});
+});;

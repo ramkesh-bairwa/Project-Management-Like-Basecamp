@@ -6,10 +6,10 @@ export const GET = withAuth(async (_req, user) => {
   const rows = await query<unknown[]>(
     `SELECT
       c.id, c.type, c.name, c.created_at,
-      (SELECT content FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
-      (SELECT created_at FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_at,
+      (SELECT content FROM chat_messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+      (SELECT created_at FROM chat_messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_at,
       (
-        SELECT COUNT(*) FROM messages m
+        SELECT COUNT(*) FROM chat_messages m
         LEFT JOIN chat_participants cp2 ON cp2.chat_id = m.chat_id AND cp2.user_id = ?
         WHERE m.chat_id = c.id AND (cp2.last_read_at IS NULL OR m.created_at > cp2.last_read_at)
       ) AS unread_count,

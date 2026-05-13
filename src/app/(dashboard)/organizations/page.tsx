@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface Org { id: number; name: string; slug: string; description: string; plan_name: string; website: string }
 
@@ -71,7 +72,10 @@ export default function OrganizationsPage() {
                 {org.description && <p className="text-sm text-[#6b7a8d] mb-4 line-clamp-2">{org.description}</p>}
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#f1faee', color: '#2a9d8f' }}>{org.plan_name || 'Free'}</span>
-                  {org.website && <a href={org.website} target="_blank" rel="noreferrer" className="text-xs text-[#6b7a8d] hover:text-[#457b9d] transition">🌐 Website</a>}
+                  <div className="flex items-center gap-2">
+                    {org.website && <a href={org.website} target="_blank" rel="noreferrer" className="text-xs text-[#6b7a8d] hover:text-[#457b9d] transition">🌐 Website</a>}
+                    <Link href={`/organizations/${org.id}`} className="text-xs font-bold px-3 py-1 rounded-lg hover:opacity-90 transition" style={{ background: '#1d3557', color: '#fff' }}>⚙️ Manage</Link>
+                  </div>
                 </div>
               </div>
             </div>

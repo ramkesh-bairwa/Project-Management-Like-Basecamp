@@ -39,7 +39,6 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   if (!project_id || !name) return apiError('project_id and name required');
   const member = await query<{ role: string }[]>('SELECT role FROM project_members WHERE project_id=? AND user_id=?', [project_id, user.id]);
   if (!member.length) return apiError('Not a project member', 403);
-  if (!['owner','admin','manager'].includes(member[0].role)) return apiError('Only owner, admin or manager can create groups', 403);
 
   // Plan limit check (count groups across all projects owned by this user)
   const projOwner = await query<{ owner_id: number }[]>('SELECT owner_id FROM projects WHERE id=?', [project_id]);

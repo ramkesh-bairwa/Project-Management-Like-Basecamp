@@ -1,0 +1,494 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.root{display:flex;height:680px;border-radius:20px;overflow:hidden;font-family:var(--font-sans);border:1px solid rgba(83,74,183,0.25);}
+
+/* ── SIDEBAR ── */
+.sb{width:268px;min-width:268px;background:#16122e;display:flex;flex-direction:column;}
+.sb-head{padding:18px 16px 14px;}
+.workspace{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.08);margin-bottom:14px;cursor:pointer;transition:background .15s;}
+.workspace:hover{background:rgba(255,255,255,0.08);}
+.ws-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#534AB7,#7F77DD);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0;}
+.ws-name{font-size:13px;font-weight:500;color:#fff;line-height:1.2;}
+.ws-plan{font-size:10px;color:rgba(255,255,255,0.35);}
+.ws-chevron{margin-left:auto;font-size:14px;color:rgba(255,255,255,0.25);}
+
+.search-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:9px 12px;cursor:text;transition:all .2s;}
+.search-pill:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.16);}
+.search-pill i{font-size:14px;color:rgba(255,255,255,0.35);}
+.search-pill span{font-size:12px;color:rgba(255,255,255,0.3);flex:1;}
+.search-pill .sk{font-size:10px;color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.12);border-radius:5px;padding:2px 6px;}
+
+.sb-nav{padding:10px 10px 6px;display:flex;flex-direction:column;gap:1px;}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:9px;cursor:pointer;transition:background .15s;position:relative;}
+.ni:hover{background:rgba(255,255,255,0.06);}
+.ni.on{background:rgba(83,74,183,0.45);}
+.ni i{font-size:16px;color:rgba(255,255,255,0.4);}
+.ni.on i{color:#C4BFFF;}
+.ni-label{font-size:13px;color:rgba(255,255,255,0.45);}
+.ni.on .ni-label{color:#fff;font-weight:500;}
+.badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;background:#534AB7;color:#C4BFFF;font-size:10px;font-weight:500;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+
+.divider-line{height:0.5px;background:rgba(255,255,255,0.06);margin:6px 16px;}
+
+.sec-title{font-size:10px;font-weight:500;color:rgba(255,255,255,0.22);letter-spacing:.08em;text-transform:uppercase;padding:10px 21px 5px;display:flex;align-items:center;justify-content:space-between;}
+.sec-title i{font-size:14px;color:rgba(255,255,255,0.2);cursor:pointer;}
+
+.dm-list,.grp-list{display:flex;flex-direction:column;padding:0 8px;}
+.row{display:flex;align-items:center;gap:9px;padding:6px 11px;border-radius:9px;cursor:pointer;transition:background .15s;}
+.row:hover{background:rgba(255,255,255,0.055);}
+.row.on{background:rgba(83,74,183,0.38);}
+
+.avw{position:relative;flex-shrink:0;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;}
+.st{position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:50%;border:2px solid #16122e;}
+.st-on{background:#22c55e;}
+.st-off{background:#52525b;}
+.st-busy{background:#f59e0b;}
+.st-dnd{background:#ef4444;}
+
+.ri{flex:1;min-width:0;}
+.rn{font-size:12px;font-weight:500;color:#ddd8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rp{font-size:11px;color:rgba(255,255,255,0.28);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rm{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.rt{font-size:10px;color:rgba(255,255,255,0.22);}
+.unr{width:7px;height:7px;border-radius:50%;background:#818CF8;}
+
+.gi{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.gbadge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:10px;flex-shrink:0;}
+
+.sb-foot{margin-top:auto;padding:10px 12px;border-top:0.5px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;}
+.me-av{width:32px;height:32px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#C4BFFF;flex-shrink:0;position:relative;}
+.me-st{position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#22c55e;border:2px solid #16122e;}
+.me-name{font-size:12px;font-weight:500;color:#ddd8ff;}
+.me-tag{font-size:10px;color:rgba(255,255,255,0.3);}
+.foot-icons{display:flex;gap:2px;margin-left:auto;}
+.fi{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;border:none;background:transparent;}
+.fi:hover{background:rgba(255,255,255,0.08);}
+.fi i{font-size:15px;color:rgba(255,255,255,0.3);}
+
+/* ── CHAT ── */
+.chat{flex:1;display:flex;flex-direction:column;min-width:0;background:#f4f2ff;position:relative;}
+
+/* search dropdown */
+.sdrop{position:absolute;top:57px;left:0;right:0;background:#fff;border-bottom:0.5px solid #e2deff;padding:12px 18px 16px;z-index:20;display:none;}
+.sdrop.open{display:block;}
+.sinput{display:flex;align-items:center;gap:9px;background:#f4f2ff;border:1px solid #c4baff;border-radius:10px;padding:9px 13px;margin-bottom:12px;}
+.sinput input{flex:1;border:none;background:transparent;font-size:13px;color:#1e1a3a;outline:none;font-family:var(--font-sans);}
+.sinput i{font-size:15px;color:#9d96e0;}
+.stabs{display:flex;gap:4px;margin-bottom:10px;}
+.stab{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer;border:0.5px solid #e2deff;color:#6d64c8;background:#f4f2ff;transition:all .15s;}
+.stab.on{background:#534AB7;color:#fff;border-color:#534AB7;}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.scard{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;background:#f4f2ff;border:0.5px solid #e2deff;cursor:pointer;transition:background .15s;}
+.scard:hover{background:#eceaff;border-color:#b8b2f5;}
+.sc-name{font-size:12px;font-weight:500;color:#1e1a3a;}
+.sc-role{font-size:10px;color:#7c74cc;}
+
+/* header */
+.ch{height:57px;padding:0 20px;display:flex;align-items:center;gap:11px;border-bottom:0.5px solid #e2deff;background:#fff;flex-shrink:0;}
+.ch-av{width:36px;height:36px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#3C3489;flex-shrink:0;position:relative;}
+.ch-dot{position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;border:2px solid #fff;}
+.ch-name{font-size:14px;font-weight:500;color:#1e1a3a;}
+.ch-sub{font-size:11px;color:#9d96e0;}
+.ch-acts{display:flex;gap:2px;margin-left:auto;}
+.hb{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;background:transparent;transition:background .15s;}
+.hb:hover{background:#f0eeff;}
+.hb i{font-size:17px;color:#8B82D4;}
+.hb.danger:hover{background:#fff1f0;}
+.hb.danger i{color:#e24b4a;}
+
+/* messages */
+.msgs{flex:1;overflow-y:auto;padding:22px 28px;display:flex;flex-direction:column;gap:18px;}
+.msgs::-webkit-scrollbar{width:4px;}
+.msgs::-webkit-scrollbar-thumb{background:#d4d0f5;border-radius:4px;}
+
+.dd{display:flex;align-items:center;gap:12px;margin:4px 0;}
+.dd::before,.dd::after{content:'';flex:1;height:0.5px;background:#e2deff;}
+.dd span{font-size:10px;color:#b0aadc;white-space:nowrap;background:#f4f2ff;padding:0 4px;}
+
+.mr{display:flex;gap:10px;align-items:flex-end;}
+.mr.me{flex-direction:row-reverse;}
+.mav{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;align-self:flex-end;}
+.mb{display:flex;flex-direction:column;gap:4px;max-width:62%;}
+.mr.me .mb{align-items:flex-end;}
+.msender{font-size:10px;color:#b0aadc;padding:0 13px;font-weight:500;}
+.bbl{padding:11px 15px;border-radius:18px;font-size:13px;line-height:1.6;color:#1e1a3a;background:#fff;border:0.5px solid #e2deff;position:relative;}
+.bbl.me{background:#534AB7;color:#fff;border-color:#534AB7;border-bottom-right-radius:5px;}
+.bbl:not(.me){border-bottom-left-radius:5px;}
+.mtime{font-size:10px;color:#b0aadc;padding:0 13px;}
+.mr.me .mtime{text-align:right;}
+
+.rxns{display:flex;gap:4px;padding:4px 13px 0;}
+.rxn{font-size:11px;background:#EEEDFE;color:#3C3489;border:0.5px solid #c4baff;border-radius:20px;padding:3px 8px;cursor:pointer;transition:background .15s;}
+.rxn:hover{background:#dddaff;}
+
+.fbbl{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:14px;background:#fff;border:0.5px solid #e2deff;max-width:230px;margin-top:6px;}
+.fico{width:38px;height:38px;border-radius:10px;background:#EEEDFE;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.fico i{font-size:19px;color:#534AB7;}
+.fnm{font-size:12px;font-weight:500;color:#1e1a3a;}
+.fsz{font-size:10px;color:#b0aadc;margin-top:2px;}
+
+.sys-msg{display:flex;align-items:center;justify-content:center;gap:8px;}
+.sys-msg span{font-size:11px;color:#b0aadc;background:#eceaff;padding:4px 12px;border-radius:20px;}
+
+.typing{display:flex;gap:10px;align-items:center;}
+.tdots{display:flex;gap:4px;padding:11px 15px;background:#fff;border:0.5px solid #e2deff;border-radius:18px;border-bottom-left-radius:5px;}
+.tdots b{width:7px;height:7px;border-radius:50%;background:#C4BFFF;display:block;animation:bop 1.3s infinite;}
+.tdots b:nth-child(2){animation-delay:.18s;}
+.tdots b:nth-child(3){animation-delay:.36s;}
+@keyframes bop{0%,60%,100%{transform:translateY(0);opacity:.6}30%{transform:translateY(-6px);opacity:1}}
+
+/* input */
+.inp-area{padding:14px 20px 16px;border-top:0.5px solid #e2deff;background:#fff;flex-shrink:0;}
+.inp-toolbar{display:flex;align-items:center;gap:2px;margin-bottom:10px;}
+.tb{width:30px;height:30px;border:none;background:transparent;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;}
+.tb:hover{background:#f0eeff;}
+.tb i{font-size:15px;color:#8B82D4;}
+.tsep{width:0.5px;height:16px;background:#e2deff;margin:0 3px;}
+.inp-box{display:flex;align-items:flex-end;gap:9px;background:#f4f2ff;border:1px solid #d4d0f5;border-radius:14px;padding:10px 12px 10px 16px;transition:border-color .2s;}
+.inp-box:focus-within{border-color:#534AB7;}
+.inp-box textarea{flex:1;border:none;background:transparent;font-size:13px;color:#1e1a3a;font-family:var(--font-sans);resize:none;outline:none;line-height:1.55;max-height:90px;min-height:22px;}
+.inp-box textarea::placeholder{color:#b0aadc;}
+.inp-right{display:flex;gap:6px;align-items:center;}
+.send{width:36px;height:36px;border-radius:10px;background:#534AB7;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;}
+.send:hover{background:#6259c9;}
+.send i{font-size:16px;color:#fff;}
+</style>
+
+<h2 class="sr-only">Pro-level organization chat with dark sidebar, search overlay, rich messages, and no right panel</h2>
+
+<div class="root">
+
+  <!-- ════ SIDEBAR ════ -->
+  <div class="sb">
+    <div class="sb-head">
+      <div class="workspace">
+        <div class="ws-logo"><i class="ti ti-topology-star-3" aria-hidden="true"></i></div>
+        <div>
+          <div class="ws-name">Nexus Studio</div>
+          <div class="ws-plan">Pro workspace</div>
+        </div>
+        <i class="ti ti-chevron-down ws-chevron" aria-hidden="true"></i>
+      </div>
+      <div class="search-pill" id="searchTrigger">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <span>Search people & groups…</span>
+        <span class="sk">⌘K</span>
+      </div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="ni on">
+        <i class="ti ti-message-2" aria-hidden="true"></i>
+        <span class="ni-label">Messages</span>
+        <span class="badge">4</span>
+      </div>
+      <div class="ni">
+        <i class="ti ti-users-group" aria-hidden="true"></i>
+        <span class="ni-label">Members</span>
+      </div>
+      <div class="ni">
+        <i class="ti ti-calendar-event" aria-hidden="true"></i>
+        <span class="ni-label">Calendar</span>
+      </div>
+      <div class="ni">
+        <i class="ti ti-folder" aria-hidden="true"></i>
+        <span class="ni-label">Files</span>
+        <span class="badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);">12</span>
+      </div>
+    </div>
+
+    <div class="divider-line"></div>
+
+    <div class="sec-title">
+      Direct messages
+      <i class="ti ti-pencil" aria-hidden="true"></i>
+    </div>
+    <div class="dm-list">
+      <div class="row">
+        <div class="avw">
+          <div class="av" style="background:#0a3d2b;color:#4ade80;">ST</div>
+          <span class="st st-on"></span>
+        </div>
+        <div class="ri"><div class="rn">Sofia Torres</div><div class="rp">sounds great! ✨</div></div>
+        <div class="rm"><div class="rt">now</div><div class="unr"></div></div>
+      </div>
+      <div class="row on">
+        <div class="avw">
+          <div class="av" style="background:#2e2870;color:#a5b4fc;">AM</div>
+          <span class="st st-busy"></span>
+        </div>
+        <div class="ri"><div class="rn">Arjun Mehta</div><div class="rp">I'll share the Figma link</div></div>
+        <div class="rm"><div class="rt">2m</div><div class="unr"></div></div>
+      </div>
+      <div class="row">
+        <div class="avw">
+          <div class="av" style="background:#4a1507;color:#fb923c;">CL</div>
+          <span class="st st-off"></span>
+        </div>
+        <div class="ri"><div class="rn">Chloe Lambert</div><div class="rp">Updated the brief ✓</div></div>
+        <div class="rm"><div class="rt">1h</div></div>
+      </div>
+      <div class="row">
+        <div class="avw">
+          <div class="av" style="background:#0c2d52;color:#60a5fa;">RK</div>
+          <span class="st st-on"></span>
+        </div>
+        <div class="ri"><div class="rn">Ravi Kumar</div><div class="rp">Can we sync at 3?</div></div>
+        <div class="rm"><div class="rt">3h</div></div>
+      </div>
+      <div class="row">
+        <div class="avw">
+          <div class="av" style="background:#1a3a0a;color:#86efac;">PL</div>
+          <span class="st st-on"></span>
+        </div>
+        <div class="ri"><div class="rn">Priya Lin</div><div class="rp">Ship it 🚀</div></div>
+        <div class="rm"><div class="rt">5h</div></div>
+      </div>
+    </div>
+
+    <div class="divider-line" style="margin-top:6px;"></div>
+
+    <div class="sec-title">
+      Groups
+      <i class="ti ti-plus" aria-hidden="true"></i>
+    </div>
+    <div class="grp-list">
+      <div class="row">
+        <div class="gi" style="background:#2e2870;color:#a5b4fc;"><i class="ti ti-palette" aria-hidden="true"></i></div>
+        <div class="ri"><div class="rn">Design Team</div><div class="rp">12 members</div></div>
+        <span class="gbadge" style="background:#3C3489;color:#a5b4fc;">3</span>
+      </div>
+      <div class="row">
+        <div class="gi" style="background:#0a3d2b;color:#4ade80;"><i class="ti ti-code" aria-hidden="true"></i></div>
+        <div class="ri"><div class="rn">Engineering</div><div class="rp">8 members</div></div>
+      </div>
+      <div class="row">
+        <div class="gi" style="background:#4a1507;color:#fb923c;"><i class="ti ti-speakerphone" aria-hidden="true"></i></div>
+        <div class="ri"><div class="rn">Marketing</div><div class="rp">6 members</div></div>
+        <span class="gbadge" style="background:#4a1507;color:#fb923c;">1</span>
+      </div>
+      <div class="row">
+        <div class="gi" style="background:#0c2d52;color:#60a5fa;"><i class="ti ti-rocket" aria-hidden="true"></i></div>
+        <div class="ri"><div class="rn">Product Launch</div><div class="rp">15 members</div></div>
+      </div>
+    </div>
+
+    <div class="sb-foot">
+      <div class="me-av">YO<span class="me-st"></span></div>
+      <div>
+        <div class="me-name">You</div>
+        <div class="me-tag">@you · Active</div>
+      </div>
+      <div class="foot-icons">
+        <button class="fi" aria-label="Notifications"><i class="ti ti-bell" aria-hidden="true"></i></button>
+        <button class="fi" aria-label="Settings"><i class="ti ti-settings" aria-hidden="true"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ CHAT ════ -->
+  <div class="chat">
+
+    <!-- search overlay -->
+    <div class="sdrop" id="sdrop">
+      <div class="sinput">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" placeholder="Search people, groups, or messages…" id="sinput" />
+        <i class="ti ti-x" style="cursor:pointer;color:#9d96e0;" id="sclose" aria-hidden="true"></i>
+      </div>
+      <div class="stabs">
+        <span class="stab on">All</span>
+        <span class="stab">People</span>
+        <span class="stab">Groups</span>
+        <span class="stab">Files</span>
+      </div>
+      <div class="sgrid">
+        <div class="scard">
+          <div class="av" style="width:30px;height:30px;font-size:10px;border-radius:50%;background:#2e2870;color:#a5b4fc;flex-shrink:0;">AM</div>
+          <div><div class="sc-name">Arjun Mehta</div><div class="sc-role">Lead Designer</div></div>
+        </div>
+        <div class="scard">
+          <div class="av" style="width:30px;height:30px;font-size:10px;border-radius:50%;background:#0a3d2b;color:#4ade80;flex-shrink:0;">ST</div>
+          <div><div class="sc-name">Sofia Torres</div><div class="sc-role">Project Manager</div></div>
+        </div>
+        <div class="scard">
+          <div class="av" style="width:30px;height:30px;font-size:10px;border-radius:50%;background:#4a1507;color:#fb923c;flex-shrink:0;">CL</div>
+          <div><div class="sc-name">Chloe Lambert</div><div class="sc-role">UX Writer</div></div>
+        </div>
+        <div class="scard">
+          <div class="av" style="width:30px;height:30px;font-size:10px;border-radius:50%;background:#0c2d52;color:#60a5fa;flex-shrink:0;">RK</div>
+          <div><div class="sc-name">Ravi Kumar</div><div class="sc-role">Frontend Dev</div></div>
+        </div>
+        <div class="scard">
+          <div class="av" style="width:30px;height:30px;font-size:10px;border-radius:50%;background:#1a3a0a;color:#86efac;flex-shrink:0;">PL</div>
+          <div><div class="sc-name">Priya Lin</div><div class="sc-role">Product Designer</div></div>
+        </div>
+        <div class="scard">
+          <div class="gi" style="width:30px;height:30px;border-radius:8px;font-size:13px;flex-shrink:0;background:#2e2870;color:#a5b4fc;"><i class="ti ti-palette" aria-hidden="true"></i></div>
+          <div><div class="sc-name">Design Team</div><div class="sc-role">12 members</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- header -->
+    <div class="ch">
+      <div class="ch-av">
+        AM
+        <span class="ch-dot st-busy"></span>
+      </div>
+      <div>
+        <div class="ch-name">Arjun Mehta</div>
+        <div class="ch-sub">Lead Designer · In a meeting</div>
+      </div>
+      <div class="ch-acts">
+        <button class="hb" aria-label="Voice call"><i class="ti ti-phone" aria-hidden="true"></i></button>
+        <button class="hb" aria-label="Video call"><i class="ti ti-video" aria-hidden="true"></i></button>
+        <button class="hb" aria-label="Schedule"><i class="ti ti-calendar" aria-hidden="true"></i></button>
+        <button class="hb" aria-label="Pin"><i class="ti ti-pin" aria-hidden="true"></i></button>
+        <button class="hb" aria-label="Search"><i class="ti ti-search" aria-hidden="true"></i></button>
+        <button class="hb" aria-label="More"><i class="ti ti-dots-vertical" aria-hidden="true"></i></button>
+      </div>
+    </div>
+
+    <!-- messages -->
+    <div class="msgs">
+      <div class="dd"><span>Monday, May 12</span></div>
+
+      <div class="mr">
+        <div class="mav" style="background:#EEEDFE;color:#3C3489;">AM</div>
+        <div class="mb">
+          <div class="msender">Arjun Mehta</div>
+          <div class="bbl">Hey! Did you check the new brand guidelines I sent over yesterday? 👀</div>
+          <div class="mtime">9:41 AM</div>
+        </div>
+      </div>
+
+      <div class="mr me">
+        <div class="mav" style="background:#534AB7;color:#fff;">YO</div>
+        <div class="mb">
+          <div class="bbl me">Yes! The typography section is incredible — the type scale works perfectly across all breakpoints. Really clean work.</div>
+          <div class="mtime">9:43 AM</div>
+        </div>
+      </div>
+
+      <div class="mr">
+        <div class="mav" style="background:#EEEDFE;color:#3C3489;">AM</div>
+        <div class="mb">
+          <div class="msender">Arjun Mehta</div>
+          <div class="bbl">Glad you liked it! Here's the Figma source — components are all auto-layout ready:</div>
+          <div class="fbbl">
+            <div class="fico"><i class="ti ti-file-vector" aria-hidden="true"></i></div>
+            <div>
+              <div class="fnm">Brand_Components_v3.fig</div>
+              <div class="fsz">14.2 MB · Figma · Tap to open</div>
+            </div>
+          </div>
+          <div class="rxns"><span class="rxn">👍 2</span><span class="rxn">🎉 1</span><span class="rxn">🔥 3</span></div>
+          <div class="mtime">9:45 AM</div>
+        </div>
+      </div>
+
+      <div class="mr me">
+        <div class="mav" style="background:#534AB7;color:#fff;">YO</div>
+        <div class="mb">
+          <div class="bbl me">Can we move the sync to 3 PM instead of 2? Have a client call running over.</div>
+          <div class="mtime">9:47 AM</div>
+        </div>
+      </div>
+
+      <div class="mr">
+        <div class="mav" style="background:#EEEDFE;color:#3C3489;">AM</div>
+        <div class="mb">
+          <div class="msender">Arjun Mehta</div>
+          <div class="bbl">3 PM works perfectly! I'll update the calendar invite right now.</div>
+          <div class="mtime">9:49 AM</div>
+        </div>
+      </div>
+
+      <div class="sys-msg"><span>📅 Calendar invite updated to 3:00 PM</span></div>
+
+      <div class="mr">
+        <div class="mav" style="background:#EEEDFE;color:#3C3489;">AM</div>
+        <div class="mb">
+          <div class="msender">Arjun Mehta</div>
+          <div class="bbl">Also — should we loop in Sofia for the brand review session? She's been really strong on copy direction lately.</div>
+          <div class="mtime">9:51 AM</div>
+        </div>
+      </div>
+
+      <div class="mr me">
+        <div class="mav" style="background:#534AB7;color:#fff;">YO</div>
+        <div class="mb">
+          <div class="bbl me">Absolutely, great call. I'll add her to the invite and ping her now!</div>
+          <div class="mtime">9:52 AM</div>
+        </div>
+      </div>
+
+      <div class="dd"><span>Today</span></div>
+
+      <div class="mr">
+        <div class="mav" style="background:#EEEDFE;color:#3C3489;">AM</div>
+        <div class="mb">
+          <div class="msender">Arjun Mehta · typing</div>
+          <div class="tdots"><b></b><b></b><b></b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- input -->
+    <div class="inp-area">
+      <div class="inp-toolbar">
+        <button class="tb" aria-label="Bold"><i class="ti ti-bold" aria-hidden="true"></i></button>
+        <button class="tb" aria-label="Italic"><i class="ti ti-italic" aria-hidden="true"></i></button>
+        <button class="tb" aria-label="Strikethrough"><i class="ti ti-strikethrough" aria-hidden="true"></i></button>
+        <div class="tsep"></div>
+        <button class="tb" aria-label="Attach file"><i class="ti ti-paperclip" aria-hidden="true"></i></button>
+        <button class="tb" aria-label="Image"><i class="ti ti-photo" aria-hidden="true"></i></button>
+        <button class="tb" aria-label="Link"><i class="ti ti-link" aria-hidden="true"></i></button>
+        <div class="tsep"></div>
+        <button class="tb" aria-label="Code"><i class="ti ti-code" aria-hidden="true"></i></button>
+        <button class="tb" aria-label="Mention"><i class="ti ti-at" aria-hidden="true"></i></button>
+        <button class="tb" aria-label="GIF"><i class="ti ti-gif" aria-hidden="true"></i></button>
+      </div>
+      <div class="inp-box">
+        <textarea rows="1" placeholder="Message Arjun Mehta…" id="msginput"></textarea>
+        <div class="inp-right">
+          <button class="tb" aria-label="Emoji" style="width:32px;height:32px;"><i class="ti ti-mood-smile" style="font-size:18px;" aria-hidden="true"></i></button>
+          <button class="send" aria-label="Send message"><i class="ti ti-send-2" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const trigger=document.getElementById('searchTrigger');
+const drop=document.getElementById('sdrop');
+const sclose=document.getElementById('sclose');
+const sinput=document.getElementById('sinput');
+trigger.addEventListener('click',()=>{drop.classList.add('open');setTimeout(()=>sinput.focus(),50);});
+sclose.addEventListener('click',()=>drop.classList.remove('open'));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')drop.classList.remove('open');});
+
+document.querySelectorAll('.stab').forEach(t=>{
+  t.addEventListener('click',function(){document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));this.classList.add('on');});
+});
+
+const ta=document.getElementById('msginput');
+ta.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
+
+document.querySelectorAll('.row').forEach(el=>{
+  el.addEventListener('click',function(){
+    const list=this.closest('.dm-list,.grp-list');
+    if(list)list.querySelectorAll('.row').forEach(r=>r.classList.remove('on'));
+    document.querySelectorAll('.row').forEach(r=>r.classList.remove('on'));
+    this.classList.add('on');
+  });
+});
+document.querySelectorAll('.ni').forEach(el=>{
+  el.addEventListener('click',function(){document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));this.classList.add('on');});
+});
+</script>

@@ -5,7 +5,7 @@ import { getToken } from '@/lib/client-auth';
 
 interface PaymentInfo {
   id: number; plan_name: string; billing_cycle: string;
-  amount: number; sandbox_ref: string; status: string;
+  amount: number | string; sandbox_ref: string; status: string;
 }
 
 // Fake card numbers for sandbox testing
@@ -109,7 +109,7 @@ export default function SandboxPaymentPage() {
                   <div className="font-black text-sm" style={{ color: '#1d3557' }}>{info.plan_name} Plan</div>
                   <div className="text-xs capitalize" style={{ color: '#6b7a8d' }}>{info.billing_cycle} billing</div>
                 </div>
-                <div className="font-black text-lg" style={{ color: '#1d3557' }}>${info.amount.toFixed(2)}</div>
+                <div className="font-black text-lg" style={{ color: '#1d3557' }}>${Number(info.amount).toFixed(2)}</div>
               </div>
               <div className="text-xs mt-1 font-mono" style={{ color: '#94a3b8' }}>Ref: {info.sandbox_ref}</div>
             </div>
@@ -185,7 +185,7 @@ export default function SandboxPaymentPage() {
                 <button type="submit" disabled={processing}
                   className="flex-1 py-3 rounded-xl font-black text-sm text-white hover:opacity-90 disabled:opacity-50 transition"
                   style={{ background: '#e63946' }}>
-                  Pay ${info?.amount.toFixed(2) || '...'}
+                  Pay ${info?.amount != null ? Number(info.amount).toFixed(2) : '...'}
                 </button>
                 <button type="button" onClick={cancel}
                   className="px-4 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition"

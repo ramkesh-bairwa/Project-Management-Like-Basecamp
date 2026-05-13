@@ -85,6 +85,7 @@ export default function ProjectsPage() {
   const [searchMember, setSearchMember] = useState('');
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const t = getToken();
@@ -116,13 +117,14 @@ export default function ProjectsPage() {
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d)) {
-          // Extract connected users from connections
-          const connectedUsers = d.map((conn: { requester: { id: number; name: string; email: string; avatar?: string }; receiver: { id: number; name: string; email: string; avatar?: string }; requester_id: number; receiver_id: number }) => {
-            // Get current user ID from token
-            const currentUserId = JSON.parse(atob(t.split('.')[1])).id;
-            // Return the other user in the connection
-            return conn.requester_id === currentUserId ? conn.receiver : conn.requester;
-          });
+          const connectedUsers = d
+            .filter((conn: { status: string; user_id: number; name: string; email: string; avatar?: string }) => conn.status === 'accepted')
+            .map((conn: { user_id: number; name: string; email: string; avatar?: string }) => ({
+              id: conn.user_id,
+              name: conn.name,
+              email: conn.email,
+              avatar: conn.avatar,
+            }));
           setAvailableUsers(connectedUsers);
         }
       });
@@ -143,6 +145,11 @@ export default function ProjectsPage() {
 
   async function createProject(e: React.FormEvent) {
     e.preventDefault();
+    console.log('🚀 Creating project with form data:', form);
+    console.log('📧 Invite emails:', inviteEmails);
+    console.log('👥 Selected members:', selectedMembers);
+    
+    setCreating(true);
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const res = await fetch('/api/projects', { method: 'POST', headers, body: JSON.stringify(form) });
     
@@ -155,32 +162,52 @@ export default function ProjectsPage() {
       } catch {
         errorMsg = text || errorMsg;
       }
+      console.error('❌ Project creation failed:', errorMsg);
+      setCreating(false);
       alert(errorMsg);
       return;
     }
     
     const data = await res.json();
+    console.log('✅ Project created:', data);
     
     // Add existing members to the project
     if (selectedMembers.length > 0) {
-      await Promise.all(selectedMembers.map(userId => 
-        fetch('/api/projects/members', {
+      console.log('👥 Adding existing members...');
+      await Promise.all(selectedMembers.map(async userId => {
+        const memberRes = await fetch('/api/projects/members', {
           method: 'POST',
           headers,
           body: JSON.stringify({ project_id: data.id, user_id: userId, role: 'developer' })
-        })
-      ));
+        });
+        console.log(`Member ${userId} added:`, memberRes.ok ? '✅' : '❌');
+      }));
     }
     
     // Send email invitations for non-existing users
     if (inviteEmails.length > 0) {
-      await fetch('/api/projects/invite', {
+      console.log('📧 Sending email invitations to:', inviteEmails);
+      const inviteRes = await fetch('/api/projects/invite', {
         method: 'POST',
         headers,
         body: JSON.stringify({ project_id: data.id, emails: inviteEmails })
       });
+      const inviteData = await inviteRes.json();
+      console.log('📧 Invitation response:', inviteData);
+      if (!inviteRes.ok) {
+        console.error('❌ Failed to send invitations:', inviteData);
+        alert(`Project created, but invitations failed: ${inviteData.error || 'Unknown error'}`);
+      } else {
+        const failed = inviteData.results?.filter((r: { status: string }) => r.status === 'error') || [];
+        if (failed.length > 0) {
+          alert(`Project created! But some emails failed:\n${failed.map((r: { email: string; message: string }) => `${r.email}: ${r.message}`).join('\n')}`);
+        } else {
+          console.log('✅ Invitations sent successfully');
+        }
+      }
     }
     
+    setCreating(false);
     setProjects(p => [...p, { ...form, id: data.id, uuid: data.uuid, slug: data.slug, org_id: null }]);
     setShowForm(false);
     setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning', image: '' });
@@ -190,6 +217,7 @@ export default function ProjectsPage() {
     setInviteEmails([]);
     setEmailInput('');
     setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev);
+    console.log('🎉 Project creation completed');
   }
 
   async function deleteProject() {
@@ -630,8 +658,18 @@ export default function ProjectsPage() {
                 <p className="text-xs text-[#6b7a8d] mt-2">💡 Add existing users or enter emails to send invitations. Multiple emails can be added.</p>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="submit" className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90" style={{ background: '#e63946' }}>Create Project</button>
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee]" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+                <button type="submit" disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ background: '#e63946' }}>
+                  {creating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {inviteEmails.length > 0 ? 'Creating & Sending Invites...' : 'Creating Project...'}
+                    </span>
+                  ) : 'Create Project'}
+                </button>
+                <button type="button" onClick={() => setShowForm(false)} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
               </div>
             </form>
           </div>

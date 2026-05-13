@@ -7,7 +7,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   if (!payment_id) return apiError('payment_id required');
 
   const payments = await query<{ id: number; plan_id: number; billing_cycle: string; amount: number }[]>(
-    "SELECT id, plan_id, billing_cycle, amount FROM payments WHERE id=? AND user_id=? AND status='pending'",
+    "SELECT id, plan_id, billing_cycle, amount FROM payments WHERE id=? AND user_id=? AND status IN ('pending','completed')",
     [payment_id, user.id]
   );
   if (!payments.length) return apiError('Payment not found', 404);
@@ -29,18 +29,20 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   else if (payment.billing_cycle === 'yearly') expires.setFullYear(expires.getFullYear() + 1);
   else expires.setFullYear(expires.getFullYear() + 100);
 
+  const expiresStr = expires.toISOString().slice(0, 19).replace('T', ' ');
+
   // Upsert subscription
   try {
     await query(
       'INSERT INTO subscriptions (user_id, plan_id, billing_cycle, expires_at, payment_ref, amount_paid) VALUES (?,?,?,?,?,?)',
-      [user.id, payment.plan_id, payment.billing_cycle, expires.toISOString(), ref, payment.amount]
+      [user.id, payment.plan_id, payment.billing_cycle, expiresStr, ref, payment.amount]
     );
   } catch { /* ignore duplicate */ }
 
   await query(
     'UPDATE users SET plan_id=?, plan_expires_at=?, is_org=TRUE WHERE id=?',
-    [payment.plan_id, expires.toISOString(), user.id]
+    [payment.plan_id, expiresStr, user.id]
   );
 
-  return apiResponse({ message: 'Payment confirmed', expires_at: expires.toISOString() });
+  return apiResponse({ message: 'Payment confirmed', expires_at: expiresStr });
 });

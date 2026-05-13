@@ -21,11 +21,11 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
   const s: Record<string, string> = {};
   for (const r of rows) s[r.key] = r.value;
   return {
-    smtp_host: s.smtp_host || '',
-    smtp_port: s.smtp_port || '587',
-    smtp_user: s.smtp_user || '',
-    smtp_pass: s.smtp_pass || '',
-    smtp_from: s.smtp_from || s.smtp_user || 'noreply@example.com',
+    smtp_host: s.smtp_host || process.env.SMTP_HOST || '',
+    smtp_port: s.smtp_port || process.env.SMTP_PORT || '587',
+    smtp_user: s.smtp_user || process.env.SMTP_USER || '',
+    smtp_pass: s.smtp_pass || process.env.SMTP_PASS || '',
+    smtp_from: s.smtp_from || s.smtp_user || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@example.com',
     site_name: s.site_name || 'ProjectHub',
     primary_color: s.primary_color || '#1d3557',
     accent_color: s.accent_color || '#e63946',
@@ -387,5 +387,80 @@ export async function sendMail(options: { to: string; subject: string; html: str
     to: options.to,
     subject: options.subject,
     html: options.html,
+  });
+}
+
+export async function sendProjectInvitationEmail(
+  toEmail: string,
+  inviterEmail: string,
+  projectName: string,
+  loginLink: string,
+  registerLink: string
+) {
+  const cfg = await getSmtpSettings();
+
+  const content = `
+    <!-- Icon -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="center" style="padding-bottom:28px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,${cfg.primary_color}18,${cfg.accent_color}18);display:inline-flex;align-items:center;justify-content:center;font-size:30px;line-height:64px;text-align:center;">🚀</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Heading -->
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:${cfg.primary_color};text-align:center;letter-spacing:-0.5px;">
+      You're Invited!
+    </h1>
+    <p style="margin:0 0 28px;font-size:15px;color:#64748b;text-align:center;line-height:1.6;">
+      Hi there! <strong style="color:${cfg.accent_color};">${inviterEmail}</strong> has invited you to collaborate on <strong style="color:${cfg.primary_color};">${projectName}</strong>.<br/>
+      Click the button below to join the project.
+    </p>
+
+    <!-- Button -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="center" style="padding-bottom:28px;">
+          <a href="${registerLink}"
+            style="display:inline-block;background:${cfg.accent_color};color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;letter-spacing:0.2px;">
+            ✨ &nbsp;Create Account & Join Project
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Divider -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="border-top:1px solid #f1f5f9;padding-top:24px;">
+          <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;text-align:center;">
+            Already have an account? Click here:
+          </p>
+          <p style="margin:0;font-size:13px;text-align:center;">
+            <a href="${loginLink}" style="color:${cfg.primary_color};text-decoration:underline;font-weight:600;">🔐 Sign In</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Warning -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
+      <tr>
+        <td style="background:#fff7ed;border-radius:10px;padding:14px 16px;border-left:3px solid #f97316;">
+          <p style="margin:0;font-size:12px;color:#92400e;line-height:1.5;">
+            ⏱ This invitation expires in <strong>7 days</strong>. If you didn't expect this invitation, you can safely ignore this email.
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const transporter = await createTransporter(cfg);
+  await transporter.sendMail({
+    from: `"${cfg.site_name}" <${cfg.smtp_from}>`,
+    to: toEmail,
+    subject: `${inviterEmail} invited you to join "${projectName}" — ${cfg.site_name}`,
+    html: emailLayout(cfg, content),
   });
 }

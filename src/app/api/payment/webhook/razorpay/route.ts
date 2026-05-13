@@ -53,15 +53,17 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   else if (payment.billing_cycle === 'yearly') expires.setFullYear(expires.getFullYear() + 1);
   else expires.setFullYear(expires.getFullYear() + 100);
 
+  const expiresStr = expires.toISOString().slice(0, 19).replace('T', ' ');
+
   await query(
     'INSERT INTO subscriptions (user_id, plan_id, billing_cycle, status, expires_at, payment_ref, amount_paid) VALUES (?,?,?,?,?,?,?)',
-    [user.id, payment.plan_id, payment.billing_cycle, 'active', expires.toISOString(), finalPaymentId, payment.amount]
+    [user.id, payment.plan_id, payment.billing_cycle, 'active', expiresStr, finalPaymentId, payment.amount]
   );
 
   await query(
     'UPDATE users SET plan_id=?, plan_expires_at=?, is_org=TRUE WHERE id=?',
-    [payment.plan_id, expires.toISOString(), user.id]
+    [payment.plan_id, expiresStr, user.id]
   );
 
-  return apiResponse({ message: 'Payment verified and plan activated', expires_at: expires.toISOString() });
+  return apiResponse({ message: 'Payment verified and plan activated', expires_at: expiresStr });
 });

@@ -3,9 +3,7 @@ import { withAuth, apiResponse, apiError } from '@/lib/api';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
-export const config = {
-  api: { bodyParser: false },
-};
+export const runtime = 'nodejs';
 
 export const POST = withAuth(async (req: NextRequest) => {
   try {

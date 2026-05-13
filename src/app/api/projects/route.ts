@@ -26,13 +26,15 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     rows = await query<unknown[]>(
       `SELECT p.* FROM projects p
        JOIN org_members om ON om.org_id = p.org_id AND om.user_id = ?
-       WHERE p.org_id = ? AND p.deleted_at IS NULL`, [user.id, org_id]
+       WHERE p.org_id = ? AND p.deleted_at IS NULL
+       ORDER BY p.created_at DESC`, [user.id, org_id]
     );
   } else {
     rows = await query<unknown[]>(
       `SELECT p.* FROM projects p
        LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
-       WHERE (p.owner_id = ? OR pm.user_id = ?) AND p.deleted_at IS NULL`, [user.id, user.id, user.id]
+       WHERE (p.owner_id = ? OR pm.user_id = ?) AND p.deleted_at IS NULL
+       ORDER BY p.created_at DESC`, [user.id, user.id, user.id]
     );
   }
   return apiResponse(rows);
