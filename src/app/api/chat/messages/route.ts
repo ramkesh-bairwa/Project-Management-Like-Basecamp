@@ -28,11 +28,11 @@ export async function GET(req: NextRequest) {
     }
 
     const messagesQuery = `SELECT m.id, m.conversation_id, m.sender_id, m.content, m.message_type, 
-        m.file_url, m.file_name, m.file_size, m.created_at, m.updated_at,
+        m.file_url, m.file_name, m.file_size, m.created_at, m.updated_at, m.deleted_at,
         u.name as sender_name, u.avatar as sender_avatar
        FROM messages m
        JOIN users u ON u.id = m.sender_id
-       WHERE m.conversation_id = ? AND m.deleted_at IS NULL
+       WHERE m.conversation_id = ?
        ORDER BY m.created_at DESC LIMIT ?`;
 
     const params = [conversationId, limit];

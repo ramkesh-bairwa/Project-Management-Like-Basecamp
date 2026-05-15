@@ -19,7 +19,10 @@ interface Message {
   content: string;
   message_type: string;
   file_url?: string;
+  file_name?: string;
   created_at: string;
+  updated_at?: string;
+  deleted_at?: string;
   reactions?: Array<{ emoji: string; user_id: number; user_name: string }>;
 }
 
@@ -55,8 +58,20 @@ export default function ChatPage() {
   const [groupName, setGroupName] = useState('');
   const [sending, setSending] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isCodeMode, setIsCodeMode] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [codeContent, setCodeContent] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [messageMenuOpen, setMessageMenuOpen] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
+  const isWebSocketEnabled = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET === 'true';
 
   useEffect(() => {
     fetchCurrentUser();
@@ -229,6 +244,37 @@ export default function ChatPage() {
     }
   };
 
+  const sendCodeMessage = async () => {
+    if (!codeContent.trim() || !selectedConv || sending) return;
+
+    setSending(true);
+    const messageToSend = `\`\`\`\n${codeContent}\n\`\`\``;
+    setCodeContent('');
+    setShowCodeModal(false);
+
+    try {
+      const res = await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          content: messageToSend,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMessages([...messages, data.message]);
+        fetchConversations();
+      }
+    } catch (error) {
+      console.error('Error sending code:', error);
+      alert('Failed to send code');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const toggleReaction = async (messageId: number, emoji: string) => {
     try {
       await fetch('/api/chat/reactions', {
@@ -244,7 +290,134 @@ export default function ChatPage() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConv) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('conversationId', selectedConv.id.toString());
+
+    try {
+      const res = await fetch('/api/chat/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const newMsg = {
+          id: data.message.id,
+          conversation_id: selectedConv.id,
+          sender_id: data.message.sender_id,
+          sender_name: data.message.sender_name,
+          sender_avatar: data.message.sender_avatar,
+          content: data.message.content,
+          message_type: data.message.message_type,
+          file_url: data.message.file_url,
+          file_name: data.message.file_name,
+          created_at: data.message.created_at,
+        };
+        
+        setMessages(prev => [...prev, newMsg]);
+        
+        if (isWebSocketEnabled) {
+          sendWS({
+            type: 'chat_message',
+            chat_id: selectedConv.id,
+            ...newMsg,
+          });
+        }
+        
+        fetchConversations();
+      } else {
+        alert('Failed to upload file');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file');
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const insertEmoji = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const commonEmojis = ['😊', '😂', '❤️', '👍', '🎉', '🔥', '✨', '💯', '👏', '🙌', '😍', '🤔', '😎', '💪', '🚀', '⭐', '✅', '❌', '👀', '💡'];
+
+  const getFileIcon = (fileName: string, messageType: string) => {
+    if (messageType === 'image') return '🖼️';
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return '📄';
+    if (['doc', 'docx'].includes(ext || '')) return '📝';
+    if (['xls', 'xlsx'].includes(ext || '')) return '📊';
+    if (['ppt', 'pptx'].includes(ext || '')) return '📽️';
+    if (['zip', 'rar', '7z'].includes(ext || '')) return '🗜️';
+    return '📎';
+  };
+
+  const deleteMessage = async (messageId: number) => {
+    setMessageMenuOpen(null);
+    try {
+      const res = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      
+      console.log('Delete response:', res.status);
+      
+      if (res.ok) {
+        setMessages(prev => prev.map(m => 
+          m.id === messageId ? { ...m, content: 'This message was deleted', deleted_at: new Date().toISOString() } : m
+        ));
+        setDeleteConfirmId(null);
+        fetchConversations();
+      } else {
+        const error = await res.json();
+        console.error('Delete error:', error);
+        alert('Failed to delete message: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert('Failed to delete message');
+    }
+  };
+
+  const startEdit = (message: Message) => {
+    setEditingMessageId(message.id);
+    setEditingContent(message.content);
+    setMessageMenuOpen(null);
+  };
+
+  const saveEdit = async (messageId: number) => {
+    if (!editingContent.trim()) return;
+    try {
+      const res = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editingContent }),
+      });
+      if (res.ok) {
+        setMessages(prev => prev.map(m => 
+          m.id === messageId ? { ...m, content: editingContent, updated_at: new Date().toISOString() } : m
+        ));
+        setEditingMessageId(null);
+        setEditingContent('');
+      } else {
+        alert('Failed to edit message');
+      }
+    } catch (error) {
+      console.error('Error editing message:', error);
+      alert('Failed to edit message');
+    }
+  };
+
   const getInitials = (name: string) => {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -485,7 +658,126 @@ export default function ChatPage() {
                       </div>
                       <div className="mb">
                         {!isMe && <div className="msender">{msg.sender_name}</div>}
-                        <div className={`bbl ${isMe ? 'me' : ''}`}>{msg.content}</div>
+                        {editingMessageId === msg.id ? (
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && saveEdit(msg.id)}
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                border: '1px solid #c4baff',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                              }}
+                              autoFocus
+                            />
+                            <button onClick={() => saveEdit(msg.id)} style={{ padding: '4px 8px', background: '#534AB7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save</button>
+                            <button onClick={() => { setEditingMessageId(null); setEditingContent(''); }} style={{ padding: '4px 8px', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+                          </div>
+                        ) : (
+                          <div style={{ position: 'relative' }}>
+                            <div className={`bbl ${isMe ? 'me' : ''}`} style={{ opacity: (msg as any).deleted_at ? 0.5 : 1, fontStyle: (msg as any).deleted_at ? 'italic' : 'normal' }}>
+                              {(msg as any).deleted_at ? (
+                                <span style={{ color: '#94a3b8' }}>🚫 This message was deleted</span>
+                              ) : editingMessageId === msg.id ? null : (
+                                /^```[\s\S]*```$/.test(msg.content) ? (
+                                  <pre style={{ 
+                                    background: isMe ? 'rgba(0,0,0,0.2)' : '#f8f9fa', 
+                                    padding: '12px', 
+                                    borderRadius: '8px', 
+                                    overflow: 'auto',
+                                    fontSize: '12px',
+                                    fontFamily: 'monospace',
+                                    margin: 0,
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word'
+                                  }}>
+                                    <code style={{ color: isMe ? '#fff' : '#1e1a3a' }}>
+                                      {msg.content.replace(/^```\n?|\n?```$/g, '')}
+                                    </code>
+                                  </pre>
+                                ) : msg.message_type === 'image' && msg.file_url ? (
+                                  <div>
+                                    <img 
+                                      src={msg.file_url} 
+                                      alt={msg.file_name || 'Image'} 
+                                      style={{ maxWidth: '300px', maxHeight: '300px', borderRadius: '8px', display: 'block', cursor: 'pointer' }} 
+                                      onClick={() => setImagePreview(msg.file_url!)}
+                                    />
+                                    {msg.content && <div style={{ marginTop: '8px' }}>{msg.content}</div>}
+                                    <a href={msg.file_url} download={msg.file_name} style={{ fontSize: '11px', color: isMe ? '#fff' : '#534AB7', marginTop: '4px', display: 'inline-block' }}>Download</a>
+                                  </div>
+                                ) : msg.message_type === 'file' && msg.file_url ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '24px' }}>{getFileIcon(msg.file_name || '', msg.message_type)}</span>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ fontWeight: 500 }}>{msg.file_name || msg.content}</div>
+                                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: isMe ? '#fff' : '#534AB7', textDecoration: 'underline' }}>Preview</a>
+                                        <a href={msg.file_url} download={msg.file_name} style={{ fontSize: '11px', color: isMe ? '#fff' : '#534AB7', textDecoration: 'underline' }}>Download</a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span>
+                                    {msg.content}
+                                    {(msg as any).updated_at && new Date(msg.created_at).getTime() !== new Date((msg as any).updated_at).getTime() && (
+                                      <span style={{ fontSize: '10px', marginLeft: '6px', opacity: 0.7 }}>(edited)</span>
+                                    )}
+                                  </span>
+                                )
+                              )}
+                            </div>
+                            {isMe && !(msg as any).deleted_at && (
+                              <div style={{ position: 'absolute', top: '4px', right: '-30px' }}>
+                                <button
+                                  onClick={() => setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id)}
+                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                                >
+                                  ⋮
+                                </button>
+                                {messageMenuOpen === msg.id && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: '100%',
+                                    background: '#fff',
+                                    border: '1px solid #c4baff',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    zIndex: 10,
+                                    minWidth: '100px',
+                                  }}>
+                                    {msg.message_type === 'text' && (
+                                      <button
+                                        onClick={() => startEdit(msg)}
+                                        style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', fontSize: '13px' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f4f2ff'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                      >
+                                        ✏️ Edit
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => {
+                                        setDeleteConfirmId(msg.id);
+                                        setMessageMenuOpen(null);
+                                      }}
+                                      style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', fontSize: '13px', color: '#ef4444' }}
+                                      onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                      🗑️ Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {msg.reactions && msg.reactions.length > 0 && (
                           <div className="rxns">
                             {groupReactions(msg.reactions).map((r) => (
@@ -513,8 +805,52 @@ export default function ChatPage() {
                 padding: '16px 28px',
                 borderTop: '0.5px solid #e2deff',
                 background: '#fff',
+                position: 'relative',
               }}
             >
+              {showEmojiPicker && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '28px',
+                  background: '#fff',
+                  border: '1px solid #c4baff',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(10, 1fr)',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  zIndex: 10,
+                }}>
+                  {commonEmojis.map((emoji, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => insertEmoji(emoji)}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        fontSize: '20px',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: '4px',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f4f2ff'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+              />
               <div
                 style={{
                   display: 'flex',
@@ -527,14 +863,32 @@ export default function ChatPage() {
                 }}
               >
                 <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile}
                   style={{
                     border: 'none',
                     background: 'transparent',
-                    cursor: 'pointer',
+                    cursor: uploadingFile ? 'not-allowed' : 'pointer',
                     fontSize: '18px',
                   }}
+                  title="Attach file"
                 >
-                  📎
+                  {uploadingFile ? '⏳' : '📎'}
+                </button>
+                <button
+                  onClick={() => setShowCodeModal(true)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#534AB7',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    padding: '4px 8px',
+                  }}
+                  title="Send code"
+                >
+                  {'</>'}
                 </button>
                 <input
                   type="text"
@@ -552,13 +906,14 @@ export default function ChatPage() {
                   }}
                 />
                 <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   style={{
                     border: 'none',
                     background: 'transparent',
                     cursor: 'pointer',
                     fontSize: '18px',
                   }}
-                  onClick={() => toggleReaction(messages[messages.length - 1]?.id, '👍')}
+                  title="Insert emoji"
                 >
                   😊
                 </button>
@@ -713,6 +1068,176 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>Delete Message</h3>
+              <button className="modal-close" onClick={() => setDeleteConfirmId(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '20px', color: '#64748b' }}>Are you sure you want to delete this message? This action cannot be undone.</p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #c4baff',
+                    background: '#fff',
+                    color: '#534AB7',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteMessage(deleteConfirmId)}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    background: '#ef4444',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {imagePreview && (
+        <div 
+          className="image-viewer-overlay" 
+          onClick={() => setImagePreview(null)}
+        >
+          <button 
+            className="image-viewer-close"
+            onClick={() => setImagePreview(null)}
+          >
+            ×
+          </button>
+          <div className="image-viewer-content" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                objectFit: 'contain',
+                borderRadius: '12px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              }}
+            />
+          </div>
+          <div className="image-viewer-actions">
+            <a 
+              href={imagePreview} 
+              download 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                padding: '12px 24px',
+                background: '#534AB7',
+                color: '#fff',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 500,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              📥 Download
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Code Modal */}
+      {showCodeModal && (
+        <div className="modal-overlay" onClick={() => setShowCodeModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3>📝 Send Code</h3>
+              <button className="modal-close" onClick={() => setShowCodeModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <textarea
+                placeholder="Paste your code here...\n\nTip: Use Ctrl/Cmd+Enter to send"
+                value={codeContent}
+                onChange={(e) => setCodeContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    sendCodeMessage();
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  minHeight: '300px',
+                  padding: '12px',
+                  border: '1px solid #c4baff',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  resize: 'vertical',
+                  outline: 'none',
+                  background: '#f8f9fa',
+                }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                <button
+                  onClick={() => {
+                    setShowCodeModal(false);
+                    setCodeContent('');
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #c4baff',
+                    background: '#fff',
+                    color: '#534AB7',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendCodeMessage}
+                  disabled={!codeContent.trim() || sending}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    background: !codeContent.trim() || sending ? '#9d96e0' : '#534AB7',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    cursor: !codeContent.trim() || sending ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                  }}
+                >
+                  {sending ? 'Sending...' : 'Send Code'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .root{display:flex;height:100vh;font-family:var(--font-sans);position:relative;}
         .mobile-toggle{display:none;position:fixed;top:16px;left:16px;z-index:1001;width:48px;height:48px;border-radius:12px;background:#534AB7;color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 12px rgba(83,74,183,0.3);transition:all .2s;}
@@ -861,6 +1386,12 @@ export default function ChatPage() {
         .create-btn{width:100%;margin-top:16px;padding:12px;background:#534AB7;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;transition:background .15s;}
         .create-btn:hover:not(:disabled){background:#3C3489;}
         .create-btn:disabled{opacity:0.5;cursor:not-allowed;}
+        .image-viewer-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:2000;animation:fadeIn 0.2s;}
+        @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+        .image-viewer-close{position:absolute;top:20px;right:20px;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:2001;}
+        .image-viewer-close:hover{background:rgba(255,255,255,0.2);transform:scale(1.1);}
+        .image-viewer-content{display:flex;align-items:center;justify-content:center;padding:20px;}
+        .image-viewer-actions{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:2001;}
       `}</style>
     </div>
   );

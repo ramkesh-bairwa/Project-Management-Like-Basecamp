@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
           SELECT CAST(COUNT(*) AS SIGNED)
           FROM messages m
           WHERE m.conversation_id = c.id 
-          AND m.created_at > cp.last_read_at
+          AND m.created_at > COALESCE(cp.last_read_at, '1970-01-01')
           AND m.sender_id != ?
           AND m.deleted_at IS NULL
         ) as unread_count,
@@ -64,7 +64,14 @@ export async function GET(req: NextRequest) {
       ORDER BY c.updated_at DESC
     `, [user.id, user.id, user.id]);
 
-    return NextResponse.json({ conversations: result as any });
+    // Parse JSON strings from MySQL
+    const conversations = (result as any[]).map(conv => ({
+      ...conv,
+      other_user: conv.other_user ? (typeof conv.other_user === 'string' ? JSON.parse(conv.other_user) : conv.other_user) : null,
+      last_message: conv.last_message ? (typeof conv.last_message === 'string' ? JSON.parse(conv.last_message) : conv.last_message) : null,
+    }));
+
+    return NextResponse.json({ conversations });
   } catch (error: any) {
     console.error('Error fetching conversations:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch conversations' }, { status: 500 });
