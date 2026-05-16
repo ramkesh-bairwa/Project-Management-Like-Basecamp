@@ -156,7 +156,10 @@ export default function LoginPage() {
                 style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.12)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.07)', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Password</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Password</label>
+                <Link href="/forgot-password" style={{ fontSize: 12, fontWeight: 700, color: '#457b9d', textDecoration: 'none' }}>Forgot?</Link>
+              </div>
               <div style={{ position: 'relative' }}>
                 <input type={showPass ? 'text' : 'password'} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                   placeholder="••••••••" required className="auth-input"

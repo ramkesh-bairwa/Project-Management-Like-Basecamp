@@ -6,6 +6,7 @@ import { getToken, getTokenUserId } from '@/lib/client-auth';
 import TaskCommentAccordion from '@/components/project/TaskCommentAccordion';
 import ConfirmModal from '@/components/ConfirmModal';
 import PlanLimitBanner from '@/components/PlanLimitBanner';
+import { showToast } from '@/components/Toast';
 
 interface Group { id: number; uuid: string; slug: string; project_id: number; name: string; description: string; color: string; task_count: number; member_count: number; created_by_name: string }
 interface Task {
@@ -29,9 +30,9 @@ interface GroupActivity {
 }
 interface PlanInfo { plan: string; limits: { max_projects: number; max_members: number; max_tasks: number; max_groups: number; max_storage_gb: number }; usage: { projects: number; tasks: number; groups: number; members: number } }
 
-const statusOptions = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'];
-const statusColors: Record<string, string> = { todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946' };
-const statusLabels: Record<string, string> = { todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done', cancelled: 'Cancelled' };
+const statusOptions = ['pending', 'in_progress', 'under_review', 'qa', 'on_hold', 'completed', 'reopened', 'invalid', 'cancelled'];
+const statusColors: Record<string, string> = { pending: '#94a3b8', in_progress: '#457b9d', under_review: '#92400e', qa: '#f4a261', on_hold: '#854d0e', completed: '#2a9d8f', reopened: '#78350f', invalid: '#991b1b', cancelled: '#e63946' };
+const statusLabels: Record<string, string> = { pending: 'Pending', in_progress: 'In Progress', under_review: 'Under Review', qa: 'QA', on_hold: 'On Hold', completed: 'Completed', reopened: 'Reopened', invalid: 'Invalid', cancelled: 'Cancelled' };
 const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
 const priorityOptions = ['low', 'medium', 'high', 'critical'];
 
@@ -97,7 +98,7 @@ export default function GroupDetailPage() {
 
   // task form
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', status: 'pending', assignee_id: '', due_date: '' });
   const [taskSaving, setTaskSaving] = useState(false);
   const [taskAttachments, setTaskAttachments] = useState<{ type: 'image' | 'video' | 'link'; url: string; name: string }[]>([]);
   const [taskLinkInput, setTaskLinkInput] = useState('');
@@ -123,6 +124,10 @@ export default function GroupDetailPage() {
   const [addingMember, setAddingMember] = useState<number | null>(null);
   const [memberMsg, setMemberMsg] = useState('');
   const [memberSearch, setMemberSearch] = useState('');
+  const [allOrgMembers, setAllOrgMembers] = useState<{ id: number; name: string; email: string; avatar?: string; org_name: string }[]>([]);
+  const [selectedOrgMembers, setSelectedOrgMembers] = useState<number[]>([]);
+  const [showOrgDropdown, setShowOrgDropdown] = useState(false);
+  const [orgMemberSearch, setOrgMemberSearch] = useState('');
 
   // meeting
   const [showMeeting, setShowMeeting] = useState(false);
@@ -138,6 +143,9 @@ export default function GroupDetailPage() {
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<{ id: number; title: string; parentId: number } | null>(null);
   const [deletingSubtask, setDeletingSubtask] = useState(false);
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
+  const [removingMember, setRemovingMember] = useState(false);
+  const [addMemberTarget, setAddMemberTarget] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     const t = getToken();
@@ -192,41 +200,79 @@ export default function GroupDetailPage() {
       .then(r => r.json()).then(d => Array.isArray(d) && setInvitations(d));
   }
 
-  function openMembersPanel() {
+  async function openMembersPanel() {
     setShowMembers(true);
     setMemberSearch('');
     setMemberMsg('');
+    setSelectedOrgMembers([]);
+    setOrgMemberSearch('');
+    setShowOrgDropdown(false);
     loadGroupMembers();
     loadConnections();
     loadInvitations();
+    
+    // Load all organization members
+    const orgsRes = await fetch('/api/organizations', { headers: { Authorization: `Bearer ${token}` } });
+    const orgsData = await orgsRes.json();
+    if (Array.isArray(orgsData) && orgsData.length > 0) {
+      const allMembers: { id: number; name: string; email: string; avatar?: string; org_name: string }[] = [];
+      for (const org of orgsData) {
+        const membersRes = await fetch(`/api/organizations/members?org_id=${org.id}`, { headers: { Authorization: `Bearer ${token}` } });
+        const membersData = await membersRes.json();
+        if (Array.isArray(membersData)) {
+          membersData.forEach((m: { id: number; name: string; email: string; avatar?: string }) => {
+            if (!allMembers.find(existing => existing.id === m.id) && !groupMembers.some(gm => gm.id === m.id)) {
+              allMembers.push({ ...m, org_name: org.name });
+            }
+          });
+        }
+      }
+      setAllOrgMembers(allMembers);
+    }
   }
 
-  async function addFromConnection(userId: number) {
-    setAddingMember(userId);
+  async function confirmAddMember() {
+    if (!addMemberTarget) return;
+    setAddingMember(addMemberTarget.id);
     const res = await fetch('/api/project-groups/members', {
       method: 'POST', headers: h,
-      body: JSON.stringify({ group_id: group?.id || Number(groupId), user_id: userId, role: 'member' }),
+      body: JSON.stringify({ group_id: group?.id || Number(groupId), user_id: addMemberTarget.id, role: 'member' }),
     });
     setAddingMember(null);
+    setAddMemberTarget(null);
     if (res.ok) {
       setMemberMsg('Member added!');
       loadGroupMembers();
       // Also refresh project members so the new member appears in task assignee dropdowns
       fetch(`/api/projects/members?project_id=${projectNumId}`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => Array.isArray(d) && setMembers(d));
+      showToast('success', 'Member Added!', 'New member has been added to the group.');
     }
-    else { const d = await res.json(); setMemberMsg(d.error || 'Failed'); }
+    else { const d = await res.json(); setMemberMsg(d.error || 'Failed'); showToast('error', 'Failed to Add Member', d.error || 'Please try again.'); }
     setTimeout(() => setMemberMsg(''), 3000);
   }
 
-  async function removeMember(userId: number) {
+  async function addFromConnection(userId: number, userName: string) {
+    setAddMemberTarget({ id: userId, name: userName });
+  }
+
+  async function confirmRemoveMember() {
+    if (!removeMemberTarget) return;
+    setRemovingMember(true);
     await fetch('/api/project-groups/members', {
       method: 'DELETE', headers: h,
-      body: JSON.stringify({ group_id: group?.id || Number(groupId), user_id: userId }),
+      body: JSON.stringify({ group_id: group?.id || Number(groupId), user_id: removeMemberTarget.id }),
     });
+    setRemovingMember(false);
+    setRemoveMemberTarget(null);
     loadGroupMembers();
     setMemberMsg('Member removed.');
     setTimeout(() => setMemberMsg(''), 3000);
+    showToast('success', 'Member Removed', 'Member has been removed from the group.');
+  }
+
+  async function removeMember(userId: number, userName: string) {
+    setRemoveMemberTarget({ id: userId, name: userName });
   }
 
   async function sendInvite(e: React.FormEvent) {
@@ -238,8 +284,8 @@ export default function GroupDetailPage() {
     });
     setInviting(false);
     const d = await res.json();
-    if (res.ok) { setInviteEmail(''); setMemberMsg('Invitation sent!'); loadInvitations(); }
-    else setMemberMsg(d.error || 'Failed to send invite');
+    if (res.ok) { setInviteEmail(''); setMemberMsg('Invitation sent!'); loadInvitations(); showToast('success', 'Invitation Sent!', `Invitation sent to ${inviteEmail}`); }
+    else { setMemberMsg(d.error || 'Failed to send invite'); showToast('error', 'Failed to Send Invite', d.error || 'Please try again.'); }
     setTimeout(() => setMemberMsg(''), 3000);
   }
 
@@ -266,6 +312,9 @@ export default function GroupDetailPage() {
       const data = await res.json();
       setMeetingLink(data.meeting_link);
       setMeetingForm({ purpose: '', is_instant: true, scheduled_at: '' });
+      showToast('success', 'Meeting Created!', 'Meeting link has been posted in the group chat.');
+    } else {
+      showToast('error', 'Failed to Create Meeting', 'Please try again.');
     }
   }
 
@@ -350,6 +399,7 @@ export default function GroupDetailPage() {
         title: taskForm.title,
         description: taskForm.description || null,
         priority: taskForm.priority,
+        status: taskForm.status,
         assignee_id: taskForm.assignee_id ? Number(taskForm.assignee_id) : null,
         due_date: taskForm.due_date || null,
       })
@@ -366,12 +416,14 @@ export default function GroupDetailPage() {
       }
       loadTasks();
       setShowTaskForm(false);
-      setTaskForm({ title: '', description: '', priority: 'medium', assignee_id: '', due_date: '' });
+      setTaskForm({ title: '', description: '', priority: 'medium', status: 'pending', assignee_id: '', due_date: '' });
       setTaskAttachments([]);
       setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, tasks: prev.usage.tasks + 1 } } : prev);
+      showToast('success', 'Task Created!', `"${taskForm.title}" has been added to the group.`);
     } else {
       const err = await res.json();
       alert(err.error || 'Failed to create task');
+      showToast('error', 'Failed to Create Task', err.error || 'Please try again.');
     }
   }
 
@@ -388,6 +440,7 @@ export default function GroupDetailPage() {
     setDeletingTask(false);
     setDeleteTaskTarget(null);
     loadTasks();
+    showToast('success', 'Task Deleted', 'The task has been removed successfully.');
   }
 
   function loadSubtasks(taskId: number) {
@@ -404,10 +457,30 @@ export default function GroupDetailPage() {
   async function addSubtask(taskId: number) {
     const title = subtaskInput[taskId]?.trim();
     if (!title || !projectNumId) return;
-    await fetch('/api/tasks', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectNumId, parent_task_id: taskId, title, priority: 'medium' }) });
-    setSubtaskInput(p => ({ ...p, [taskId]: '' }));
-    loadSubtasks(taskId);
-    loadTasks();
+    
+    const res = await fetch('/api/tasks', { 
+      method: 'POST', 
+      headers: h, 
+      body: JSON.stringify({ 
+        project_id: projectNumId,
+        group_id: group?.id || null,
+        parent_task_id: taskId, 
+        title, 
+        priority: 'medium',
+        status: 'todo'
+      }) 
+    });
+    
+    if (res.ok) {
+      setSubtaskInput(p => ({ ...p, [taskId]: '' }));
+      loadSubtasks(taskId);
+      loadTasks();
+      showToast('success', 'Subtask Added', `"${title}" has been added.`);
+    } else {
+      const err = await res.json();
+      console.error('Subtask creation error:', err);
+      showToast('error', 'Failed to Add Subtask', err.error || 'Please try again.');
+    }
   }
 
   async function toggleSubtaskDone(sub: Subtask, taskId: number) {
@@ -428,11 +501,12 @@ export default function GroupDetailPage() {
     loadSubtasks(deleteSubtaskTarget.parentId);
     loadTasks();
     setDeleteSubtaskTarget(null);
+    showToast('success', 'Subtask Deleted', 'The subtask has been removed.');
   }
 
   const canManage = ['owner', 'admin', 'manager'].includes(myRole);
   const filtered = filterStatus ? tasks.filter(t => t.status === filterStatus) : tasks;
-  const doneTasks = tasks.filter(t => t.status === 'done').length;
+  const doneTasks = tasks.filter(t => t.status === 'completed').length;
   const atTaskLimit = planInfo ? (planInfo.limits.max_tasks !== -1 && planInfo.usage.tasks >= planInfo.limits.max_tasks) : false;
 
   if (accessDenied) return (
@@ -570,16 +644,21 @@ export default function GroupDetailPage() {
                 placeholder="Description (optional) — paste image with Ctrl+V" rows={2}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none md:col-span-2"
                 style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-              <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
-                className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
-                {priorityOptions.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
               <select value={taskForm.assignee_id} onChange={e => setTaskForm(p => ({ ...p, assignee_id: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
                 <option value="">Unassigned</option>
                 {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+              </select>
+              <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
+                className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                {priorityOptions.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <select value={taskForm.status} onChange={e => setTaskForm(p => ({ ...p, status: e.target.value }))}
+                className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
               </select>
               <input type="date" value={taskForm.due_date} onChange={e => setTaskForm(p => ({ ...p, due_date: e.target.value }))}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
@@ -940,6 +1019,27 @@ export default function GroupDetailPage() {
         />
       )}
 
+      {removeMemberTarget && (
+        <ConfirmModal
+          title="Remove Member"
+          message={`Remove "${removeMemberTarget.name}" from this group? They will lose access to all group tasks and discussions.`}
+          onConfirm={confirmRemoveMember}
+          onCancel={() => setRemoveMemberTarget(null)}
+          loading={removingMember}
+        />
+      )}
+
+      {addMemberTarget && (
+        <ConfirmModal
+          title="Add Member"
+          message={`Add "${addMemberTarget.name}" to this group? They will have access to all group tasks and discussions.`}
+          type="add"
+          onConfirm={confirmAddMember}
+          onCancel={() => setAddMemberTarget(null)}
+          loading={addingMember === addMemberTarget.id}
+        />
+      )}
+
       {/* Meeting Modal */}
       {showMeeting && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,23,42,0.6)' }}
@@ -1056,7 +1156,7 @@ export default function GroupDetailPage() {
       {/* Members Panel Modal */}
       {showMembers && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,23,42,0.6)' }}
-          onClick={() => setShowMembers(false)}>
+          onClick={() => { setShowMembers(false); setShowOrgDropdown(false); }}>
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col" style={{ border: '1px solid #e2e8f0', maxHeight: '85vh' }}
             onClick={e => e.stopPropagation()}>
 
@@ -1145,7 +1245,7 @@ export default function GroupDetailPage() {
                             </div>
                             {added
                               ? <span className="text-xs font-bold px-2.5 py-1 rounded-lg flex-shrink-0" style={{ background: '#f0fdf9', color: '#2a9d8f' }}>✓ Added</span>
-                              : <button onClick={() => addFromConnection(u.id)} disabled={addingMember === u.id}
+                              : <button onClick={() => addFromConnection(u.id, u.name)} disabled={addingMember === u.id}
                                   className="px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 transition flex-shrink-0"
                                   style={{ background: '#1d3557' }}>
                                   {addingMember === u.id ? '…' : '+ Add'}
@@ -1216,7 +1316,7 @@ export default function GroupDetailPage() {
                             {m.role}
                           </span>
                           {m.role !== 'lead' && (
-                            <button onClick={() => removeMember(m.id)}
+                            <button onClick={() => removeMember(m.id, m.name)}
                               className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
                               style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
                           )}
@@ -1281,7 +1381,7 @@ export default function GroupDetailPage() {
                 moved_group:      { icon: '⇢', color: '#e9c46a' },
               };
 
-              const sl: Record<string, string> = { todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done', cancelled: 'Cancelled' };
+              const sl: Record<string, string> = { pending: 'Pending', in_progress: 'In Progress', under_review: 'Under Review', qa: 'QA', on_hold: 'On Hold', completed: 'Completed', reopened: 'Reopened', invalid: 'Invalid', cancelled: 'Cancelled' };
               const lbl = (v: string | null) => (v && sl[v]) ? sl[v] : (v || '');
 
               function buildMsg(action: string, by: string, oldVal: string | null, newVal: string | null): string {
@@ -1290,7 +1390,7 @@ export default function GroupDetailPage() {
                   case 'assigned':         return newVal ? `${by} assigned "${item.task_title}" to ${newVal}` : `${by} assigned task`;
                   case 'unassigned':       return oldVal ? `${by} removed ${oldVal} from "${item.task_title}"` : `${by} unassigned task`;
                   case 'status_changed':   return `${by} changed status of "${item.task_title}" from "${lbl(oldVal)}" to "${lbl(newVal)}"`;
-                  case 'closed':           return `${by} marked "${item.task_title}" as Done`;
+                  case 'closed':           return `${by} marked "${item.task_title}" as Completed`;
                   case 'reopened':         return `${by} reopened "${item.task_title}" to "${lbl(newVal)}"`;
                   case 'priority_changed': return `${by} changed priority of "${item.task_title}" from "${oldVal}" to "${newVal}"`;
                   case 'title_changed':    return `${by} renamed task from "${oldVal}" to "${newVal}"`;

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Member { id: number; name: string; email: string; role: string; avatar?: string }
 interface Org { id: number; name: string; slug: string; description: string; owner_id: number }
@@ -35,6 +36,9 @@ export default function OrgSettingsPage() {
   const [selectedRole, setSelectedRole] = useState('member');
   const [addingMember, setAddingMember] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removedMembers, setRemovedMembers] = useState<Set<number>>(new Set());
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -176,12 +180,19 @@ export default function OrgSettingsPage() {
     }
   }
 
-  async function removeMember(userId: number) {
+  async function confirmRemoveMember() {
+    if (!removeTarget) return;
+    setRemoving(true);
     await fetch('/api/organizations/members', {
       method: 'DELETE', headers,
-      body: JSON.stringify({ org_id: id, user_id: userId }),
+      body: JSON.stringify({ org_id: id, user_id: removeTarget.id }),
     });
-    setMembers(prev => prev.filter(m => m.id !== userId));
+    setRemoving(false);
+    setRemovedMembers(prev => new Set(prev).add(removeTarget.id));
+    setMembers(prev => prev.filter(m => m.id !== removeTarget.id));
+    setRemoveTarget(null);
+    setSuccess(`${removeTarget.name} has been removed`);
+    setTimeout(() => setSuccess(''), 3000);
   }
 
   if (!org) return <div className="p-8 text-center text-[#6b7a8d]">Loading…</div>;
@@ -246,9 +257,15 @@ export default function OrgSettingsPage() {
                 </span>
               )}
               {canManage && m.role !== 'owner' && (
-                <button onClick={() => removeMember(m.id)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
-                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                removedMembers.has(m.id) ? (
+                  <span className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#fef2f2', color: '#e63946', border: '1px solid #fecaca' }}>
+                    Removed
+                  </span>
+                ) : (
+                  <button onClick={() => setRemoveTarget(m)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
+                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                )
               )}
             </div>
           ))}
@@ -421,6 +438,17 @@ export default function OrgSettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Remove Member Confirmation Modal */}
+      {removeTarget && (
+        <ConfirmModal
+          title="Remove Member"
+          message={`Remove ${removeTarget.name} from ${org.name}? They will lose access to all organization resources.`}
+          onConfirm={confirmRemoveMember}
+          onCancel={() => setRemoveTarget(null)}
+          loading={removing}
+        />
       )}
     </div>
   );

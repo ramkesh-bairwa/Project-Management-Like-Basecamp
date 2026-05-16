@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useWebSocket } from '@/lib/ws-client';
 import AuthGuard from '@/components/AuthGuard';
+import { ToastProvider } from '@/components/GlobalToast';
 
 const nav = [
   { href: '/dashboard', label: 'Home' },
@@ -202,6 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
+    <ToastProvider>
     <div className="min-h-screen" style={{ background: '#f1faee' }}>
       <AuthGuard />
       <header style={{ background: site.primary_color }} className="sticky top-0 z-50 shadow-md">
@@ -538,5 +540,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </main>
     </div>
+    </ToastProvider>
   );
 }

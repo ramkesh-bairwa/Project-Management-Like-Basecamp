@@ -48,11 +48,13 @@ export default function ProjectGroupsPage() {
   const [view, setView] = useState<ViewMode>('grid');
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
 
-  // member dropdown
+  // member dropdown (project members)
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
+
+
 
   // invite by email
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
@@ -131,18 +133,20 @@ export default function ProjectGroupsPage() {
     e.preventDefault();
     if (!projectId) return;
     setSaving(true);
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    
     const res = await fetch('/api/project-groups', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ ...form, project_id: projectId })
     });
     if (res.ok) {
       const data = await res.json();
-      // Add selected members
+      // Add selected project members
       for (const m of selectedMembers) {
         await fetch('/api/project-groups/members', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ group_id: data.id, user_id: m.id, role: 'member' })
         });
       }
@@ -150,7 +154,7 @@ export default function ProjectGroupsPage() {
       for (const email of inviteEmails) {
         await fetch('/api/project-groups/invite', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ group_id: data.id, email })
         });
       }
@@ -170,10 +174,9 @@ export default function ProjectGroupsPage() {
     }
   }
 
-  async function deleteGroup(e: React.MouseEvent, gid: number) {
+  async function deleteGroup(e: React.MouseEvent, g: Group) {
     e.stopPropagation();
-    const target = groups.find(g => g.id === gid);
-    if (target) setDeleteTarget(target);
+    setDeleteTarget(g);
   }
 
   async function confirmDeleteGroup() {
@@ -257,7 +260,7 @@ export default function ProjectGroupsPage() {
               </div>
             </div>
 
-            {/* Add members — custom searchable dropdown */}
+            {/* Add members from project — custom searchable dropdown */}
             {projectMembers.filter(m => m.id !== myId).length > 0 && (
               <div>
                 <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>
@@ -317,23 +320,35 @@ export default function ProjectGroupsPage() {
                         <div className="px-4 py-6 text-center text-sm text-[#94a3b8]">
                           {memberSearch ? `No members matching "${memberSearch}"` : 'All members already added'}
                         </div>
-                      ) : filteredMembers.map((m, i) => (
-                        <button type="button" key={m.id}
-                          onClick={() => { toggleMember(m); setDropdownOpen(false); }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] transition text-left"
-                          style={{ borderBottom: i < filteredMembers.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                            style={{ background: avatarBgs[i % avatarBgs.length] }}>
-                            {m.name[0].toUpperCase()}
+                      ) : (
+                        <>
+                          {filteredMembers.map((m, i) => (
+                            <button type="button" key={m.id}
+                              onClick={() => { toggleMember(m); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] transition text-left"
+                              style={{ borderBottom: i < filteredMembers.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                                style={{ background: avatarBgs[i % avatarBgs.length] }}>
+                                {m.name[0].toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-bold text-[#1d3557] truncate">{m.name}</div>
+                                <div className="text-xs text-[#6b7a8d] truncate">{m.email}</div>
+                              </div>
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0"
+                                style={{ background: '#eff6ff', color: '#457b9d' }}>{m.role}</span>
+                            </button>
+                          ))}
+                          <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                            <button type="button"
+                              onClick={() => setDropdownOpen(false)}
+                              className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
+                              style={{ background: '#2a9d8f', color: '#fff' }}>
+                              Done
+                            </button>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-[#1d3557] truncate">{m.name}</div>
-                            <div className="text-xs text-[#6b7a8d] truncate">{m.email}</div>
-                          </div>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0"
-                            style={{ background: '#eff6ff', color: '#457b9d' }}>{m.role}</span>
-                        </button>
-                      ))}
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -430,7 +445,7 @@ export default function ProjectGroupsPage() {
               <span className="text-xs" style={{ color: '#6b7a8d' }}>{group.task_count} tasks</span>
               <span className="text-xs" style={{ color: '#6b7a8d' }}>👥 {group.member_count}</span>
               {canManage && (
-                <button onClick={e => deleteGroup(e, group.id)}
+                <button onClick={e => deleteGroup(e, group)}
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50 flex-shrink-0"
                   style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
               )}
@@ -446,7 +461,7 @@ export default function ProjectGroupsPage() {
               style={{ border: '1px solid #d0dce8', borderTop: `4px solid ${group.color}` }}>
 
               {canManage && (
-                <button onClick={e => deleteGroup(e, group.id)}
+                <button onClick={e => deleteGroup(e, group)}
                   className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50"
                   style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
               )}

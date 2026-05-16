@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getTokenUserId } from '@/lib/client-auth';
 import ConfirmModal from '@/components/ConfirmModal';
+import { showToast } from '@/components/Toast';
 
 interface Task {
   id: number; title: string; description: string; status: string; priority: string;
@@ -13,13 +14,17 @@ interface Task {
 interface Group { id: number; name: string; color: string }
 interface Member { id: number; name: string; role: string }
 
-const statusCols = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'] as const;
+const statusCols = ['pending', 'in_progress', 'under_review', 'qa', 'on_hold', 'completed', 'reopened', 'invalid', 'cancelled'] as const;
 const statusCfg: Record<string, { label: string; bg: string; border: string; head: string; headText: string }> = {
-  todo:        { label: 'To Do',       bg: '#f8fafc', border: '#e2e8f0', head: '#e2e8f0', headText: '#475569' },
-  in_progress: { label: 'In Progress', bg: '#eff6ff', border: '#bfdbfe', head: '#bfdbfe', headText: '#1d4ed8' },
-  in_review:   { label: 'In Review',   bg: '#fff7ed', border: '#fed7aa', head: '#fed7aa', headText: '#c2410c' },
-  done:        { label: 'Done',        bg: '#f0fdf9', border: '#99f6e4', head: '#99f6e4', headText: '#0f766e' },
-  cancelled:   { label: 'Cancelled',   bg: '#fef2f2', border: '#fecaca', head: '#fecaca', headText: '#b91c1c' },
+  pending:      { label: 'Pending',      bg: '#f8fafc', border: '#e2e8f0', head: '#e2e8f0', headText: '#475569' },
+  in_progress:  { label: 'In Progress',  bg: '#eff6ff', border: '#bfdbfe', head: '#bfdbfe', headText: '#1d4ed8' },
+  under_review: { label: 'Under Review', bg: '#fef3c7', border: '#fde68a', head: '#fde68a', headText: '#92400e' },
+  qa:           { label: 'QA',           bg: '#fff7ed', border: '#fed7aa', head: '#fed7aa', headText: '#c2410c' },
+  on_hold:      { label: 'On Hold',      bg: '#fef9c3', border: '#fef08a', head: '#fef08a', headText: '#854d0e' },
+  completed:    { label: 'Completed',    bg: '#f0fdf9', border: '#99f6e4', head: '#99f6e4', headText: '#0f766e' },
+  reopened:     { label: 'Reopened',     bg: '#fef3c7', border: '#fcd34d', head: '#fcd34d', headText: '#78350f' },
+  invalid:      { label: 'Invalid',      bg: '#fef2f2', border: '#fecaca', head: '#fecaca', headText: '#991b1b' },
+  cancelled:    { label: 'Cancelled',    bg: '#fef2f2', border: '#fecaca', head: '#fecaca', headText: '#b91c1c' },
 };
 const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
 
@@ -61,10 +66,13 @@ export default function ProjectTasksPage() {
   const [deleting, setDeleting] = useState(false);
   const [dragTask, setDragTask] = useState<Task | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [highlightCol, setHighlightCol] = useState<string | null>(null);
+  const [highlightBox, setHighlightBox] = useState<string | null>(null);
+  const [highlightTask, setHighlightTask] = useState<number | null>(null);
 
   // inline create task form
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', priority: 'medium', status: 'todo', group_id: '', assignee_id: '', due_date: '' });
+  const [form, setForm] = useState({ title: '', description: '', priority: 'medium', status: 'pending', group_id: '', assignee_id: '', due_date: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [taskAttachments, setTaskAttachments] = useState<{ type: 'image' | 'video' | 'link'; url: string; name: string }[]>([]);
@@ -72,6 +80,10 @@ export default function ProjectTasksPage() {
   const [showTaskLinkInput, setShowTaskLinkInput] = useState(false);
   const [taskUploading, setTaskUploading] = useState(false);
   const [taskPasteDragging, setTaskPasteDragging] = useState(false);
+  const [allOrgMembers, setAllOrgMembers] = useState<{ id: number; name: string; email: string; avatar?: string; org_name: string }[]>([]);
+  const [selectedOrgMembers, setSelectedOrgMembers] = useState<number[]>([]);
+  const [showOrgMemberDropdown, setShowOrgMemberDropdown] = useState(false);
+  const [orgMemberSearch, setOrgMemberSearch] = useState('');
 
   useEffect(() => {
     const t = getToken();
@@ -93,6 +105,29 @@ export default function ProjectTasksPage() {
           const me = d.find((m: Member) => m.id === uid);
           if (me) setMyRole(me.role);
           else router.replace('/projects');
+        });
+        
+        // Load organization members
+        fetch('/api/organizations', { headers: auth }).then(r => r.json()).then(orgsData => {
+          if (!Array.isArray(orgsData) || orgsData.length === 0) return;
+          Promise.all(
+            orgsData.map(async (org: { id: number; name: string }) => {
+              const membersRes = await fetch(`/api/organizations/members?org_id=${org.id}`, { headers: auth });
+              const membersData = await membersRes.json();
+              return Array.isArray(membersData)
+                ? membersData.map((m: { id: number; name: string; email: string; avatar?: string }) => ({
+                    ...m,
+                    org_name: org.name,
+                  }))
+                : [];
+            })
+          ).then(results => {
+            const allMembers = results.flat();
+            const uniqueMembers = Array.from(
+              new Map(allMembers.map(m => [m.id, m])).values()
+            );
+            setAllOrgMembers(uniqueMembers);
+          });
         });
       });
   }, [id]);
@@ -148,6 +183,25 @@ export default function ProjectTasksPage() {
     e.preventDefault();
     if (!form.title.trim()) return;
     setSaving(true); setFormError('');
+    
+    // First, add selected org members to the project
+    if (selectedOrgMembers.length > 0) {
+      const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+      for (const userId of selectedOrgMembers) {
+        await fetch('/api/projects/members', {
+          method: 'POST',
+          headers: h,
+          body: JSON.stringify({ project_id: projectId, user_id: userId, role: 'developer' })
+        });
+      }
+      // Reload members list
+      const membersRes = await fetch(`/api/projects/members?project_id=${projectId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const membersData = await membersRes.json();
+      if (Array.isArray(membersData)) {
+        setMembers(membersData);
+      }
+    }
+    
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -174,11 +228,15 @@ export default function ProjectTasksPage() {
       }
       loadTasks();
       setShowForm(false);
-      setForm({ title: '', description: '', priority: 'medium', status: 'todo', group_id: '', assignee_id: '', due_date: '' });
+      setForm({ title: '', description: '', priority: 'medium', status: 'pending', group_id: '', assignee_id: '', due_date: '' });
       setTaskAttachments([]);
+      setSelectedOrgMembers([]);
+      setOrgMemberSearch('');
+      showToast('success', 'Task Created!', `"${form.title}" has been added successfully.`);
     } else {
       const d = await res.json();
       setFormError(d.error || 'Failed to create task');
+      showToast('error', 'Failed to Create Task', d.error || 'Please try again.');
     }
   }
 
@@ -186,13 +244,35 @@ export default function ProjectTasksPage() {
     if (!dragTask || dragTask.status === targetStatus) { setDragTask(null); setDragOverCol(null); return; }
     const updated = tasks.map(t => t.id === dragTask.id ? { ...t, status: targetStatus } : t);
     setTasks(updated);
+    const taskTitle = dragTask.title;
+    const taskId = dragTask.id;
+    const oldStatus = statusCfg[dragTask.status]?.label || dragTask.status;
+    const newStatus = statusCfg[targetStatus]?.label || targetStatus;
     setDragTask(null);
     setDragOverCol(null);
+    
+    // Highlight quick status box, column, and task
+    setHighlightBox(targetStatus);
+    setHighlightCol(targetStatus);
+    setHighlightTask(taskId);
+    setTimeout(() => {
+      const colElement = document.getElementById(`status-col-${targetStatus}`);
+      if (colElement) {
+        colElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }, 100);
+    setTimeout(() => {
+      setHighlightBox(null);
+      setHighlightCol(null);
+      setHighlightTask(null);
+    }, 2000);
+    
     await fetch('/api/tasks', {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: dragTask.id, status: targetStatus }),
     });
+    showToast('success', 'Task Status Updated', `"${taskTitle}" moved from ${oldStatus} to ${newStatus}`);
   }
 
   async function confirmDeleteTask() {
@@ -205,6 +285,7 @@ export default function ProjectTasksPage() {
     setDeleting(false);
     setDeleteTarget(null);
     loadTasks();
+    showToast('success', 'Task Deleted', 'The task has been removed successfully.');
   }
 
   const filtered = tasks.filter(t =>
@@ -224,9 +305,17 @@ export default function ProjectTasksPage() {
       </div>
 
       {/* Heading */}
-      <div className="mb-5">
-        {projectName && <div className="text-xs font-black uppercase tracking-widest mb-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>📁 {projectName}</div>}
-        <h2 className="text-2xl font-black" style={{ color: '#1d3557' }}>Tasks <span className="text-base font-bold" style={{ color: '#94a3b8' }}>({filtered.length})</span></h2>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          {projectName && <div className="text-xs font-black uppercase tracking-widest mb-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>📁 {projectName}</div>}
+          <h2 className="text-2xl font-black" style={{ color: '#1d3557' }}>Tasks <span className="text-base font-bold" style={{ color: '#94a3b8' }}>({filtered.length})</span></h2>
+        </div>
+        <Link href="/chatme" className="flex-shrink-0">
+          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition shadow-md"
+            style={{ background: '#457b9d' }}>
+            💬 ChatMe
+          </button>
+        </Link>
       </div>
 
       {/* Toolbar */}
@@ -258,6 +347,42 @@ export default function ProjectTasksPage() {
           {showForm ? '✕ Cancel' : '+ New Task'}
         </button>
       </div>
+
+      {/* Quick Status Drop Zones - Only show in board view */}
+      {view === 'board' && (
+        <div className="mb-4 p-4 rounded-2xl" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+          <div className="text-xs font-black mb-3" style={{ color: '#6b7a8d' }}>QUICK STATUS UPDATE - Drag tasks here</div>
+          <div className="flex gap-2 flex-wrap">
+            {statusCols.map(col => {
+              const cfg = statusCfg[col];
+              const colTasks = tasks.filter(t => t.status === col);
+              return (
+                <div
+                  key={col}
+                  className="flex-1 min-w-[120px] rounded-xl p-3 transition-all cursor-pointer"
+                  style={{
+                    background: dragOverCol === col ? cfg.head : cfg.bg,
+                    border: `2px solid ${dragOverCol === col ? cfg.headText : cfg.border}`,
+                    transform: dragOverCol === col ? 'scale(1.05)' : 'scale(1)',
+                    boxShadow: highlightBox === col ? `0 0 0 3px ${cfg.headText}40, 0 8px 24px ${cfg.headText}30` : 'none',
+                    animation: highlightBox === col ? 'pulse 0.6s ease-in-out' : 'none',
+                  }}
+                  onDragOver={e => { e.preventDefault(); setDragOverCol(col); }}
+                  onDragLeave={() => setDragOverCol(null)}
+                  onDrop={() => handleDrop(col)}
+                  onClick={() => setFilterStatus(filterStatus === col ? '' : col)}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-black" style={{ color: cfg.headText }}>{cfg.label}</span>
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: cfg.headText, color: '#fff' }}>{colTasks.length}</span>
+                  </div>
+                  <div className="text-xs" style={{ color: cfg.headText, opacity: 0.7 }}>Drop here</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Inline create task form */}
       {showForm && (
@@ -363,12 +488,15 @@ export default function ProjectTasksPage() {
                 <option value="">No Group</option>
                 {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
+              
+              {/* Assignee - Project Members */}
               <select value={form.assignee_id} onChange={e => setForm(p => ({ ...p, assignee_id: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
                 <option value="">Unassigned</option>
                 {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
               </select>
+              
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
@@ -383,6 +511,105 @@ export default function ProjectTasksPage() {
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
                 style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
             </div>
+            
+            {/* Add Members from Organizations */}
+            {allOrgMembers.length > 0 && (
+              <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>👥 Add Members from Organizations (Optional)</label>
+                <div className="relative">
+                  <button type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowOrgMemberDropdown(!showOrgMemberDropdown);
+                    }}
+                    className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none text-left flex items-center justify-between"
+                    style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                    <span>{selectedOrgMembers.length > 0 ? `${selectedOrgMembers.length} member(s) selected to add` : 'Select members to add to project...'}</span>
+                    <span>{showOrgMemberDropdown ? '▲' : '▼'}</span>
+                  </button>
+                  
+                  {showOrgMemberDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg" style={{ border: '1.5px solid #d0dce8', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                      <div className="p-2 border-b" style={{ borderColor: '#d0dce8' }}>
+                        <input type="text" placeholder="Search members..." value={orgMemberSearch} onChange={e => setOrgMemberSearch(e.target.value)}
+                          className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                          style={{ background: '#f1faee', border: '1px solid #d0dce8' }}
+                          onClick={e => e.stopPropagation()} />
+                      </div>
+                      <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
+                        {allOrgMembers
+                          .filter(m => !members.some(pm => pm.id === m.id))
+                          .filter(m => !orgMemberSearch || m.name.toLowerCase().includes(orgMemberSearch.toLowerCase()) || m.email.toLowerCase().includes(orgMemberSearch.toLowerCase()) || m.org_name.toLowerCase().includes(orgMemberSearch.toLowerCase()))
+                          .map(member => {
+                            const isSelected = selectedOrgMembers.includes(member.id);
+                            return (
+                              <button key={member.id} type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isSelected) {
+                                    setSelectedOrgMembers(prev => prev.filter(id => id !== member.id));
+                                  } else {
+                                    setSelectedOrgMembers(prev => [...prev, member.id]);
+                                  }
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left"
+                                style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden"
+                                  style={{ background: `hsl(${(member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                                  {member.avatar ? (
+                                    <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    member.name[0].toUpperCase()
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-bold text-[#1d3557] truncate">{member.name}</div>
+                                  <div className="text-xs text-[#6b7a8d] truncate">{member.email} • {member.org_name}</div>
+                                </div>
+                                {isSelected && (
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                                    style={{ background: '#2a9d8f' }}>✓</div>
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+                      <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                        <button type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowOrgMemberDropdown(false);
+                          }}
+                          className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
+                          style={{ background: '#2a9d8f', color: '#fff' }}>
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {selectedOrgMembers.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs font-bold mb-1.5" style={{ color: '#6b7a8d' }}>Will be added to project:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedOrgMembers.map(userId => {
+                        const user = allOrgMembers.find(u => u.id === userId);
+                        if (!user) return null;
+                        return (
+                          <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                            style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                            <span>{user.name}</span>
+                            <button type="button" onClick={() => setSelectedOrgMembers(prev => prev.filter(id => id !== userId))}
+                              className="text-xs hover:opacity-70">✕</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {formError && <p className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {formError}</p>}
             <button type="submit" disabled={saving || taskUploading}
@@ -396,13 +623,23 @@ export default function ProjectTasksPage() {
 
       {/* Board view */}
       {view === 'board' && (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-          {statusCols.map(col => {
+        <div style={{ overflowX: 'auto', paddingBottom: '16px' }}>
+          <div className="flex gap-4" style={{ justifyContent: filterStatus ? 'center' : 'flex-start' }}>
+          {statusCols.filter(col => !filterStatus || col === filterStatus).map(col => {
             const cfg = statusCfg[col];
             const colTasks = filtered.filter(t => t.status === col);
             return (
-              <div key={col} className="rounded-2xl overflow-hidden transition-all"
-                style={{ background: dragOverCol === col ? cfg.head : cfg.bg, border: `1.5px solid ${dragOverCol === col ? cfg.headText : cfg.border}` }}
+              <div 
+                key={col} 
+                id={`status-col-${col}`}
+                className="rounded-2xl overflow-hidden transition-all" 
+                style={{ 
+                  minWidth: '280px',
+                  background: dragOverCol === col ? cfg.head : cfg.bg, 
+                  border: `1.5px solid ${dragOverCol === col ? cfg.headText : cfg.border}`,
+                  boxShadow: highlightCol === col ? `0 0 0 3px ${cfg.headText}40, 0 8px 24px ${cfg.headText}30` : 'none',
+                  animation: highlightCol === col ? 'pulse 0.6s ease-in-out' : 'none',
+                }}
                 onDragOver={e => { e.preventDefault(); setDragOverCol(col); }}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={() => handleDrop(col)}>
@@ -410,7 +647,7 @@ export default function ProjectTasksPage() {
                   <span className="text-sm font-black" style={{ color: cfg.headText }}>{cfg.label}</span>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.7)', color: cfg.headText }}>{colTasks.length}</span>
                 </div>
-                <div className="p-3 space-y-2 min-h-24">
+                <div className="p-3 space-y-2" style={{ minHeight: '200px', maxHeight: '70vh', overflowY: 'auto' }}>
                   {colTasks.map(task => (
                     <div key={task.id}
                       draggable
@@ -418,7 +655,12 @@ export default function ProjectTasksPage() {
                       onDragEnd={() => { setDragTask(null); setDragOverCol(null); }}
                       onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
                       className="bg-white rounded-xl p-3 shadow-sm cursor-grab hover:shadow-md transition group relative"
-                      style={{ border: '1px solid #e8f0f7', opacity: dragTask?.id === task.id ? 0.4 : 1 }}>
+                      style={{ 
+                        border: '1px solid #e8f0f7', 
+                        opacity: dragTask?.id === task.id ? 0.4 : 1,
+                        boxShadow: highlightTask === task.id ? `0 0 0 3px ${cfg.headText}40, 0 8px 24px ${cfg.headText}30` : undefined,
+                        animation: highlightTask === task.id ? 'pulse 0.6s ease-in-out' : 'none',
+                      }}>
                       {task.group_name && (
                         <span className="text-xs font-bold px-1.5 py-0.5 rounded text-white mb-1.5 inline-block"
                           style={{ background: task.group_color || '#457b9d' }}>
@@ -440,11 +682,17 @@ export default function ProjectTasksPage() {
                       {task.creator_name && <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>by {task.creator_name}</div>}
                     </div>
                   ))}
-                  {colTasks.length === 0 && <div className="text-center py-6 text-xs" style={{ color: '#94a3b8' }}>Empty</div>}
+                  {colTasks.length === 0 && (
+                    <div className="text-center py-6">
+                      <div className="text-3xl mb-2">🔍</div>
+                      <div className="text-xs font-bold" style={{ color: '#94a3b8' }}>No items found</div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
+        </div>
         </div>
       )}
 

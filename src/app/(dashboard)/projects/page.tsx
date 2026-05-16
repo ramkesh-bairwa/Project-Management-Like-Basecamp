@@ -80,12 +80,13 @@ export default function ProjectsPage() {
   const [imagePreview, setImagePreview] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   // Member selection
-  const [availableUsers, setAvailableUsers] = useState<{ id: number; name: string; email: string; avatar?: string }[]>([]);
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
-  const [searchMember, setSearchMember] = useState('');
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
   const [creating, setCreating] = useState(false);
+  const [allOrgMembers, setAllOrgMembers] = useState<{ id: number; name: string; email: string; avatar?: string; org_name: string }[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
 
   useEffect(() => {
     const t = getToken();
@@ -112,22 +113,29 @@ export default function ProjectsPage() {
         max_groups: p.max_groups ?? -1,
       })));
     });
-    // Load available users for member selection (only connections)
-    fetch('/api/connections?status=accepted', { headers: { Authorization: `Bearer ${t}` } })
-      .then(r => r.json())
-      .then(d => {
-        if (Array.isArray(d)) {
-          const connectedUsers = d
-            .filter((conn: { status: string; user_id: number; name: string; email: string; avatar?: string }) => conn.status === 'accepted')
-            .map((conn: { user_id: number; name: string; email: string; avatar?: string }) => ({
-              id: conn.user_id,
-              name: conn.name,
-              email: conn.email,
-              avatar: conn.avatar,
-            }));
-          setAvailableUsers(connectedUsers);
+    
+    // Load all organization members
+    async function loadAllOrgMembers() {
+      const orgsRes = await fetch('/api/organizations', { headers: { Authorization: `Bearer ${t}` } });
+      const orgsData = await orgsRes.json();
+      if (Array.isArray(orgsData) && orgsData.length > 0) {
+        const allMembers: { id: number; name: string; email: string; avatar?: string; org_name: string }[] = [];
+        for (const org of orgsData) {
+          const membersRes = await fetch(`/api/organizations/members?org_id=${org.id}`, { headers: { Authorization: `Bearer ${t}` } });
+          const membersData = await membersRes.json();
+          if (Array.isArray(membersData)) {
+            membersData.forEach((m: { id: number; name: string; email: string; avatar?: string }) => {
+              if (!allMembers.find(existing => existing.id === m.id)) {
+                allMembers.push({ ...m, org_name: org.name });
+              }
+            });
+          }
         }
-      });
+        setAllOrgMembers(allMembers);
+      }
+    }
+    
+    loadAllOrgMembers();
   }, []);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -171,9 +179,9 @@ export default function ProjectsPage() {
     const data = await res.json();
     console.log('✅ Project created:', data);
     
-    // Add existing members to the project
+    // Add selected members to the project
     if (selectedMembers.length > 0) {
-      console.log('👥 Adding existing members...');
+      console.log('👥 Adding selected members...');
       await Promise.all(selectedMembers.map(async userId => {
         const memberRes = await fetch('/api/projects/members', {
           method: 'POST',
@@ -184,7 +192,7 @@ export default function ProjectsPage() {
       }));
     }
     
-    // Send email invitations for non-existing users
+    // Send email invitations
     if (inviteEmails.length > 0) {
       console.log('📧 Sending email invitations to:', inviteEmails);
       const inviteRes = await fetch('/api/projects/invite', {
@@ -212,10 +220,10 @@ export default function ProjectsPage() {
     setShowForm(false);
     setForm({ name: '', description: '', priority: 'medium', visibility: 'private', due_date: '', status: 'planning', image: '' });
     setImagePreview('');
-    setSelectedMembers([]);
-    setSearchMember('');
     setInviteEmails([]);
     setEmailInput('');
+    setSelectedMembers([]);
+    setMemberSearch('');
     setPlanInfo(prev => prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev);
     console.log('🎉 Project creation completed');
   }
@@ -507,8 +515,8 @@ export default function ProjectsPage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>
-          <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }} onClick={() => setShowMemberDropdown(false)}>
+          <div className="bg-white rounded-2xl p-8 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ border: '1px solid #d0dce8' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-black text-[#1d3557]">New Project</h2>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee] transition text-lg">✕</button>
@@ -571,91 +579,153 @@ export default function ProjectsPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Add Members (Optional)</label>
-                <div className="flex gap-2 mb-2">
-                  <input type="text" placeholder="Search users or enter email..." value={searchMember} onChange={e => setSearchMember(e.target.value)}
-                    className="flex-1 rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
-                  {searchMember && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchMember) && (
+                
+                {/* Select from Organization Members */}
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">👥 Select from Organizations</label>
+                  <div className="relative">
                     <button type="button"
-                      onClick={() => {
-                        const email = searchMember.toLowerCase().trim();
-                        if (!inviteEmails.includes(email) && !availableUsers.some(u => u.email.toLowerCase() === email)) {
-                          setInviteEmails(prev => [...prev, email]);
-                          setSearchMember('');
-                        }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMemberDropdown(!showMemberDropdown);
                       }}
-                      className="px-4 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 flex-shrink-0"
-                      style={{ background: '#f59e0b' }}>
-                      📧 Add Email
+                      className="w-full rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none text-left flex items-center justify-between"
+                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                      <span>{selectedMembers.length > 0 ? `${selectedMembers.length} member(s) selected` : 'Choose members...'}</span>
+                      <span>{showMemberDropdown ? '▲' : '▼'}</span>
                     </button>
-                  )}
-                </div>
-                {/* Selected members and invited emails */}
-                {(selectedMembers.length > 0 || inviteEmails.length > 0) && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedMembers.map(userId => {
-                      const user = availableUsers.find(u => u.id === userId);
-                      if (!user) return null;
-                      return (
-                        <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                          style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
-                          <span>{user.name}</span>
-                          <button type="button" onClick={() => setSelectedMembers(prev => prev.filter(id => id !== userId))}
-                            className="text-xs hover:opacity-70">✕</button>
+                    
+                    {showMemberDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg" style={{ border: '1.5px solid #d0dce8', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                        <div className="p-2 border-b" style={{ borderColor: '#d0dce8' }}>
+                          <input type="text" placeholder="Search members..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+                            className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                            style={{ background: '#f1faee', border: '1px solid #d0dce8' }}
+                            onClick={e => e.stopPropagation()} />
                         </div>
-                      );
-                    })}
-                    {inviteEmails.map(email => (
-                      <div key={email} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                        style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-                        <span>📧 {email}</span>
-                        <button type="button" onClick={() => setInviteEmails(prev => prev.filter(e => e !== email))}
-                          className="text-xs hover:opacity-70">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* User list */}
-                {searchMember && (
-                  <div className="rounded-xl" style={{ border: '1.5px solid #d0dce8', background: '#fff' }}>
-                    {(() => {
-                      const matchingUsers = availableUsers.filter(u => 
-                        !selectedMembers.includes(u.id) && 
-                        (u.name.toLowerCase().includes(searchMember.toLowerCase()) || u.email.toLowerCase().includes(searchMember.toLowerCase()))
-                      ).slice(0, 5);
-                      
-                      return (
-                        <div className="max-h-48 overflow-y-auto">
-                          {matchingUsers.map(user => (
-                            <button key={user.id} type="button"
-                              onClick={() => { setSelectedMembers(prev => [...prev, user.id]); setSearchMember(''); }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                                style={{ background: `hsl(${(user.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
-                                {user.avatar ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                  user.name[0].toUpperCase()
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-[#1d3557] truncate">{user.name}</div>
-                                <div className="text-xs text-[#6b7a8d] truncate">{user.email}</div>
-                              </div>
-                            </button>
-                          ))}
-                          {matchingUsers.length === 0 && (
-                            <div className="px-4 py-3 text-sm text-[#6b7a8d] text-center">
-                              No users found. Enter a valid email to invite.
+                        <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
+                          {allOrgMembers.length > 0 ? (
+                            allOrgMembers
+                              .filter(m => !memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()) || m.email.toLowerCase().includes(memberSearch.toLowerCase()) || m.org_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                              .map(member => {
+                                const isSelected = selectedMembers.includes(member.id);
+                                return (
+                                  <button key={member.id} type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isSelected) {
+                                        setSelectedMembers(prev => prev.filter(id => id !== member.id));
+                                      } else {
+                                        setSelectedMembers(prev => [...prev, member.id]);
+                                      }
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left"
+                                    style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden"
+                                      style={{ background: `hsl(${(member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                                      {member.avatar ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        member.name[0].toUpperCase()
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-bold text-[#1d3557] truncate">{member.name}</div>
+                                      <div className="text-xs text-[#6b7a8d] truncate">{member.email} • {member.org_name}</div>
+                                    </div>
+                                    {isSelected && (
+                                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                                        style={{ background: '#2a9d8f' }}>✓</div>
+                                    )}
+                                  </button>
+                                );
+                              })
+                          ) : (
+                            <div className="px-4 py-8 text-center text-sm text-[#6b7a8d]">
+                              No organization members found
                             </div>
                           )}
                         </div>
-                      );
-                    })()}
+                        <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                          <button type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowMemberDropdown(false);
+                            }}
+                            className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
+                            style={{ background: '#2a9d8f', color: '#fff' }}>
+                            Done
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                <p className="text-xs text-[#6b7a8d] mt-2">💡 Add existing users or enter emails to send invitations. Multiple emails can be added.</p>
+                  
+                  {/* Selected Members Display */}
+                  {selectedMembers.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedMembers.map(userId => {
+                          const user = allOrgMembers.find(u => u.id === userId);
+                          if (!user) return null;
+                          return (
+                            <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                              style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                              <span>{user.name}</span>
+                              <button type="button" onClick={() => setSelectedMembers(prev => prev.filter(id => id !== userId))}
+                                className="text-xs hover:opacity-70">✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Invite by Email */}
+                <div>
+                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">📧 Or Invite by Email</label>
+                  <div className="flex gap-2">
+                    <input type="email" placeholder="Enter email address..." value={emailInput} onChange={e => setEmailInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const email = emailInput.toLowerCase().trim();
+                          if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !inviteEmails.includes(email)) {
+                            setInviteEmails(prev => [...prev, email]);
+                            setEmailInput('');
+                          }
+                        }
+                      }}
+                      className="flex-1 rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none"
+                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                    <button type="button"
+                      onClick={() => {
+                        const email = emailInput.toLowerCase().trim();
+                        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !inviteEmails.includes(email)) {
+                          setInviteEmails(prev => [...prev, email]);
+                          setEmailInput('');
+                        }
+                      }}
+                      className="px-4 py-2.5 rounded-xl font-bold text-sm text-white transition hover:opacity-90 flex-shrink-0"
+                      style={{ background: '#f59e0b' }}>
+                      Add
+                    </button>
+                  </div>
+                  {inviteEmails.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {inviteEmails.map(email => (
+                        <div key={email} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                          style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                          <span>📧 {email}</span>
+                          <button type="button" onClick={() => setInviteEmails(prev => prev.filter(e => e !== email))}
+                            className="text-xs hover:opacity-70">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ background: '#e63946' }}>
@@ -665,11 +735,11 @@ export default function ProjectsPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      {inviteEmails.length > 0 ? 'Creating & Sending Invites...' : 'Creating Project...'}
+                      {inviteEmails.length > 0 || selectedMembers.length > 0 ? 'Creating & Adding Members...' : 'Creating Project...'}
                     </span>
                   ) : 'Create Project'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+                <button type="button" onClick={() => { setShowForm(false); setShowMemberDropdown(false); }} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
               </div>
             </form>
           </div>
