@@ -31,7 +31,7 @@ app.prepare().then(() => {
     }
 
     // Fully public pages — no auth needed, serve immediately
-    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact'];
+    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/forgot-password', '/reset-password', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact'];
     const isPublicPage = PUBLIC_PAGES.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
     if (isPublicPage) {
