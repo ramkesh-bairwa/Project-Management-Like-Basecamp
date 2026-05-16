@@ -456,35 +456,49 @@ export default function GroupDetailPage() {
 
   async function addSubtask(taskId: number) {
     const title = subtaskInput[taskId]?.trim();
-    if (!title || !projectNumId) return;
+    if (!title || !projectNumId || !group?.id) {
+      showToast('error', 'Cannot Add Subtask', 'Missing required information.');
+      return;
+    }
     
-    const res = await fetch('/api/tasks', { 
-      method: 'POST', 
-      headers: h, 
-      body: JSON.stringify({ 
-        project_id: projectNumId,
-        group_id: group?.id || null,
-        parent_task_id: taskId, 
-        title, 
-        priority: 'medium',
-        status: 'todo'
-      }) 
-    });
-    
-    if (res.ok) {
-      setSubtaskInput(p => ({ ...p, [taskId]: '' }));
-      loadSubtasks(taskId);
-      loadTasks();
-      showToast('success', 'Subtask Added', `"${title}" has been added.`);
-    } else {
-      const err = await res.json();
-      console.error('Subtask creation error:', err);
-      showToast('error', 'Failed to Add Subtask', err.error || 'Please try again.');
+    try {
+      const res = await fetch('/api/tasks', { 
+        method: 'POST', 
+        headers: h, 
+        body: JSON.stringify({ 
+          project_id: projectNumId,
+          group_id: group.id,
+          parent_task_id: taskId, 
+          title, 
+          priority: 'medium',
+          status: 'pending'
+        }) 
+      });
+      
+      if (res.ok) {
+        setSubtaskInput(p => ({ ...p, [taskId]: '' }));
+        loadSubtasks(taskId);
+        loadTasks();
+        showToast('success', 'Subtask Added', `"${title}" has been added.`);
+      } else {
+        const errText = await res.text();
+        console.error('Subtask creation error:', errText);
+        try {
+          const err = JSON.parse(errText);
+          showToast('error', 'Failed to Add Subtask', err.error || 'Please try again.');
+        } catch {
+          showToast('error', 'Failed to Add Subtask', 'Server error. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Subtask creation exception:', error);
+      showToast('error', 'Failed to Add Subtask', 'Network error. Please try again.');
     }
   }
 
   async function toggleSubtaskDone(sub: Subtask, taskId: number) {
-    await fetch('/api/tasks', { method: 'PUT', headers: h, body: JSON.stringify({ id: sub.id, title: sub.title, status: sub.status === 'done' ? 'todo' : 'done' }) });
+    const newStatus = (sub.status === 'done' || sub.status === 'completed') ? 'pending' : 'completed';
+    await fetch('/api/tasks', { method: 'PUT', headers: h, body: JSON.stringify({ id: sub.id, title: sub.title, status: newStatus }) });
     loadSubtasks(taskId);
   }
 

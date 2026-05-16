@@ -13,7 +13,7 @@ interface Task {
   group_name: string; group_color: string; project_id: number; created_at: string;
   creator_name: string;
 }
-interface Subtask { id: number; title: string; status: string; priority: string }
+interface Subtask { id: number; title: string; status: string; priority: string; comment_count?: number }
 interface Member { id: number; name: string; role: string }
 interface HistoryEntry {
   id: number; action: string; old_value: string | null; new_value: string | null;
@@ -123,6 +123,10 @@ export default function TaskDetailPage() {
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<Subtask | null>(null);
   const [deletingSubtask, setDeletingSubtask] = useState(false);
+  const [expandedSubtask, setExpandedSubtask] = useState<number | null>(null);
+  const [subtaskComments, setSubtaskComments] = useState<Record<number, CommentNode[]>>({});
+  const [subtaskCommentInput, setSubtaskCommentInput] = useState<Record<number, string>>({});
+  const [postingSubtaskComment, setPostingSubtaskComment] = useState<number | null>(null);
 
   useEffect(() => {
     setAttachments([]);
@@ -220,12 +224,43 @@ export default function TaskDetailPage() {
   async function addSubtask(e: React.FormEvent) {
     e.preventDefault();
     if (!newSubtask.trim() || !task) return;
-    await fetch('/api/tasks', { method: 'POST', headers: h, body: JSON.stringify({ project_id: projectNumId, parent_task_id: task.id, title: newSubtask, priority: 'medium' }) });
-    setNewSubtask(''); loadSubtasks(); loadHistory();
+    
+    try {
+      const res = await fetch('/api/tasks', { 
+        method: 'POST', 
+        headers: h, 
+        body: JSON.stringify({ 
+          project_id: projectNumId, 
+          parent_task_id: task.id, 
+          title: newSubtask, 
+          priority: 'medium',
+          status: 'pending'
+        }) 
+      });
+      
+      if (res.ok) {
+        setNewSubtask(''); 
+        loadSubtasks(); 
+        loadHistory();
+      } else {
+        const errText = await res.text();
+        console.error('Subtask creation error:', errText);
+        try {
+          const err = JSON.parse(errText);
+          alert(err.error || 'Failed to create subtask');
+        } catch {
+          alert('Failed to create subtask: ' + errText);
+        }
+      }
+    } catch (error) {
+      console.error('Subtask creation exception:', error);
+      alert('Network error. Please try again.');
+    }
   }
 
   async function toggleSubtask(sub: Subtask) {
-    await fetch('/api/tasks', { method: 'PUT', headers: h, body: JSON.stringify({ id: sub.id, title: sub.title, status: sub.status === 'done' ? 'todo' : 'done' }) });
+    const newStatus = (sub.status === 'done' || sub.status === 'completed') ? 'pending' : 'completed';
+    await fetch('/api/tasks', { method: 'PUT', headers: h, body: JSON.stringify({ id: sub.id, title: sub.title, status: newStatus }) });
     loadSubtasks();
   }
 
@@ -244,6 +279,62 @@ export default function TaskDetailPage() {
     setDeletingSubtask(false);
     setDeleteSubtaskTarget(null);
     loadSubtasks();
+  }
+
+  function toggleSubtaskComments(subtaskId: number) {
+    if (expandedSubtask === subtaskId) {
+      setExpandedSubtask(null);
+      return;
+    }
+    setExpandedSubtask(subtaskId);
+    if (!subtaskComments[subtaskId]) {
+      loadSubtaskComments(subtaskId);
+    }
+  }
+
+  function loadSubtaskComments(subtaskId: number) {
+    fetch(`/api/comments?entity_type=task&entity_id=${subtaskId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => Array.isArray(d) && setSubtaskComments(prev => ({ ...prev, [subtaskId]: buildCommentTree(d) })));
+  }
+
+  async function postSubtaskComment(e: React.FormEvent, subtaskId: number) {
+    e.preventDefault();
+    const content = subtaskCommentInput[subtaskId]?.trim();
+    if (!content) return;
+    setPostingSubtaskComment(subtaskId);
+    await fetch('/api/comments', {
+      method: 'POST',
+      headers: h,
+      body: JSON.stringify({ entity_type: 'task', entity_id: subtaskId, content })
+    });
+    setSubtaskCommentInput(prev => ({ ...prev, [subtaskId]: '' }));
+    setPostingSubtaskComment(null);
+    loadSubtaskComments(subtaskId);
+    loadSubtasks();
+  }
+
+  async function replySubtaskComment(subtaskId: number, parentId: number, content: string) {
+    await fetch('/api/comments', {
+      method: 'POST',
+      headers: h,
+      body: JSON.stringify({ entity_type: 'task', entity_id: subtaskId, content, parent_id: parentId })
+    });
+    loadSubtaskComments(subtaskId);
+  }
+
+  async function resolveSubtaskComment(subtaskId: number, cid: number, resolved: boolean) {
+    await fetch('/api/comments', {
+      method: 'PUT',
+      headers: h,
+      body: JSON.stringify({ id: cid, resolve: resolved, unresolve: !resolved })
+    });
+    loadSubtaskComments(subtaskId);
+  }
+
+  async function deleteSubtaskComment(subtaskId: number, cid: number) {
+    await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: h });
+    loadSubtaskComments(subtaskId);
   }
 
   async function uploadFile(file: File) {
@@ -827,28 +918,88 @@ export default function TaskDetailPage() {
           ) : (
             <div className="space-y-2">
               {subtasks.map(sub => (
-                <div key={sub.id} className="flex items-center gap-3 rounded-xl px-4 py-3"
+                <div key={sub.id} className="rounded-xl overflow-hidden"
                   style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                  <input type="checkbox" checked={sub.status === 'done'} onChange={() => toggleSubtask(sub)}
-                    className="w-4 h-4 rounded accent-teal-600 flex-shrink-0 cursor-pointer" />
-                  <span className={`flex-1 text-sm font-medium ${sub.status === 'done' ? 'line-through' : ''}`}
-                    style={{ color: sub.status === 'done' ? '#94a3b8' : '#1d3557' }}>
-                    {sub.title}
-                  </span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: statusColors[sub.status] + '20', color: statusColors[sub.status] }}>
-                    {sub.status.replace('_', ' ')}
-                  </span>
-                  <span className="text-xs font-bold" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
-                  {['owner', 'admin', 'manager'].includes(myRole) && (
-                    <button onClick={() => setDeleteSubtaskTarget(sub)}
-                      className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
-                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                  {/* Subtask row */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <input type="checkbox" checked={sub.status === 'done' || sub.status === 'completed'} onChange={() => toggleSubtask(sub)}
+                      className="w-4 h-4 rounded accent-teal-600 flex-shrink-0 cursor-pointer" />
+                    <span className={`flex-1 text-sm font-medium ${(sub.status === 'done' || sub.status === 'completed') ? 'line-through' : ''}`}
+                      style={{ color: (sub.status === 'done' || sub.status === 'completed') ? '#94a3b8' : '#1d3557' }}>
+                      {sub.title}
+                    </span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: statusColors[sub.status] + '20', color: statusColors[sub.status] }}>
+                      {sub.status.replace('_', ' ')}
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
+                    <button onClick={() => toggleSubtaskComments(sub.id)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition"
+                      style={{
+                        color: expandedSubtask === sub.id ? '#457b9d' : '#94a3b8',
+                        background: expandedSubtask === sub.id ? '#eff6ff' : 'transparent',
+                        border: `1px solid ${expandedSubtask === sub.id ? '#bfdbfe' : '#e2e8f0'}`
+                      }}>
+                      💬 {sub.comment_count || 0}
+                    </button>
+                    {['owner', 'admin', 'manager'].includes(myRole) && (
+                      <button onClick={() => setDeleteSubtaskTarget(sub)}
+                        className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
+                        style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                    )}
+                  </div>
+
+                  {/* Comments section */}
+                  {expandedSubtask === sub.id && (
+                    <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid #e2e8f0', background: '#f8fbff' }}>
+                      {/* Comment input */}
+                      <form onSubmit={(e) => postSubtaskComment(e, sub.id)} className="mb-3">
+                        <div className="flex gap-2">
+                          <input
+                            value={subtaskCommentInput[sub.id] || ''}
+                            onChange={e => setSubtaskCommentInput(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                            placeholder="Write a comment..."
+                            className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                            style={{ background: '#fff', border: '1.5px solid #bfdbfe', color: '#1d3557' }}
+                          />
+                          <button
+                            type="submit"
+                            disabled={postingSubtaskComment === sub.id || !subtaskCommentInput[sub.id]?.trim()}
+                            className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition"
+                            style={{ background: '#457b9d' }}>
+                            {postingSubtaskComment === sub.id ? '...' : 'Post'}
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* Comments list */}
+                      {!subtaskComments[sub.id] ? (
+                        <div className="text-xs py-2 text-center" style={{ color: '#94a3b8' }}>Loading comments...</div>
+                      ) : subtaskComments[sub.id].length === 0 ? (
+                        <div className="text-xs py-2 text-center rounded-lg" style={{ color: '#94a3b8', border: '1px dashed #e2e8f0' }}>
+                          No comments yet
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {subtaskComments[sub.id].map(comment => (
+                            <CommentThread
+                              key={comment.id}
+                              comment={comment}
+                              currentUserId={myId}
+                              userRole={myRole}
+                              onReply={(parentId, content) => replySubtaskComment(sub.id, parentId, content)}
+                              onResolve={(cid, resolved) => resolveSubtaskComment(sub.id, cid, resolved)}
+                              onDelete={(cid) => deleteSubtaskComment(sub.id, cid)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
               <div className="text-xs pt-1" style={{ color: '#6b7a8d' }}>
-                {subtasks.filter(s => s.status === 'done').length}/{subtasks.length} completed
+                {subtasks.filter(s => s.status === 'done' || s.status === 'completed').length}/{subtasks.length} completed
               </div>
             </div>
           )}

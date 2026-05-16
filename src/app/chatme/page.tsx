@@ -68,8 +68,10 @@ export default function ChatPage() {
   const [editingContent, setEditingContent] = useState('');
   const [messageMenuOpen, setMessageMenuOpen] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const isWebSocketEnabled = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET === 'true';
 
@@ -102,6 +104,16 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(e.target as Node)) {
+        setShowSettingsMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const fetchCurrentUser = async () => {
     try {
@@ -480,7 +492,76 @@ export default function ChatPage() {
               <div className="ws-name">Project Manager</div>
               <div className="ws-plan">Pro Plan</div>
             </div>
-            <i className="ws-chevron">▾</i>
+            <div style={{ position: 'relative' }} ref={settingsMenuRef}>
+              <button 
+                className="ws-settings"
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                title="Settings"
+              >
+                ⚙️
+              </button>
+              {showSettingsMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  background: '#fff',
+                  border: '1px solid #e2deff',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                  minWidth: '200px',
+                  overflow: 'hidden',
+                  zIndex: 1000,
+                }}>
+                  <button
+                    onClick={() => window.location.href = '/dashboard'}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      color: '#1e1a3a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f4f2ff'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🏠 Dashboard
+                  </button>
+                  <div style={{ height: '1px', background: '#e2deff', margin: '4px 0' }} />
+                  <button
+                    onClick={() => window.location.href = '/logout'}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      color: '#ef4444',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="search-pill">
             <i>🔍</i>
@@ -587,9 +668,6 @@ export default function ChatPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="me-name">{currentUser?.name || 'User'}</div>
             <div className="me-tag">@{currentUser?.email?.split('@')[0] || 'user'}</div>
-          </div>
-          <div className="foot-icons">
-            <button className="fi">⚙️</button>
           </div>
         </div>
       </div>
@@ -1258,6 +1336,8 @@ export default function ChatPage() {
         .ws-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#534AB7,#7F77DD);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0;}
         .ws-name{font-size:13px;font-weight:500;color:#fff;line-height:1.2;}
         .ws-plan{font-size:10px;color:rgba(255,255,255,0.35);}
+        .ws-settings{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;border:none;background:rgba(255,255,255,0.08);font-size:16px;}
+        .ws-settings:hover{background:rgba(255,255,255,0.15);}
         .ws-chevron{margin-left:auto;font-size:14px;color:rgba(255,255,255,0.25);}
         .search-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:9px 12px;cursor:text;transition:all .2s;}
         .search-pill:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.16);}

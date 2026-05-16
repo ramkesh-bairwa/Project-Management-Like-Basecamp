@@ -125,7 +125,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
   const result = await query<{ insertId: number }>(
     'INSERT INTO tasks (project_id, group_id, created_by, assignee_id, parent_task_id, title, description, image, status, priority, due_date, estimated_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-    [project_id, group_id || null, user.id, assignee_id || null, parent_task_id || null, title, description || null, image || null, status || 'todo', priority || 'medium', due_date || null, estimated_hours || null]
+    [project_id, group_id || null, user.id, assignee_id || null, parent_task_id || null, title, description || null, image || null, status || 'pending', priority || 'medium', due_date || null, estimated_hours || null]
   );
   const uuid = generateUUID();
   const slug = await uniqueSlug('tasks', 'slug', title);

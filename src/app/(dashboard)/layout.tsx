@@ -236,6 +236,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Right actions */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
 
+            {/* ── ChatMe Button ── */}
+            <Link href="/chatme"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition"
+              style={{
+                background: pathname.startsWith('/chatme') ? 'rgba(255,255,255,0.2)' : 'transparent',
+                color: pathname.startsWith('/chatme') ? '#fff' : 'rgba(255,255,255,0.7)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}
+              onMouseEnter={(e) => {
+                if (!pathname.startsWith('/chatme')) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.color = '#fff';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!pathname.startsWith('/chatme')) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
+                }
+              }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+              </svg>
+              <span className="hidden lg:inline">ChatMe</span>
+            </Link>
+
             {/* ── Chat dropdown ── */}
             <div className="relative" ref={chatDropRef}>
               <button onClick={openChatDropdown}
