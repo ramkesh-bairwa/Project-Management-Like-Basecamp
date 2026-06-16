@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { OWNER } from '@/lib/owner';
+import NavAuth from '@/components/NavAuth';
 
 const bgIcons = ['📋','✅','👥','🗂','📊','💬','🚀','📅','🔒','⚡','🎯','📌','🔔','📎','🏆'];
 
@@ -55,8 +56,7 @@ export default function Home() {
               <Link key={label} href={href} className="nav-link" style={{ padding: '7px 14px', borderRadius: 8, color: '#6b7a8d', fontWeight: 600, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>{label}</Link>
             ))}
             <div style={{ width: 1, height: 20, background: '#d0dce8', margin: '0 8px' }} />
-            <Link href="/login" className="nav-link" style={{ padding: '7px 16px', borderRadius: 8, color: '#1d3557', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>Sign In</Link>
-            <Link href="/register" style={{ padding: '8px 18px', borderRadius: 10, background: 'linear-gradient(135deg,#e63946,#c1121f)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 4px 14px rgba(230,57,70,0.3)' }}>Get Started Free</Link>
+            <NavAuth />
           </div>
         </div>
       </nav>
