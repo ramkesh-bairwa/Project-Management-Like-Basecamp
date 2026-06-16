@@ -95,14 +95,24 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
     return apiResponse({ message: 'Comment unresolved' });
   }
   if (!content) return apiError('content required');
+  const existing = await query<{ entity_type: string; entity_id: number; content: string }[]>(
+    'SELECT entity_type, entity_id, content FROM comments WHERE id=? AND user_id=?', [id, user.id]
+  );
+  if (!existing.length) return apiError('Not found', 404);
   await query('UPDATE comments SET content=? WHERE id=? AND user_id=?', [content, id, user.id]);
+  if (existing[0].entity_type === 'task') {
+    await query(
+      'INSERT INTO task_history (task_id, changed_by, action, old_value, new_value) VALUES (?,?,?,?,?)',
+      [existing[0].entity_id, user.id, 'comment_updated', existing[0].content.substring(0, 100), content.substring(0, 100)]
+    );
+  }
   return apiResponse({ message: 'Comment updated' });
 });
 
 export const DELETE = withAuth(async (req: NextRequest, user) => {
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return apiError('id required');
-  const comment = await query<{ user_id: number; entity_type: string; entity_id: number }[]>('SELECT user_id, entity_type, entity_id FROM comments WHERE id=? AND deleted_at IS NULL', [id]);
+  const comment = await query<{ user_id: number; entity_type: string; entity_id: number; content: string }[]>('SELECT user_id, entity_type, entity_id, content FROM comments WHERE id=? AND deleted_at IS NULL', [id]);
   if (!comment.length) return apiError('Comment not found', 404);
   if (comment[0].user_id !== user.id) {
     if (comment[0].entity_type === 'task') {
@@ -116,7 +126,15 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
     }
   }
   await query('UPDATE comments SET deleted_at=NOW() WHERE id=?', [id]);
-  // Soft delete child replies too
   await query('UPDATE comments SET deleted_at=NOW() WHERE parent_id=? AND deleted_at IS NULL', [id]);
+
+  // Log to task history
+  if (comment[0].entity_type === 'task') {
+    await query(
+      'INSERT INTO task_history (task_id, changed_by, action, old_value) VALUES (?,?,?,?)',
+      [comment[0].entity_id, user.id, 'comment_deleted', comment[0].content.substring(0, 100)]
+    );
+  }
+
   return apiResponse({ message: 'Comment deleted' });
 });

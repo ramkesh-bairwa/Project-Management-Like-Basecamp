@@ -98,5 +98,12 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   }
 
   await query('DELETE FROM task_attachments WHERE id=?', [id]);
+
+  // Log to task history so it shows in activity feed
+  await query(
+    `INSERT INTO task_history (task_id, changed_by, action, old_value, new_value) VALUES (?, ?, 'attachment_deleted', ?, NULL)`,
+    [att.task_id, user.id, att.file_name]
+  );
+
   return apiResponse({ message: 'Attachment deleted' });
 });

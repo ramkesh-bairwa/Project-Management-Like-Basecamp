@@ -25,6 +25,8 @@ const actionConfig: Record<string, { icon: string; color: string; label: string 
   moved_group:         { icon: '⇢', color: '#e9c46a', label: 'Moved to group' },
   subtask_added:       { icon: '+', color: '#2a9d8f', label: 'Subtask added' },
   comment_added:       { icon: '💬', color: '#457b9d', label: 'Comment added' },
+  comment_deleted:     { icon: '🗑', color: '#dc2626', label: 'Comment deleted' },
+  comment_updated:     { icon: '✎', color: '#9333ea', label: 'Comment updated' },
   document_attached:   { icon: '📎', color: '#6d6875', label: 'Document attached' },
 };
 
@@ -87,6 +89,9 @@ export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
                   )}
                   {!entry.old_value && entry.new_value && entry.action !== 'created' && (
                     <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f0fdf9', color: '#0f766e' }}>{entry.new_value}</span>
+                  )}
+                  {entry.old_value && !entry.new_value && (
+                    <span className="text-xs px-1.5 py-0.5 rounded line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{entry.old_value}</span>
                   )}
                 </div>
                 {entry.note && (

@@ -11,7 +11,7 @@ require('fs').readFileSync('.env.local', 'utf8').split('\n').forEach(line => {
 });
 
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
+const app = next({ dev, webpack: true });
 const handle = app.getRequestHandler();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
@@ -31,7 +31,7 @@ app.prepare().then(() => {
     }
 
     // Fully public pages — no auth needed, serve immediately
-    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/forgot-password', '/reset-password', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact'];
+    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/forgot-password', '/reset-password', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact', '/auth/social-callback'];
     const isPublicPage = PUBLIC_PAGES.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
     if (isPublicPage) {

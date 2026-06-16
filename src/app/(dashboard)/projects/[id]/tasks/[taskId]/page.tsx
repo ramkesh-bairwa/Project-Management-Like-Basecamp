@@ -39,7 +39,9 @@ const actionCfg: Record<string, { icon: string; color: string }> = {
   subtask_added:           { icon: '+', color: '#2a9d8f' },
   subtask_status_changed:  { icon: '☑', color: '#2a9d8f' },
   comment_added:           { icon: '💬', color: '#457b9d' },
+  comment_deleted:         { icon: '🗨', color: '#e63946' },
   deleted:                 { icon: '🗑', color: '#e63946' },
+  attachment_deleted:      { icon: '📎', color: '#e63946' },
 };
 
 function buildMessage(action: string, by: string, oldVal: string | null, newVal: string | null): string {
@@ -58,7 +60,9 @@ function buildMessage(action: string, by: string, oldVal: string | null, newVal:
     case 'subtask_added':           return `${by} added subtask "${newVal}"`;
     case 'subtask_status_changed':  return `${by} updated subtask "${oldVal}"`;
     case 'comment_added':           return `${by} commented`;
-    case 'deleted':                 return `${by} deleted this task`;
+    case 'comment_deleted':          return `${by} deleted a comment`;
+    case 'deleted':                  return `${by} deleted this task`;
+    case 'attachment_deleted':       return `${by} deleted attachment "${oldVal}"`;
     default:                        return `${by} ${action.replace(/_/g, ' ')}`;
   }
 }
@@ -123,6 +127,10 @@ export default function TaskDetailPage() {
   const [deletingTask, setDeletingTask] = useState(false);
   const [deleteSubtaskTarget, setDeleteSubtaskTarget] = useState<Subtask | null>(null);
   const [deletingSubtask, setDeletingSubtask] = useState(false);
+  const [deleteAttachTarget, setDeleteAttachTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deletingAttach, setDeletingAttach] = useState(false);
+  const [deleteCommentTarget, setDeleteCommentTarget] = useState<{ id: number; preview: string } | null>(null);
+  const [deletingComment, setDeletingComment] = useState(false);
   const [expandedSubtask, setExpandedSubtask] = useState<number | null>(null);
   const [subtaskComments, setSubtaskComments] = useState<Record<number, CommentNode[]>>({});
   const [subtaskCommentInput, setSubtaskCommentInput] = useState<Record<number, string>>({});
@@ -344,11 +352,20 @@ export default function TaskDetailPage() {
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('task_id', String(task?.id));
-    const res = await fetch('/api/tasks/attachments', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
-    setUploading(false);
-    if (res.ok && task) {
-      loadAttachments(task.id);
+    if (isImage) {
+      // Upload to comment-specific endpoint — embed in comment text
+      const res = await fetch('/api/comments/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+      setUploading(false);
+      if (res.ok) {
+        const data = await res.json();
+        setNewComment(prev => (prev ? prev + '\n' : '') + `![image](${data.url})`);
+      }
+    } else {
+      // Videos still go to task attachments
+      fd.append('task_id', String(task?.id));
+      const res = await fetch('/api/tasks/attachments', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+      setUploading(false);
+      if (res.ok && task) loadAttachments(task.id);
     }
   }
 
@@ -375,9 +392,16 @@ export default function TaskDetailPage() {
     loadAttachments(task.id);
   }
 
-  async function deleteSavedAttachment(attId: number) {
-    await fetch(`/api/tasks/attachments?id=${attId}`, { method: 'DELETE', headers: h });
-    if (task) loadAttachments(task.id);
+  async function deleteSavedAttachment() {
+    if (!deleteAttachTarget || !task) return;
+    setDeletingAttach(true);
+    await fetch(`/api/tasks/attachments?id=${deleteAttachTarget.id}`, { method: 'DELETE', headers: h });
+    setDeletingAttach(false);
+    setDeleteAttachTarget(null);
+    loadAttachments(task.id);
+    // Refresh history so the deletion shows in activity
+    fetch(`/api/tasks/history?task_id=${task.id}`, { headers: h })
+      .then(r => r.json()).then(r => Array.isArray(r) && setHistory(r));
   }
 
   async function postComment(e: React.FormEvent) {
@@ -402,9 +426,14 @@ export default function TaskDetailPage() {
     await fetch('/api/comments', { method: 'PUT', headers: h, body: JSON.stringify({ id: cid, resolve: resolved, unresolve: !resolved }) });
     loadComments();
   }
-  async function deleteComment(cid: number) {
-    await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: h });
+  async function deleteComment() {
+    if (!deleteCommentTarget || !task) return;
+    setDeletingComment(true);
+    await fetch(`/api/comments?id=${deleteCommentTarget.id}`, { method: 'DELETE', headers: h });
+    setDeletingComment(false);
+    setDeleteCommentTarget(null);
     loadComments();
+    loadHistory();
   }
 
   function toggleItem(key: string) {
@@ -546,7 +575,7 @@ export default function TaskDetailPage() {
                           </a>
                         )}
                         <button
-                          onClick={() => deleteSavedAttachment(a.id)}
+                          onClick={() => setDeleteAttachTarget({ id: a.id, name: a.file_name })}
                           style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 99 }}
                         >×</button>
                         <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uploaded_by_name}</div>
@@ -887,7 +916,11 @@ export default function TaskDetailPage() {
                         userRole={myRole}
                         onReply={replyComment}
                         onResolve={resolveComment}
-                        onDelete={deleteComment}
+                        onDelete={async (cid) => {
+                          await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: h });
+                          loadComments();
+                          loadHistory();
+                        }}
                       />
                     </div>
                   )}
@@ -1023,6 +1056,26 @@ export default function TaskDetailPage() {
           onConfirm={deleteSubtask}
           onCancel={() => setDeleteSubtaskTarget(null)}
           loading={deletingSubtask}
+        />
+      )}
+
+      {deleteAttachTarget && (
+        <ConfirmModal
+          title="Delete Attachment"
+          message={`Delete "${deleteAttachTarget.name}"? This cannot be undone.`}
+          onConfirm={deleteSavedAttachment}
+          onCancel={() => setDeleteAttachTarget(null)}
+          loading={deletingAttach}
+        />
+      )}
+
+      {deleteCommentTarget && (
+        <ConfirmModal
+          title="Delete Comment"
+          message={`Delete this comment? "${deleteCommentTarget.preview}${deleteCommentTarget.preview.length >= 80 ? '…' : ''}" This cannot be undone.`}
+          onConfirm={deleteComment}
+          onCancel={() => setDeleteCommentTarget(null)}
+          loading={deletingComment}
         />
       )}
     </div>
