@@ -54,9 +54,16 @@ export default function TaskCommentAccordion({ taskId, token, myId, myRole, comm
     loadComments();
   }
 
+  async function editComment(cid: number, content: string) {
+    await fetch('/api/comments', { method: 'PUT', headers: h, body: JSON.stringify({ id: cid, content }) });
+    loadComments();
+    onCommentPosted?.();
+  }
+
   async function deleteComment(cid: number) {
     await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     loadComments();
+    onCommentPosted?.();
   }
 
   const tree = buildCommentTree(comments);
@@ -133,6 +140,7 @@ export default function TaskCommentAccordion({ taskId, token, myId, myRole, comm
                   userRole={myRole}
                   onReply={replyComment}
                   onResolve={resolveComment}
+                  onEdit={editComment}
                   onDelete={deleteComment}
                 />
               ))}

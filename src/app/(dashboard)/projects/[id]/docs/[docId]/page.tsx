@@ -162,6 +162,11 @@ export default function DocDetailPage() {
     loadComments();
   }
 
+  async function editComment(cid: number, content: string) {
+    await fetch('/api/comments', { method: 'PUT', headers: h, body: JSON.stringify({ id: cid, content }) });
+    loadComments();
+  }
+
   async function deleteComment(cid: number) {
     await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     loadComments();
@@ -401,7 +406,7 @@ export default function DocDetailPage() {
             ) : (
               tree.map(c => (
                 <CommentThread key={c.id} comment={c} currentUserId={myId} userRole={myRole}
-                  onReply={replyComment} onResolve={resolveComment} onDelete={deleteComment} />
+                  onReply={replyComment} onResolve={resolveComment} onEdit={editComment} onDelete={deleteComment} />
               ))
             )}
           </div>

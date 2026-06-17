@@ -79,6 +79,7 @@ export default function ProjectsPage() {
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   // Member selection
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
@@ -273,6 +274,7 @@ export default function ProjectsPage() {
     if (noPlan) { setShowPlanModal(true); return; }
     if (atProjectLimit) return;
     setShowForm(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   }
 
   return (
@@ -296,6 +298,191 @@ export default function ProjectsPage() {
             title={!planLoaded ? 'Loading...' : noPlan ? 'Select a plan to create projects' : atProjectLimit ? `Limit reached: ${planInfo?.usage.projects}/${planInfo?.limits.max_projects} projects` : ''}>
             + New Project
           </button>
+        </div>
+      </div>
+
+      <div
+        ref={formRef}
+        style={{
+          maxHeight: showForm ? '1200px' : '0px',
+          opacity: showForm ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 0.4s ease, opacity 0.3s ease',
+          marginBottom: showForm ? '24px' : '0',
+        }}
+      >
+        <div className="bg-white rounded-2xl p-8 w-full shadow-xl" style={{ border: '1px solid #d0dce8' }} onClick={() => setShowMemberDropdown(false)}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-black text-[#1d3557]">New Project</h2>
+            <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee] transition text-lg">✕</button>
+          </div>
+          <form onSubmit={createProject} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project name *</label>
+                <input placeholder="e.g. Website Redesign" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
+                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition"
+                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}
+                  onFocus={e => e.target.style.borderColor = '#457b9d'} onBlur={e => e.target.style.borderColor = '#d0dce8'} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Description</label>
+                <textarea placeholder="What is this project about?" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
+                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition resize-none"
+                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project Image</label>
+                <div className="flex items-center gap-4">
+                  {(imagePreview || form.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imagePreview || form.image} alt="preview" className="w-20 h-20 rounded-xl object-cover"
+                      style={{ border: '2px solid #d0dce8' }} />
+                  )}
+                  <div className="flex-1">
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                      className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
+                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
+                      {uploading ? 'Uploading…' : '📷 Choose Image'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Priority</label>
+                  <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
+                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
+                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                    {['low','medium','high','critical'].map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Visibility</label>
+                  <select value={form.visibility} onChange={e => setForm(p => ({ ...p, visibility: e.target.value }))}
+                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
+                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                    {['private','team','public'].map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Due date</label>
+                <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))}
+                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
+                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Add Members (Optional)</label>
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">👥 Select from Organizations</label>
+                  <div className="relative">
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); setShowMemberDropdown(!showMemberDropdown); }}
+                      className="w-full rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none text-left flex items-center justify-between"
+                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                      <span>{selectedMembers.length > 0 ? `${selectedMembers.length} member(s) selected` : 'Choose members...'}</span>
+                      <span>{showMemberDropdown ? '▲' : '▼'}</span>
+                    </button>
+                    {showMemberDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg" style={{ border: '1.5px solid #d0dce8', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                        <div className="p-2 border-b" style={{ borderColor: '#d0dce8' }}>
+                          <input type="text" placeholder="Search members..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+                            className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                            style={{ background: '#f1faee', border: '1px solid #d0dce8' }}
+                            onClick={e => e.stopPropagation()} />
+                        </div>
+                        <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
+                          {allOrgMembers.length > 0 ? (
+                            allOrgMembers
+                              .filter(m => !memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()) || m.email.toLowerCase().includes(memberSearch.toLowerCase()) || m.org_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                              .map(member => {
+                                const isSelected = selectedMembers.includes(member.id);
+                                return (
+                                  <button key={member.id} type="button"
+                                    onClick={(e) => { e.stopPropagation(); if (isSelected) setSelectedMembers(prev => prev.filter(id => id !== member.id)); else setSelectedMembers(prev => [...prev, member.id]); }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left"
+                                    style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden"
+                                      style={{ background: `hsl(${(member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
+                                      {member.avatar ? <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" /> : member.name[0].toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-bold text-[#1d3557] truncate">{member.name}</div>
+                                      <div className="text-xs text-[#6b7a8d] truncate">{member.email} • {member.org_name}</div>
+                                    </div>
+                                    {isSelected && <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: '#2a9d8f' }}>✓</div>}
+                                  </button>
+                                );
+                              })
+                          ) : (
+                            <div className="px-4 py-8 text-center text-sm text-[#6b7a8d]">No organization members found</div>
+                          )}
+                        </div>
+                        <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setShowMemberDropdown(false); }}
+                            className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
+                            style={{ background: '#2a9d8f', color: '#fff' }}>Done</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {selectedMembers.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedMembers.map(userId => {
+                        const user = allOrgMembers.find(u => u.id === userId);
+                        if (!user) return null;
+                        return (
+                          <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                            style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                            <span>{user.name}</span>
+                            <button type="button" onClick={() => setSelectedMembers(prev => prev.filter(id => id !== userId))} className="text-xs hover:opacity-70">✕</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">📧 Or Invite by Email</label>
+                  <div className="flex gap-2">
+                    <input type="email" placeholder="Enter email address..." value={emailInput} onChange={e => setEmailInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const em = emailInput.toLowerCase().trim(); if (em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && !inviteEmails.includes(em)) { setInviteEmails(prev => [...prev, em]); setEmailInput(''); } } }}
+                      className="flex-1 rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none"
+                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                    <button type="button"
+                      onClick={() => { const em = emailInput.toLowerCase().trim(); if (em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && !inviteEmails.includes(em)) { setInviteEmails(prev => [...prev, em]); setEmailInput(''); } }}
+                      className="px-4 py-2.5 rounded-xl font-bold text-sm text-white transition hover:opacity-90 flex-shrink-0"
+                      style={{ background: '#f59e0b' }}>Add</button>
+                  </div>
+                  {inviteEmails.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {inviteEmails.map(email => (
+                        <div key={email} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                          style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                          <span>📧 {email}</span>
+                          <button type="button" onClick={() => setInviteEmails(prev => prev.filter(e => e !== email))} className="text-xs hover:opacity-70">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ background: '#e63946' }}>
+                  {creating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {inviteEmails.length > 0 || selectedMembers.length > 0 ? 'Creating & Adding Members...' : 'Creating Project...'}
+                    </span>
+                  ) : 'Create Project'}
+                </button>
+                <button type="button" onClick={() => { setShowForm(false); setShowMemberDropdown(false); }} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+              </div>
+            </form>
         </div>
       </div>
 
@@ -514,237 +701,6 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }} onClick={() => setShowMemberDropdown(false)}>
-          <div className="bg-white rounded-2xl p-8 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ border: '1px solid #d0dce8' }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-black text-[#1d3557]">New Project</h2>
-              <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee] transition text-lg">✕</button>
-            </div>
-            <form onSubmit={createProject} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project name *</label>
-                <input placeholder="e.g. Website Redesign" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}
-                  onFocus={e => e.target.style.borderColor = '#457b9d'} onBlur={e => e.target.style.borderColor = '#d0dce8'} />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Description</label>
-                <textarea placeholder="What is this project about?" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition resize-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project Image</label>
-                <div className="flex items-center gap-4">
-                  {(imagePreview || form.image) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imagePreview || form.image} alt="preview" className="w-20 h-20 rounded-xl object-cover"
-                      style={{ border: '2px solid #d0dce8' }} />
-                  )}
-                  <div className="flex-1">
-                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                    <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                      className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
-                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
-                      {uploading ? 'Uploading…' : '📷 Choose Image'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Priority</label>
-                  <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
-                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
-                    {['low','medium','high','critical'].map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Visibility</label>
-                  <select value={form.visibility} onChange={e => setForm(p => ({ ...p, visibility: e.target.value }))}
-                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
-                    {['private','team','public'].map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Due date</label>
-                <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))}
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Add Members (Optional)</label>
-                
-                {/* Select from Organization Members */}
-                <div className="mb-3">
-                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">👥 Select from Organizations</label>
-                  <div className="relative">
-                    <button type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowMemberDropdown(!showMemberDropdown);
-                      }}
-                      className="w-full rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none text-left flex items-center justify-between"
-                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
-                      <span>{selectedMembers.length > 0 ? `${selectedMembers.length} member(s) selected` : 'Choose members...'}</span>
-                      <span>{showMemberDropdown ? '▲' : '▼'}</span>
-                    </button>
-                    
-                    {showMemberDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg" style={{ border: '1.5px solid #d0dce8', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                        <div className="p-2 border-b" style={{ borderColor: '#d0dce8' }}>
-                          <input type="text" placeholder="Search members..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
-                            className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                            style={{ background: '#f1faee', border: '1px solid #d0dce8' }}
-                            onClick={e => e.stopPropagation()} />
-                        </div>
-                        <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
-                          {allOrgMembers.length > 0 ? (
-                            allOrgMembers
-                              .filter(m => !memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()) || m.email.toLowerCase().includes(memberSearch.toLowerCase()) || m.org_name.toLowerCase().includes(memberSearch.toLowerCase()))
-                              .map(member => {
-                                const isSelected = selectedMembers.includes(member.id);
-                                return (
-                                  <button key={member.id} type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (isSelected) {
-                                        setSelectedMembers(prev => prev.filter(id => id !== member.id));
-                                      } else {
-                                        setSelectedMembers(prev => [...prev, member.id]);
-                                      }
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left"
-                                    style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden"
-                                      style={{ background: `hsl(${(member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
-                                      {member.avatar ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        member.name[0].toUpperCase()
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-bold text-[#1d3557] truncate">{member.name}</div>
-                                      <div className="text-xs text-[#6b7a8d] truncate">{member.email} • {member.org_name}</div>
-                                    </div>
-                                    {isSelected && (
-                                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                                        style={{ background: '#2a9d8f' }}>✓</div>
-                                    )}
-                                  </button>
-                                );
-                              })
-                          ) : (
-                            <div className="px-4 py-8 text-center text-sm text-[#6b7a8d]">
-                              No organization members found
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
-                          <button type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowMemberDropdown(false);
-                            }}
-                            className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
-                            style={{ background: '#2a9d8f', color: '#fff' }}>
-                            Done
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Selected Members Display */}
-                  {selectedMembers.length > 0 && (
-                    <div className="mt-2">
-                      <div className="flex flex-wrap gap-2">
-                        {selectedMembers.map(userId => {
-                          const user = allOrgMembers.find(u => u.id === userId);
-                          if (!user) return null;
-                          return (
-                            <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                              style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
-                              <span>{user.name}</span>
-                              <button type="button" onClick={() => setSelectedMembers(prev => prev.filter(id => id !== userId))}
-                                className="text-xs hover:opacity-70">✕</button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Invite by Email */}
-                <div>
-                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">📧 Or Invite by Email</label>
-                  <div className="flex gap-2">
-                    <input type="email" placeholder="Enter email address..." value={emailInput} onChange={e => setEmailInput(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const email = emailInput.toLowerCase().trim();
-                          if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !inviteEmails.includes(email)) {
-                            setInviteEmails(prev => [...prev, email]);
-                            setEmailInput('');
-                          }
-                        }
-                      }}
-                      className="flex-1 rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none"
-                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
-                    <button type="button"
-                      onClick={() => {
-                        const email = emailInput.toLowerCase().trim();
-                        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !inviteEmails.includes(email)) {
-                          setInviteEmails(prev => [...prev, email]);
-                          setEmailInput('');
-                        }
-                      }}
-                      className="px-4 py-2.5 rounded-xl font-bold text-sm text-white transition hover:opacity-90 flex-shrink-0"
-                      style={{ background: '#f59e0b' }}>
-                      Add
-                    </button>
-                  </div>
-                  {inviteEmails.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {inviteEmails.map(email => (
-                        <div key={email} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                          style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-                          <span>📧 {email}</span>
-                          <button type="button" onClick={() => setInviteEmails(prev => prev.filter(e => e !== email))}
-                            className="text-xs hover:opacity-70">✕</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ background: '#e63946' }}>
-                  {creating ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {inviteEmails.length > 0 || selectedMembers.length > 0 ? 'Creating & Adding Members...' : 'Creating Project...'}
-                    </span>
-                  ) : 'Create Project'}
-                </button>
-                <button type="button" onClick={() => { setShowForm(false); setShowMemberDropdown(false); }} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Plan picker modal — shown when user has no plan */}
       {showPlanModal && (

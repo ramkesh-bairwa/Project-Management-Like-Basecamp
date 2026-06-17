@@ -26,7 +26,7 @@ const actionConfig: Record<string, { icon: string; color: string; label: string 
   subtask_added:       { icon: '+', color: '#2a9d8f', label: 'Subtask added' },
   comment_added:       { icon: '💬', color: '#457b9d', label: 'Comment added' },
   comment_deleted:     { icon: '🗑', color: '#dc2626', label: 'Comment deleted' },
-  comment_updated:     { icon: '✎', color: '#9333ea', label: 'Comment updated' },
+  comment_updated:     { icon: '✎', color: '#9333ea', label: 'Comment edited' },
   document_attached:   { icon: '📎', color: '#6d6875', label: 'Document attached' },
 };
 
@@ -52,7 +52,9 @@ function fmtT(d: string | Date): string {
 }
 
 export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
-  if (!entries.length) {
+  const visibleEntries = entries.filter(entry => entry.action !== 'comment_added');
+
+  if (!visibleEntries.length) {
     return (
       <div className="text-center py-8 text-sm" style={{ color: '#6b7a8d' }}>
         No history yet
@@ -65,7 +67,7 @@ export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
       {/* Vertical line */}
       <div className="absolute left-3.5 top-0 bottom-0 w-0.5" style={{ background: '#d0dce8' }} />
       <div className="space-y-4">
-        {entries.map(entry => {
+        {visibleEntries.map(entry => {
           const cfg = actionConfig[entry.action] || { icon: '•', color: '#94a3b8', label: entry.action };
           return (
             <div key={entry.id} className="flex gap-4 relative">
@@ -96,6 +98,20 @@ export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
                 </div>
                 {entry.note && (
                   <p className="text-xs mt-1 italic" style={{ color: '#6b7a8d' }}>{entry.note}</p>
+                )}
+                {(entry.action === 'comment_deleted' || entry.action === 'comment_updated') && (
+                  <div className="mt-2 space-y-1">
+                    {entry.old_value && (
+                      <div className="text-xs px-2 py-1.5 rounded-lg" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                        <span className="font-bold mr-1">Before:</span>{entry.old_value}
+                      </div>
+                    )}
+                    {entry.new_value && (
+                      <div className="text-xs px-2 py-1.5 rounded-lg" style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}>
+                        <span className="font-bold mr-1">After:</span>{entry.new_value}
+                      </div>
+                    )}
+                  </div>
                 )}
                 <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>
                   {fmtDT(entry.created_at)}

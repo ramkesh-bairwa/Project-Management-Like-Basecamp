@@ -25,6 +25,7 @@ interface Props {
   onReply: (parentId: number, content: string) => Promise<void>;
   onResolve: (id: number, resolved: boolean) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
+  onEdit?: (id: number, content: string) => Promise<void>;
 }
 
 
@@ -48,15 +49,27 @@ function fmtT(d: string | Date): string {
   return `${h}:${m} ${ap}`;
 }
 
-export default function CommentThread({ comment, currentUserId, userRole, depth = 0, onReply, onResolve, onDelete }: Props) {
+export default function CommentThread({ comment, currentUserId, userRole, depth = 0, onReply, onResolve, onDelete, onEdit }: Props) {
   const [replying, setReplying] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+  const [saving, setSaving] = useState(false);
   const isAuthor = comment.user_id === currentUserId;
   const canManage = isAuthor || ['owner','manager'].includes(userRole);
   const colorIdx = comment.user_id % avatarColors.length;
+
+  async function submitEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!onEdit || !editText.trim() || editText === comment.content) { setEditing(false); return; }
+    setSaving(true);
+    await onEdit(comment.id, editText);
+    setSaving(false);
+    setEditing(false);
+  }
 
   async function submitReply(e: React.FormEvent) {
     e.preventDefault();
@@ -124,6 +137,16 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
                 Reopen
               </button>
             )}
+            {isAuthor && onEdit && (
+              <button
+                onClick={() => { setEditing(e => !e); setEditText(comment.content); }}
+                className="text-xs font-bold px-2 py-1 rounded-lg transition hover:opacity-80"
+                style={{ background: '#eff6ff', color: '#457b9d', border: '1px solid #bfdbfe' }}
+                title="Edit"
+              >
+                ✎ Edit
+              </button>
+            )}
             {canManage && (
               <button
                 onClick={() => setConfirmDelete(true)}
@@ -136,7 +159,26 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content or Edit form */}
+        {editing ? (
+          <form onSubmit={submitEdit} className="pl-9 mt-2 space-y-2">
+            <textarea
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              rows={3}
+              className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none resize-none"
+              style={{ background: '#f1faee', border: '1.5px solid #457b9d', color: '#1d3557' }}
+            />
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving}
+                className="px-4 py-1.5 rounded-lg text-xs font-black text-white hover:opacity-90 disabled:opacity-50"
+                style={{ background: '#457b9d' }}>{saving ? 'Saving…' : 'Save'}</button>
+              <button type="button" onClick={() => setEditing(false)}
+                className="px-4 py-1.5 rounded-lg text-xs font-bold hover:opacity-80"
+                style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>Cancel</button>
+            </div>
+          </form>
+        ) : (
         <div className="text-sm leading-relaxed pl-9" style={{ color: '#1d3557' }}>
           {comment.content.split('\n').map((line, i) => {
             const imgMatch = line.match(/^!\[.*?\]\((.+?)\)$/);
@@ -154,6 +196,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
             return line ? <p key={i}>{line}</p> : <br key={i} />;
           })}
         </div>
+        )}
 
         {/* Reply button */}
         {!comment.is_resolved && (
@@ -214,6 +257,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               onReply={onReply}
               onResolve={onResolve}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </div>

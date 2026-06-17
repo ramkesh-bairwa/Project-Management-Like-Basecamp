@@ -277,7 +277,9 @@ export async function POST(req: NextRequest) {
         'created','status_changed','assigned','unassigned',
         'priority_changed','title_changed','description_changed',
         'due_date_changed','reopened','closed','moved_group',
-        'subtask_added','comment_added','document_attached','deleted','subtask_status_changed'
+        'subtask_added','subtask_status_changed',
+        'comment_added','comment_deleted','comment_updated',
+        'document_attached','attachment_deleted','deleted'
       ) NOT NULL`
     },
     {
@@ -393,6 +395,17 @@ export async function POST(req: NextRequest) {
         FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
         FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
       )`
+    },
+    {
+      name: 'task_history comment actions enum',
+      sql: `ALTER TABLE task_history MODIFY COLUMN action ENUM(
+        'created','status_changed','assigned','unassigned',
+        'priority_changed','title_changed','description_changed',
+        'due_date_changed','reopened','closed','moved_group',
+        'subtask_added','subtask_status_changed',
+        'comment_added','comment_deleted','comment_updated',
+        'document_attached','attachment_deleted','deleted'
+      ) NOT NULL`
     },
   ];
 

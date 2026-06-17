@@ -45,12 +45,9 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     [user.id, entity_type, entity_id, parent_id || null, content]
   );
 
-  // Log on task history if commenting on a task
+  // Notify project/group members when commenting on a task. Adds are shown as live comments,
+  // while edits/deletes are tracked in task history below.
   if (entity_type === 'task') {
-    await query(
-      'INSERT INTO task_history (task_id, changed_by, action, new_value) VALUES (?,?,?,?)',
-      [entity_id, user.id, 'comment_added', content.substring(0, 100)]
-    );
     const task = await query<{ project_id: number; group_id: number | null; assignee_id: number | null; title: string }[]>(
       'SELECT project_id, group_id, assignee_id, title FROM tasks WHERE id=?', [entity_id]
     );

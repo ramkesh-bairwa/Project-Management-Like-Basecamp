@@ -41,6 +41,8 @@ const actionConfig: Record<string, { icon: string; color: string; label: string 
   moved_group:         { icon: '⇢', color: '#e9c46a', label: 'moved to group' },
   subtask_added:       { icon: '+', color: '#2a9d8f', label: 'added subtask' },
   comment_added:       { icon: '💬', color: '#457b9d', label: 'commented' },
+  comment_deleted:     { icon: '🗑', color: '#dc2626', label: 'deleted a comment' },
+  comment_updated:     { icon: '✎', color: '#9333ea', label: 'edited a comment' },
   document_attached:   { icon: '📎', color: '#6d6875', label: 'attached document' },
 };
 
@@ -130,13 +132,12 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
     if (!newComment.trim()) return;
     await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content: newComment }) });
     setNewComment('');
-    reload();
+    reload(); // reloads both comments AND history
   }
 
   async function replyComment(parentId: number, content: string) {
     await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content, parent_id: parentId }) });
-    fetch(`/api/comments?entity_type=task&entity_id=${task.id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => Array.isArray(d) && setComments(d));
+    reload();
   }
 
   async function resolveComment(id: number, resolved: boolean) {
@@ -145,25 +146,27 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
       .then(r => r.json()).then(d => Array.isArray(d) && setComments(d));
   }
 
+  async function editComment(id: number, content: string) {
+    await fetch('/api/comments', { method: 'PUT', headers: h, body: JSON.stringify({ id, content }) });
+    reload();
+  }
+
   async function deleteComment(id: number) {
     await fetch(`/api/comments?id=${id}`, { method: 'DELETE', headers: h });
-    fetch(`/api/comments?entity_type=task&entity_id=${task.id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => Array.isArray(d) && setComments(d));
+    reload(); // reload both comments AND history so deleted comment shows in history
   }
 
   // Build merged activity feed: history events + top-level comments, sorted by time
   const commentTree = buildCommentTree(comments);
   const topLevelComments = commentTree; // already roots only
 
-  // History entries that are NOT comment_added (those are shown via comment thread)
-  const historyEvents = history.filter(e => e.action !== 'comment_added');
-
   type ActivityItem =
     | { kind: 'history'; entry: HistoryEntry; time: Date }
     | { kind: 'comment'; comment: CommentNode; time: Date };
 
+  // New comments render as comments; edits/deletes render as history.
   const activityFeed: ActivityItem[] = [
-    ...historyEvents.map(e => ({ kind: 'history' as const, entry: e, time: new Date(e.created_at) })),
+    ...history.filter(e => e.action !== 'comment_added').map(e => ({ kind: 'history' as const, entry: e, time: new Date(e.created_at) })),
     ...topLevelComments.map(c => ({ kind: 'comment' as const, comment: c, time: new Date(c.created_at) })),
   ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
@@ -172,7 +175,7 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
 
   const tabs = [
     { key: 'subtasks' as const, label: `Subtasks (${subtasks.length})` },
-    { key: 'activity' as const, label: `Activity (${comments.length + historyEvents.length})` },
+    { key: 'activity' as const, label: `Activity (${activityFeed.length})` },
   ];
 
   return (
@@ -398,6 +401,7 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
                               userRole={userRole}
                               onReply={replyComment}
                               onResolve={resolveComment}
+                              onEdit={editComment}
                               onDelete={deleteComment}
                             />
                           </div>

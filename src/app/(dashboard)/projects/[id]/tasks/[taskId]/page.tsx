@@ -39,7 +39,8 @@ const actionCfg: Record<string, { icon: string; color: string }> = {
   subtask_added:           { icon: '+', color: '#2a9d8f' },
   subtask_status_changed:  { icon: '☑', color: '#2a9d8f' },
   comment_added:           { icon: '💬', color: '#457b9d' },
-  comment_deleted:         { icon: '🗨', color: '#e63946' },
+  comment_deleted:         { icon: '🗑', color: '#e63946' },
+  comment_updated:         { icon: '✎', color: '#9333ea' },
   deleted:                 { icon: '🗑', color: '#e63946' },
   attachment_deleted:      { icon: '📎', color: '#e63946' },
 };
@@ -59,8 +60,9 @@ function buildMessage(action: string, by: string, oldVal: string | null, newVal:
     case 'moved_group':             return oldVal ? `${by} moved task from group "${oldVal}" to "${newVal}"` : `${by} moved task to group "${newVal}"`;
     case 'subtask_added':           return `${by} added subtask "${newVal}"`;
     case 'subtask_status_changed':  return `${by} updated subtask "${oldVal}"`;
-    case 'comment_added':           return `${by} commented`;
-    case 'comment_deleted':          return `${by} deleted a comment`;
+    case 'comment_added':           return newVal ? `${by} commented: "${newVal}"` : `${by} commented`;
+    case 'comment_deleted':          return oldVal ? `${by} deleted a comment: "${oldVal}"` : `${by} deleted a comment`;
+    case 'comment_updated':          return `${by} edited a comment`;
     case 'deleted':                  return `${by} deleted this task`;
     case 'attachment_deleted':       return `${by} deleted attachment "${oldVal}"`;
     default:                        return `${by} ${action.replace(/_/g, ' ')}`;
@@ -320,6 +322,7 @@ export default function TaskDetailPage() {
     setPostingSubtaskComment(null);
     loadSubtaskComments(subtaskId);
     loadSubtasks();
+    loadHistory();
   }
 
   async function replySubtaskComment(subtaskId: number, parentId: number, content: string) {
@@ -329,6 +332,7 @@ export default function TaskDetailPage() {
       body: JSON.stringify({ entity_type: 'task', entity_id: subtaskId, content, parent_id: parentId })
     });
     loadSubtaskComments(subtaskId);
+    loadHistory();
   }
 
   async function resolveSubtaskComment(subtaskId: number, cid: number, resolved: boolean) {
@@ -343,6 +347,7 @@ export default function TaskDetailPage() {
   async function deleteSubtaskComment(subtaskId: number, cid: number) {
     await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: h });
     loadSubtaskComments(subtaskId);
+    loadHistory();
   }
 
   async function uploadFile(file: File) {
@@ -421,10 +426,16 @@ export default function TaskDetailPage() {
     if (!task) return;
     await fetch('/api/comments', { method: 'POST', headers: h, body: JSON.stringify({ entity_type: 'task', entity_id: task.id, content, parent_id: parentId }) });
     loadComments();
+    loadHistory();
   }
   async function resolveComment(cid: number, resolved: boolean) {
     await fetch('/api/comments', { method: 'PUT', headers: h, body: JSON.stringify({ id: cid, resolve: resolved, unresolve: !resolved }) });
     loadComments();
+  }
+  async function editComment(cid: number, content: string) {
+    await fetch('/api/comments', { method: 'PUT', headers: h, body: JSON.stringify({ id: cid, content }) });
+    loadComments();
+    loadHistory();
   }
   async function deleteComment() {
     if (!deleteCommentTarget || !task) return;
@@ -447,7 +458,7 @@ export default function TaskDetailPage() {
   const commentTree = buildCommentTree(comments);
   const canReopen = ['owner', 'admin', 'manager'].includes(myRole);
 
-  // Build feed: newest first — exclude comment_added (shown as actual comments)
+  // Build feed: newest first. New comments render as comments; edits/deletes render as history.
   const feed: FeedItem[] = [
     ...history.filter(e => e.action !== 'comment_added').map(e => ({ kind: 'history' as const, entry: e, time: new Date(e.created_at).getTime() })),
     ...commentTree.map(c => ({ kind: 'comment' as const, comment: c, time: new Date(c.created_at).getTime() })),
@@ -916,6 +927,7 @@ export default function TaskDetailPage() {
                         userRole={myRole}
                         onReply={replyComment}
                         onResolve={resolveComment}
+                        onEdit={editComment}
                         onDelete={async (cid) => {
                           await fetch(`/api/comments?id=${cid}`, { method: 'DELETE', headers: h });
                           loadComments();
@@ -1022,6 +1034,7 @@ export default function TaskDetailPage() {
                               userRole={myRole}
                               onReply={(parentId, content) => replySubtaskComment(sub.id, parentId, content)}
                               onResolve={(cid, resolved) => resolveSubtaskComment(sub.id, cid, resolved)}
+                              onEdit={editComment}
                               onDelete={(cid) => deleteSubtaskComment(sub.id, cid)}
                             />
                           ))}
