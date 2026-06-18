@@ -44,6 +44,8 @@ const actionConfig: Record<string, { icon: string; color: string; label: string 
   comment_deleted:     { icon: '🗑', color: '#dc2626', label: 'deleted a comment' },
   comment_updated:     { icon: '✎', color: '#9333ea', label: 'edited a comment' },
   document_attached:   { icon: '📎', color: '#6d6875', label: 'attached document' },
+  attachment_added:    { icon: '🖼️', color: '#2a9d8f', label: 'uploaded attachment' },
+  attachment_deleted:  { icon: '🗑', color: '#dc2626', label: 'removed attachment' },
 };
 
 

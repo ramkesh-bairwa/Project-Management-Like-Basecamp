@@ -374,6 +374,21 @@ export default function TaskDetailPage() {
     }
   }
 
+  async function uploadTaskImage(file: File) {
+    if (!task || !file.type.startsWith('image/')) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('task_id', String(task.id));
+    const res = await fetch('/api/tasks/attachments', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd
+    });
+    setUploading(false);
+    if (res.ok) loadAttachments(task.id);
+  }
+
   function handlePaste(e: React.ClipboardEvent) {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -536,9 +551,29 @@ export default function TaskDetailPage() {
             )}
 
             {/* Saved Attachments */}
-            {savedAttachments.length > 0 && (
-              <div className="mt-3">
-                <div className="text-xs font-bold mb-2" style={{ color: '#6b7a8d' }}>📎 Attachments ({savedAttachments.length})</div>
+            <div className="mt-3">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <div className="text-xs font-bold" style={{ color: '#6b7a8d' }}>📎 Attachments ({savedAttachments.length})</div>
+                <label
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition hover:opacity-80"
+                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  {uploading ? 'Uploading...' : 'Add Image'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadTaskImage(file);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              {savedAttachments.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
                   {savedAttachments.map(a => {
                     const ext = a.file_name.split('.').pop()?.toLowerCase() || '';
@@ -594,8 +629,8 @@ export default function TaskDetailPage() {
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <button onClick={() => router.back()} className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-100 transition" style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>← Back</button>
           {['owner', 'admin', 'manager'].includes(myRole) && (

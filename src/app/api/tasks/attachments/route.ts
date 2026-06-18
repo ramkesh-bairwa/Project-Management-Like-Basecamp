@@ -54,6 +54,10 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       'INSERT INTO task_attachments (task_id, uploaded_by, file_url, file_name, file_type, file_size) VALUES (?,?,?,?,?,?)',
       [task_id, user.id, fileUrl, file.name, fileType, file.size]
     );
+    await query(
+      `INSERT INTO task_history (task_id, changed_by, action, new_value) VALUES (?, ?, 'attachment_added', ?)`,
+      [task_id, user.id, file.name]
+    );
     return apiResponse({ id: result.insertId, file_url: fileUrl, file_name: file.name, file_type: fileType }, 201);
   }
 
@@ -79,8 +83,8 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return apiError('id required');
 
-  const rows = await query<{ task_id: number; uploaded_by: number; file_url: string; file_type: string }[]>(
-    'SELECT ta.task_id, ta.uploaded_by, ta.file_url, ta.file_type FROM task_attachments ta WHERE ta.id=?', [id]
+  const rows = await query<{ task_id: number; uploaded_by: number; file_url: string; file_name: string; file_type: string }[]>(
+    'SELECT ta.task_id, ta.uploaded_by, ta.file_url, ta.file_name, ta.file_type FROM task_attachments ta WHERE ta.id=?', [id]
   );
   if (!rows.length) return apiError('Not found', 404);
   const att = rows[0];
@@ -102,7 +106,7 @@ export const DELETE = withAuth(async (req: NextRequest, user) => {
   // Log to task history so it shows in activity feed
   await query(
     `INSERT INTO task_history (task_id, changed_by, action, old_value, new_value) VALUES (?, ?, 'attachment_deleted', ?, NULL)`,
-    [att.task_id, user.id, att.file_name]
+    [att.task_id, user.id, att.file_name || att.file_url]
   );
 
   return apiResponse({ message: 'Attachment deleted' });
