@@ -9,6 +9,7 @@ import { ToastProvider } from '@/components/GlobalToast';
 const nav = [
   { href: '/dashboard', label: 'Home' },
   { href: '/projects', label: 'Projects' },
+  { href: '/daily-reports', label: 'Daily Reports' },
   { href: '/organizations', label: 'Organizations' },
   { href: '/groups', label: 'Groups' },
   { href: '/connections', label: 'Connections' },

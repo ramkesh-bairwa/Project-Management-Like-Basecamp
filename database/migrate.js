@@ -1,4 +1,6 @@
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 
 async function run() {
   const conn = await mysql.createConnection({
@@ -31,11 +33,54 @@ async function run() {
   `);
   console.log('✅ Created group_meetings table');
 
+  // Daily Reports Migration
+  console.log('📊 Creating daily reports tables...');
+  
+  const dailyReportsSQL = fs.readFileSync(path.join(__dirname, 'migrations/create_daily_reports.sql'), 'utf8');
+  const statements = dailyReportsSQL.split(';').filter(stmt => stmt.trim());
+  
+  for (const statement of statements) {
+    try {
+      await conn.execute(statement);
+      console.log('✅ Executed daily reports SQL statement');
+    } catch (e) {
+      console.log('⚠️ SQL statement may already exist:', e.message);
+    }
+  }
+
+  // Add blocker_type column
+  console.log('🔧 Adding blocker_type column...');
+  try {
+    const blockerTypeSQL = fs.readFileSync(path.join(__dirname, 'migrations/add_blocker_type.sql'), 'utf8');
+    await conn.execute(blockerTypeSQL);
+    console.log('✅ Added blocker_type column');
+  } catch (e) {
+    console.log('⚠️ Blocker type column may already exist:', e.message);
+  }
+
+  // Add task comments and activity history
+  console.log('💬 Adding task comments and activity history...');
+  try {
+    const commentsSQL = fs.readFileSync(path.join(__dirname, 'migrations/add_task_comments_activity.sql'), 'utf8');
+    const statements = commentsSQL.split(';').filter(stmt => stmt.trim());
+    
+    for (const statement of statements) {
+      try {
+        await conn.execute(statement);
+        console.log('✅ Executed comments/activity SQL statement');
+      } catch (e) {
+        console.log('⚠️ Comments/Activity statement may already exist:', e.message);
+      }
+    }
+  } catch (e) {
+    console.log('⚠️ Comments and activity tables may already exist:', e.message);
+  }
+
   const [cols] = await conn.execute('SHOW COLUMNS FROM `groups`');
   console.log('groups columns now:', cols.map(c => c.Field));
 
-  const [tables] = await conn.execute('SHOW TABLES LIKE "%meeting%"');
-  console.log('meeting tables:', tables);
+  const [tables] = await conn.execute('SHOW TABLES LIKE "%daily%"');
+  console.log('daily tables:', tables);
 
   await conn.end();
 }
