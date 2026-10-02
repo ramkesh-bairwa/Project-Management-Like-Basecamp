@@ -20,7 +20,7 @@ const pool = global._mysqlPool ?? mysql.createPool({
 
 if (process.env.NODE_ENV !== 'production') global._mysqlPool = pool;
 
-export async function query<T = unknown>(sql: string, params?: (string | number | boolean | null)[]): Promise<T> {
+export async function query<T = unknown>(sql: string, params?: (string | number | boolean | null | Date)[]): Promise<T> {
   const [rows] = await pool.execute(sql, params);
   return rows as T;
 }

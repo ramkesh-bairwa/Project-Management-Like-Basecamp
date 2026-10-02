@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getToken } from '@/lib/client-auth';
 
@@ -20,7 +20,7 @@ const TEST_UPI = [
   { vpa: 'failure@razorpay', label: 'Always fails' },
 ];
 
-export default function RazorpayCheckoutPage() {
+function RazorpayCheckoutPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const planId = params.get('plan_id');
@@ -301,5 +301,13 @@ export default function RazorpayCheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RazorpayCheckoutPage() {
+  return (
+    <Suspense fallback={null}>
+      <RazorpayCheckoutPageContent />
+    </Suspense>
   );
 }

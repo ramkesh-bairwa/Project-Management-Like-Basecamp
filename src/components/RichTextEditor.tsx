@@ -44,7 +44,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
   // Sync external value changes (e.g. on page tab switch)
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value || '', false);
+      editor.commands.setContent(value || '', { emitUpdate: false });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);

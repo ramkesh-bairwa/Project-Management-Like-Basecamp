@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
-import { createNotification } from '@/app/api/notifications/route';
+import { createNotification } from '@/lib/notifications';
 import { generateUUID, uniqueSlug } from '@/lib/slug';
 
 type TaskRow = { id: number; project_id: number; title: string; status: string; priority: string; assignee_id: number | null; group_id: number | null; parent_task_id: number | null };

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { getWsUrl } from '../ws-url';
 
 export function useWebSocket(token = null) {
   const ws = useRef(null);
@@ -7,11 +8,7 @@ export function useWebSocket(token = null) {
   const [lastMessage, setLastMessage] = useState(null);
 
   useEffect(() => {
-    const url = token
-      ? `ws://localhost:${location.port || 3000}?token=${token}`
-      : `ws://localhost:${location.port || 3000}`;
-
-    ws.current = new WebSocket(url);
+    ws.current = new WebSocket(getWsUrl(token));
 
     ws.current.onopen = () => setConnected(true);
     ws.current.onclose = () => setConnected(false);

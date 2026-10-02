@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     sql += ' ORDER BY p.name ASC, u.name ASC, drt.id ASC';
 
-    const results = await query(sql, params);
+    const results = await query<any[]>(sql, params);
     
     // Group tasks by report
     const reportsMap = new Map();
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     const date = report_date || new Date().toISOString().split('T')[0];
 
     // Check if report already exists
-    const existingReport = await query(
+    const existingReport = await query<{ id: number }[]>(
       'SELECT id FROM daily_reports WHERE user_id = ? AND project_id = ? AND report_date = ?',
       [decoded.id, project_id, date]
     );
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new report
-    const result = await query(
+    const result = await query<{ insertId: number }>(
       'INSERT INTO daily_reports (user_id, project_id, report_date) VALUES (?, ?, ?)',
       [decoded.id, project_id, date]
     );

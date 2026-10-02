@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user exists
-    const users = await query('SELECT id, name FROM users WHERE email = ?', [email]);
+    const users = await query<{ id: number; name: string }[]>('SELECT id, name FROM users WHERE email = ?', [email]);
     if (!users || users.length === 0) {
       // Don't reveal if email exists or not for security
       return NextResponse.json({ message: 'If an account exists, a reset link has been sent' });

@@ -7,7 +7,7 @@ interface User { name: string; email: string; plan_name: string; is_org: boolean
 interface Project { id: number; name: string; status: string; priority: string; slug: string; task_count?: number; member_count?: number }
 interface Task { id: number; title: string; status: string; priority: string; due_date: string; project_name: string; slug: string; project_slug: string }
 interface Activity { id: number; type: string; title: string; body: string; created_at: string; link: string }
-interface Connection { user_id: number; name: string; email: string; avatar?: string }
+interface Connection { user_id: number; name: string; email: string; avatar?: string; status?: string }
 
 const tiles = [
   { href: '/projects', label: 'Projects', desc: 'Track work, set priorities, hit deadlines.', icon: '📋', bg: '#e63946', shadow: 'rgba(230,57,70,0.3)', light: false },

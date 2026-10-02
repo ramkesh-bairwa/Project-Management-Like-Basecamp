@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { sendWS } from '@/lib/ws-client';
 
 interface User {
   id: number;

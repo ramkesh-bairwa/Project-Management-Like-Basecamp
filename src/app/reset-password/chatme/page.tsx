@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ResetPasswordChatMe() {
+function ResetPasswordChatMeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -177,5 +177,13 @@ export default function ResetPasswordChatMe() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordChatMe() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordChatMeContent />
+    </Suspense>
   );
 }

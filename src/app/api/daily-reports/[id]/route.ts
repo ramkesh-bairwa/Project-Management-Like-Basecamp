@@ -4,7 +4,7 @@ import { query } from '@/lib/db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -14,7 +14,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string };
     
-    const reportId = parseInt(params.id);
+    const { id } = await params;
+    const reportId = parseInt(id);
     if (isNaN(reportId)) {
       return NextResponse.json({ error: 'Invalid report ID' }, { status: 400 });
     }
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     sql += ' ORDER BY drt.id';
 
-    const results = await query(sql, params_arr);
+    const results = await query<any[]>(sql, params_arr);
     
     if (results.length === 0) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });

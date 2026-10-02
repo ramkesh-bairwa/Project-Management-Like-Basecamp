@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
-import { createNotification } from '@/app/api/notifications/route';
+import { createNotification } from '@/lib/notifications';
 
 export const GET = withAuth(async (req: NextRequest) => {
   const org_id = new URL(req.url).searchParams.get('org_id');

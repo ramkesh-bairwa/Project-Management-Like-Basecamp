@@ -1,102 +1,97 @@
+// Deploys this app to the Hostinger VPS at https://project-crm.glamofashion.com
+//
+// Jenkins setup (one time):
+//   Plugins:      Pipeline, Git, SSH Agent, Credentials Binding
+//   Credentials:  vps-ssh-key      - "SSH Username with private key", user root, key authorised on the VPS
+//                 project-crm-env  - "Secret file", the production .env.local (see deploy/README.md)
+//   Agent tools:  ssh, rsync, curl
+//   Job:          Pipeline script from SCM -> this repo, branch Ramkesh-Level-2
+//
+// Everything on the server (database, build, PM2, nginx, TLS) is done by
+// deploy/remote-deploy.sh, so no manual server steps are needed.
 pipeline {
     agent any
 
     environment {
-        APP_NAME        = 'project-management'
-        APP_DIR         = '/var/www/project-management'
-        NODE_VERSION    = '20'
-        PM2_APP_NAME    = 'project-management'
-        GIT_REPO        = 'https://github.com/ramkesh-bairwa/Project-Management-Like-Basecamp.git'
-        GIT_BRANCH      = 'main'
+        DEPLOY_HOST   = '187.126.117.103'
+        DEPLOY_USER   = 'root'
+        APP_ROOT      = '/var/www/project-crm'
+        DOMAIN        = 'project-crm.glamofashion.com'
+        APP_PORT      = '3100'
+        PM2_APP_NAME  = 'project-crm'
+        RELEASE       = "${env.BUILD_NUMBER}"
+        SSH_OPTS      = '-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30'
     }
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 20, unit: 'MINUTES')
+        timeout(time: 30, unit: 'MINUTES')
         disableConcurrentBuilds()
+        timestamps()
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo '>>> Pulling latest code from Git...'
-                git branch: "${GIT_BRANCH}",
-                    url: "${GIT_REPO}",
-                    credentialsId: 'github-credentials'
+                checkout scm
+                sh 'git log -1 --oneline'
             }
         }
 
-        stage('Setup Node.js') {
+        stage('Upload release') {
             steps {
-                echo '>>> Setting up Node.js...'
-                sh '''
-                    export NVM_DIR="$HOME/.nvm"
-                    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-                    nvm use ${NODE_VERSION} || nvm install ${NODE_VERSION}
-                    node --version
-                    npm --version
-                '''
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                echo '>>> Installing npm dependencies...'
-                sh 'npm ci --prefer-offline'
-            }
-        }
-
-        stage('Lint') {
-            steps {
-                echo '>>> Running ESLint...'
-                sh 'npm run lint || true'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo '>>> Building Next.js app...'
-                withCredentials([file(credentialsId: 'env-file-project-management', variable: 'ENV_FILE')]) {
+                sshagent(credentials: ['vps-ssh-key']) {
                     sh '''
-                        cp $ENV_FILE .env.local
-                        npm run build
+                        ssh $SSH_OPTS $DEPLOY_USER@$DEPLOY_HOST \
+                            "mkdir -p $APP_ROOT/releases/$RELEASE $APP_ROOT/shared && chmod 700 $APP_ROOT/shared"
+
+                        rsync -az --delete -e "ssh $SSH_OPTS" \
+                            --exclude='.git' --exclude='node_modules' --exclude='.next' \
+                            --exclude='.env*' --exclude='*.dmg' --exclude='tsconfig.tsbuildinfo' \
+                            ./ $DEPLOY_USER@$DEPLOY_HOST:$APP_ROOT/releases/$RELEASE/
                     '''
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Upload env') {
             steps {
-                echo '>>> Deploying to server...'
-                sh '''
-                    # Copy built files to app directory
-                    rsync -av --delete \
-                        --exclude='.git' \
-                        --exclude='node_modules' \
-                        ./ ${APP_DIR}/
-
-                    # Install production dependencies on server
-                    cd ${APP_DIR}
-                    npm ci --omit=dev
-
-                    # Restart app with PM2
-                    pm2 describe ${PM2_APP_NAME} > /dev/null 2>&1 \
-                        && pm2 reload ${PM2_APP_NAME} --update-env \
-                        || pm2 start ecosystem.config.js
-
-                    pm2 save
-                '''
+                sshagent(credentials: ['vps-ssh-key']) {
+                    withCredentials([file(credentialsId: 'project-crm-env', variable: 'ENV_FILE')]) {
+                        sh '''
+                            scp $SSH_OPTS "$ENV_FILE" $DEPLOY_USER@$DEPLOY_HOST:$APP_ROOT/shared/.env.local
+                            ssh $SSH_OPTS $DEPLOY_USER@$DEPLOY_HOST "chmod 600 $APP_ROOT/shared/.env.local"
+                        '''
+                    }
+                }
             }
         }
 
-        stage('Health Check') {
+        stage('Migrate, build & start') {
             steps {
-                echo '>>> Running health check...'
+                sshagent(credentials: ['vps-ssh-key']) {
+                    sh '''
+                        ssh $SSH_OPTS $DEPLOY_USER@$DEPLOY_HOST \
+                            "RELEASE=$RELEASE APP_ROOT=$APP_ROOT DOMAIN=$DOMAIN APP_PORT=$APP_PORT PM2_APP_NAME=$PM2_APP_NAME \
+                             bash $APP_ROOT/releases/$RELEASE/deploy/remote-deploy.sh"
+                    '''
+                }
+            }
+        }
+
+        stage('Health check') {
+            steps {
                 sh '''
-                    sleep 5
-                    curl -f http://localhost:3000 || exit 1
-                    echo "Health check passed!"
+                    for i in $(seq 1 10); do
+                        if curl -fsS -o /dev/null "https://$DOMAIN/login"; then
+                            echo "https://$DOMAIN is up"
+                            exit 0
+                        fi
+                        sleep 5
+                    done
+                    echo "https://$DOMAIN did not respond"
+                    exit 1
                 '''
             }
         }
@@ -104,14 +99,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Deployment successful!'
+            echo "✅ Build #${env.BUILD_NUMBER} deployed to https://${env.DOMAIN}"
         }
         failure {
-            echo '❌ Deployment failed!'
-            // Uncomment below to send email notifications
-            // mail to: 'team@example.com',
-            //      subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            //      body: "Build failed. Check: ${env.BUILD_URL}"
+            echo '❌ Deployment failed. The previous release keeps running unless it was the first deploy.'
         }
         always {
             cleanWs()

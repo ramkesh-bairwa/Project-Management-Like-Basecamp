@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getToken } from '@/lib/client-auth';
 
@@ -15,7 +15,7 @@ const TEST_CARDS = [
   { number: '5555 5555 5555 4444', brand: 'Mastercard', result: 'success' },
 ];
 
-export default function SandboxPaymentPage() {
+function SandboxPaymentPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const paymentId = params.get('payment_id');
@@ -202,5 +202,13 @@ export default function SandboxPaymentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SandboxPaymentPage() {
+  return (
+    <Suspense fallback={null}>
+      <SandboxPaymentPageContent />
+    </Suspense>
   );
 }

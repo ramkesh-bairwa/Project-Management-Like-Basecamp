@@ -6,6 +6,7 @@ import PublicNav from '@/components/PublicNav';
 type Blog = {
   id: number;
   title: string;
+  slug: string;
   excerpt: string;
   category: string;
   author: string;

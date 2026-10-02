@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { getWsUrl } from './ws-url';
 
 type WSMessage = Record<string, unknown>;
 type Handler = (msg: WSMessage) => void;
@@ -13,10 +14,7 @@ function connect(token: string) {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
   currentToken = token;
 
-  const port = typeof window !== 'undefined' ? (location.port || '3000') : '3000';
-  const wsUrl = `ws://localhost:${port}?token=${token}`;
-
-  ws = new WebSocket(wsUrl);
+  ws = new WebSocket(getWsUrl(token));
 
   ws.onmessage = (e) => {
     try {
