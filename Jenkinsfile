@@ -19,6 +19,8 @@ pipeline {
         DOMAIN        = 'project-crm.glamofashion.com'
         APP_PORT      = '3100'
         PM2_APP_NAME  = 'project-crm'
+        HEALTH_PATH   = '/login'
+        ENV_CREDENTIAL_ID = 'project-crm-env'
         RELEASE       = "${env.BUILD_NUMBER}"
         SSH_OPTS      = '-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30'
     }
@@ -58,7 +60,7 @@ pipeline {
         stage('Upload env') {
             steps {
                 sshagent(credentials: ['vps-ssh-key']) {
-                    withCredentials([file(credentialsId: 'project-crm-env', variable: 'ENV_FILE')]) {
+                    withCredentials([file(credentialsId: env.ENV_CREDENTIAL_ID, variable: 'ENV_FILE')]) {
                         sh '''
                             scp $SSH_OPTS "$ENV_FILE" $DEPLOY_USER@$DEPLOY_HOST:$APP_ROOT/shared/.env.local
                             ssh $SSH_OPTS $DEPLOY_USER@$DEPLOY_HOST "chmod 600 $APP_ROOT/shared/.env.local"
@@ -73,7 +75,7 @@ pipeline {
                 sshagent(credentials: ['vps-ssh-key']) {
                     sh '''
                         ssh $SSH_OPTS $DEPLOY_USER@$DEPLOY_HOST \
-                            "RELEASE=$RELEASE APP_ROOT=$APP_ROOT DOMAIN=$DOMAIN APP_PORT=$APP_PORT PM2_APP_NAME=$PM2_APP_NAME \
+                            "RELEASE=$RELEASE APP_ROOT=$APP_ROOT DOMAIN=$DOMAIN APP_PORT=$APP_PORT PM2_APP_NAME=$PM2_APP_NAME HEALTH_PATH=$HEALTH_PATH \
                              bash $APP_ROOT/releases/$RELEASE/deploy/remote-deploy.sh"
                     '''
                 }
@@ -84,7 +86,7 @@ pipeline {
             steps {
                 sh '''
                     for i in $(seq 1 10); do
-                        if curl -fsS -o /dev/null "https://$DOMAIN/login"; then
+                        if curl -fsS -o /dev/null "https://$DOMAIN$HEALTH_PATH"; then
                             echo "https://$DOMAIN is up"
                             exit 0
                         fi

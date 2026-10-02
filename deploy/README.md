@@ -8,11 +8,11 @@ on the Hostinger VPS (`187.126.117.103`). No manual steps on the server are need
 1. Uploads the code to `/var/www/project-crm/releases/<build number>`.
 2. Uploads the production env file to `/var/www/project-crm/shared/.env.local`.
 3. Runs `deploy/remote-deploy.sh` on the server, which:
-   - creates the MySQL database and user if they don't exist,
+   - if the env file sets `DB_NAME`, runs `deploy/db-migrate.sh`: creates the MySQL database and user if needed,
    - applies the SQL files in `deploy/migrations.list` that haven't run yet,
    - runs `npm ci` and `npm run build`,
    - points `/var/www/project-crm/current` at the new release and restarts PM2 (`project-crm`, port 3100),
-   - rolls back to the previous release if the new one doesn't answer on `/login`,
+   - rolls back to the previous release if the new one doesn't answer on `HEALTH_PATH` (`/login`),
    - creates the nginx site and Let's Encrypt certificate on the first run,
    - keeps the last 5 releases.
 4. Checks that `https://project-crm.glamofashion.com/login` responds.
