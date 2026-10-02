@@ -5,7 +5,7 @@
 //   Credentials:  vps-ssh-key      - "SSH Username with private key", user root, key authorised on the VPS
 //                 project-crm-env  - "Secret file", the production .env.local (see deploy/README.md)
 //   Agent tools:  ssh, rsync, curl
-//   Job:          Pipeline script from SCM -> this repo, branch Ramkesh-Level-2
+//   Job:          Pipeline script from SCM -> this repo, branch main
 //
 // Everything on the server (database, build, PM2, nginx, TLS) is done by
 // deploy/remote-deploy.sh, so no manual server steps are needed.

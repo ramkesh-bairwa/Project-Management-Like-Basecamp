@@ -109,7 +109,7 @@ CREATE TABLE project_members (
 );
 
 -- Groups
-CREATE TABLE groups (
+CREATE TABLE `groups` (
   id INT AUTO_INCREMENT PRIMARY KEY,
   owner_id INT NOT NULL,
   org_id INT,
@@ -130,7 +130,7 @@ CREATE TABLE group_members (
   role ENUM('owner','admin','member') DEFAULT 'member',
   joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_group_member (group_id, user_id),
-  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

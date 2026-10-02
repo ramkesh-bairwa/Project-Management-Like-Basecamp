@@ -1,6 +1,6 @@
 # Deployment
 
-Every Jenkins build of `Ramkesh-Level-2` deploys to **https://project-crm.glamofashion.com**
+Every Jenkins build of `main` deploys to **https://project-crm.glamofashion.com**
 on the Hostinger VPS (`187.126.117.103`). No manual steps on the server are needed.
 
 ## What a build does
@@ -27,7 +27,7 @@ on the Hostinger VPS (`187.126.117.103`). No manual steps on the server are need
    - `project-crm-env`: *Secret file*, built from the template below.
 3. Create a **Pipeline** job → *Pipeline script from SCM* → Git →
    `https://github.com/ramkesh-bairwa/Project-Management-Like-Basecamp.git`,
-   branch `*/Ramkesh-Level-2`, script path `Jenkinsfile`.
+   branch `*/main`, script path `Jenkinsfile`.
 4. Optional: tick *GitHub hook trigger for GITScm polling* and add a GitHub webhook
    (`https://<jenkins>/github-webhook/`) to deploy on every push.
 

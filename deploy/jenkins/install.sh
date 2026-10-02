@@ -24,11 +24,10 @@ fi
 # --------------------------------------------------------------- packages
 log "Installing Java, rsync and Jenkins"
 export DEBIAN_FRONTEND=noninteractive
-if [ ! -f /etc/apt/sources.list.d/jenkins.list ]; then
-  curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key -o /usr/share/keyrings/jenkins-keyring.asc
-  echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" \
-    > /etc/apt/sources.list.d/jenkins.list
-fi
+# Jenkins rotates its repo signing key; jenkins.io-2026.key (fpr ...7198F4B714ABFC68) is current.
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key -o /usr/share/keyrings/jenkins-keyring.asc
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" \
+  > /etc/apt/sources.list.d/jenkins.list
 apt-get update -q
 apt-get install -y -q fontconfig openjdk-21-jre-headless rsync git
 systemctl stop jenkins 2>/dev/null || true
@@ -59,8 +58,10 @@ PIM_JAR="/opt/jenkins-plugin-manager-$PIM_VERSION.jar"
 [ -f "$PIM_JAR" ] || curl -fsSL -o "$PIM_JAR" \
   "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/$PIM_VERSION/jenkins-plugin-manager-$PIM_VERSION.jar"
 install -d -o jenkins -g jenkins "$JENKINS_HOME/plugins"
+# Copy next to JENKINS_HOME: the jenkins user can't read files under /root.
+install -m 644 -o jenkins -g jenkins "$HERE/plugins.txt" "$JENKINS_HOME/plugins.txt"
 sudo -u jenkins java -jar "$PIM_JAR" --war /usr/share/java/jenkins.war \
-  --plugin-download-directory "$JENKINS_HOME/plugins" --plugin-file "$HERE/plugins.txt"
+  --plugin-download-directory "$JENKINS_HOME/plugins" --plugin-file "$JENKINS_HOME/plugins.txt"
 
 log "Configuring the Jenkins service"
 install -d /etc/systemd/system/jenkins.service.d

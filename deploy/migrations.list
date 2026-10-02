@@ -24,6 +24,7 @@ database/migrations/add_images_to_entities.sql
 database/migrations/add_password_reset_tokens.sql
 database/migrations/add_mobile_gender_to_users.sql
 database/migrations/create_chat_system_mysql.sql
+deploy/messages_merge.sql
 database/migrations/create_blogs.sql
 deploy/blogs_slug.sql
 database/migrations/page_content.sql

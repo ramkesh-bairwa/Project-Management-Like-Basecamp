@@ -13,9 +13,6 @@ jenkins:
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
-  crumbIssuer:
-    standard:
-      excludeClientIPFromCrumb: true
 
 unclassified:
   location:
@@ -43,7 +40,7 @@ credentials:
 jobs:
   - script: |
       pipelineJob('project-crm') {
-        description('Deploys Ramkesh-Level-2 to https://project-crm.glamofashion.com')
+        description('Deploys main to https://project-crm.glamofashion.com')
         logRotator { numToKeep(30) }
         properties {
           pipelineTriggers {
@@ -58,7 +55,7 @@ jobs:
             scm {
               git {
                 remote { url('https://github.com/ramkesh-bairwa/Project-Management-Like-Basecamp.git') }
-                branch('*/Ramkesh-Level-2')
+                branch('*/main')
               }
             }
             scriptPath('Jenkinsfile')
