@@ -1,0 +1,68 @@
+# Jenkins Configuration as Code, loaded at startup (CASC_JENKINS_CONFIG).
+# Secrets are read from files in /var/lib/jenkins/casc-secrets, created by install.sh.
+jenkins:
+  systemMessage: "project-crm.glamofashion.com deployments"
+  numExecutors: 1
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${readFile:/var/lib/jenkins/casc-secrets/admin-password}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  crumbIssuer:
+    standard:
+      excludeClientIPFromCrumb: true
+
+unclassified:
+  location:
+    url: "https://jenkins.glamofashion.com/"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - basicSSHUserPrivateKey:
+              scope: GLOBAL
+              id: "vps-ssh-key"
+              username: "root"
+              description: "Deploys to the VPS as root"
+              privateKeySource:
+                directEntry:
+                  privateKey: "${readFile:/var/lib/jenkins/casc-secrets/deploy_key}"
+          - file:
+              scope: GLOBAL
+              id: "project-crm-env"
+              fileName: ".env.local"
+              description: "Production .env.local for project-crm"
+              secretBytes: "${readFileBase64:/var/lib/jenkins/casc-secrets/project-crm.env}"
+
+jobs:
+  - script: |
+      pipelineJob('project-crm') {
+        description('Deploys Ramkesh-Level-2 to https://project-crm.glamofashion.com')
+        logRotator { numToKeep(30) }
+        properties {
+          pipelineTriggers {
+            triggers {
+              githubPush()
+              pollSCM { scmpoll_spec('H/5 * * * *') }
+            }
+          }
+        }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('https://github.com/ramkesh-bairwa/Project-Management-Like-Basecamp.git') }
+                branch('*/Ramkesh-Level-2')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }
