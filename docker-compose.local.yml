@@ -1,0 +1,11 @@
+# Local (on your Mac): docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+# Opens http://localhost:3100 and uses the MySQL running on your Mac.
+services:
+  app:
+    network_mode: bridge
+    ports:
+      - "3100:3100"
+    environment:
+      DB_HOST: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

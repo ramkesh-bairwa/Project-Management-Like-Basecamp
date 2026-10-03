@@ -7,7 +7,8 @@ const WebSocket = require('ws');
 // Load .env.local manually since plain node doesn't load it
 require('fs').readFileSync('.env.local', 'utf8').split('\n').forEach(line => {
   const [key, ...val] = line.split('=');
-  if (key && val.length) process.env[key.trim()] = val.join('=').trim();
+  // Values already set (e.g. by docker compose) win over the file
+  if (key && val.length && process.env[key.trim()] === undefined) process.env[key.trim()] = val.join('=').trim();
 });
 
 const dev = process.env.NODE_ENV !== 'production';

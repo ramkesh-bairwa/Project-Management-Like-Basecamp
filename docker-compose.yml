@@ -1,0 +1,32 @@
+# Production (on the VPS, run by deploy/remote-deploy.sh):
+#   ENV_FILE=/var/www/project-crm/shared/.env.local UPLOADS_DIR=/var/www/project-crm/shared/uploads docker compose up -d --build
+# Local: see docker-compose.local.yml
+# Uses host networking so the app keeps port 3100 behind Nginx and reaches MySQL on 127.0.0.1.
+name: project-crm
+
+services:
+  app:
+    image: project-crm:latest
+    container_name: project-crm
+    build:
+      context: .
+      network: host
+      secrets: [dotenv]
+    environment:
+      NODE_ENV: production
+      PORT: "3100"
+    network_mode: host
+    volumes:
+      - ${ENV_FILE:-./.env.local}:/app/.env.local:ro   # server.js loads its settings from this file
+      - ${UPLOADS_DIR:-./public/uploads}:/app/public/uploads   # uploaded files survive deploys
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3100/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+secrets:
+  dotenv:
+    file: ${ENV_FILE:-.env.local}

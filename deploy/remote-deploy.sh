@@ -3,7 +3,9 @@
 # uploaded to $APP_ROOT/releases/$RELEASE and the env file to $APP_ROOT/shared/.env.local.
 #
 # Idempotent: first run creates the database, nginx site and TLS certificate;
-# later runs only apply new migrations, build, switch the release and restart.
+# later runs only apply new migrations, build the Docker image, switch the release and restart.
+# The app runs in the `project-crm` container (see docker-compose.yml); uploads live in
+# $APP_ROOT/shared/uploads so they survive releases.
 set -euo pipefail
 
 : "${RELEASE:?RELEASE is required}"
@@ -16,6 +18,7 @@ HEALTH_PATH="${HEALTH_PATH:-/login}"
 
 RELEASE_DIR="$APP_ROOT/releases/$RELEASE"
 ENV_FILE="$APP_ROOT/shared/.env.local"
+UPLOADS_DIR="$APP_ROOT/shared/uploads"
 NGINX_SITE="/etc/nginx/sites-available/$PM2_APP_NAME"
 
 log() { echo ">>> $*"; }
@@ -26,7 +29,7 @@ env_get() { grep -E "^$1=" "$ENV_FILE" | tail -n1 | cut -d= -f2- | sed -e 's/^[[
 
 [ -d "$RELEASE_DIR" ] || die "release dir $RELEASE_DIR not found"
 [ -f "$ENV_FILE" ]    || die "env file $ENV_FILE not found"
-for bin in node npm pm2 nginx mysql certbot curl; do
+for bin in docker node nginx mysql certbot curl; do
   command -v "$bin" >/dev/null || die "$bin is not installed on the server"
 done
 
@@ -38,23 +41,25 @@ else
 fi
 
 # ------------------------------------------------------------------- build
-log "Building release $RELEASE"
+export ENV_FILE UPLOADS_DIR
+mkdir -p "$UPLOADS_DIR"
+chown 1000:1000 "$UPLOADS_DIR"   # the container runs as the "node" user (uid 1000)
+chown root:1000 "$ENV_FILE" && chmod 640 "$ENV_FILE"   # readable by the container, not by other users
+
+log "Building image for release $RELEASE"
 cd "$RELEASE_DIR"
-ln -sfn "$ENV_FILE" .env.local
-npm ci --no-audit --no-fund
-NODE_OPTIONS="--max-old-space-size=2048" npm run build --if-present
-npm prune --omit=dev --no-audit --no-fund
+# Keep the running image as :previous so a failed release can be rolled back
+docker image inspect project-crm:latest >/dev/null 2>&1 && docker tag project-crm:latest project-crm:previous
+docker compose build
 
 # --------------------------------------------------------- switch & restart
 PREVIOUS="$(readlink -f "$APP_ROOT/current" 2>/dev/null || true)"
 
 switch_to() {
   ln -sfn "$1" "$APP_ROOT/current.tmp" && mv -Tf "$APP_ROOT/current.tmp" "$APP_ROOT/current"
-  mkdir -p /var/log/pm2
-  pm2 delete "$PM2_APP_NAME" >/dev/null 2>&1 || true
-  APP_ROOT="$APP_ROOT" APP_PORT="$APP_PORT" PM2_APP_NAME="$PM2_APP_NAME" \
-    pm2 start "$APP_ROOT/current/ecosystem.config.js"
-  pm2 save
+  # Older releases ran under PM2; make sure it no longer holds the port
+  command -v pm2 >/dev/null && { pm2 delete "$PM2_APP_NAME" >/dev/null 2>&1 && pm2 save >/dev/null; } || true
+  (cd "$APP_ROOT/current" && docker compose up -d --no-build)
 }
 
 healthy() {
@@ -68,9 +73,10 @@ healthy() {
 log "Starting $PM2_APP_NAME on port $APP_PORT"
 switch_to "$RELEASE_DIR"
 if ! healthy; then
-  pm2 logs "$PM2_APP_NAME" --lines 50 --nostream || true
-  if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$RELEASE_DIR" ]; then
+  docker logs --tail 50 project-crm || true
+  if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$RELEASE_DIR" ] && docker image inspect project-crm:previous >/dev/null 2>&1; then
     log "Health check failed, rolling back to $PREVIOUS"
+    docker tag project-crm:previous project-crm:latest
     switch_to "$PREVIOUS"
   fi
   die "release $RELEASE failed its health check"
@@ -96,4 +102,5 @@ ls -1dt "$APP_ROOT"/releases/*/ | tail -n +$((KEEP_RELEASES + 1)) | while read -
   [ "$(readlink -f "$old")" = "$(readlink -f "$APP_ROOT/current")" ] || rm -rf "$old"
 done
 
+docker image prune -f >/dev/null
 log "Release $RELEASE is live on https://$DOMAIN"
