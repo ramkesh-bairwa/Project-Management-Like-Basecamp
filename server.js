@@ -15,8 +15,30 @@ const app = next({ dev, webpack: true });
 const handle = app.getRequestHandler();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
+// Unverified/unapproved accounts are kept on /account-pending. Mirrors isUserApproved()
+// in src/lib/verification.ts (same 15s cache), which guards the API routes.
+const mysql = require('mysql2/promise');
+let dbPool;
+const approvalCache = new Map();
+async function isUserApproved(userId) {
+  const hit = approvalCache.get(userId);
+  if (hit && Date.now() - hit.at < 15000) return hit.approved;
+  dbPool ||= mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'project_management',
+    connectionLimit: 3,
+  });
+  const [rows] = await dbPool.execute('SELECT email_verified FROM users WHERE id = ? LIMIT 1', [userId]);
+  const approved = rows.length > 0 && rows[0].email_verified == 1;
+  approvalCache.set(userId, { approved, at: Date.now() });
+  return approved;
+}
+
 app.prepare().then(() => {
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
     const parsedUrl = parse(req.url, true);
     const { pathname } = parsedUrl;
 
@@ -31,7 +53,7 @@ app.prepare().then(() => {
     }
 
     // Fully public pages — no auth needed, serve immediately
-    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/forgot-password', '/reset-password', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact', '/auth/social-callback'];
+    const PUBLIC_PAGES = ['/', '/login', '/register', '/logout', '/verify-email', '/forgot-password', '/reset-password', '/plans', '/features', '/pricing', '/about', '/blog', '/docs', '/contact', '/auth/social-callback', '/account-pending'];
     const isPublicPage = PUBLIC_PAGES.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)));
 
     if (isPublicPage) {
@@ -80,12 +102,25 @@ app.prepare().then(() => {
       res.end();
       return;
     }
+    let decoded;
     try {
-      jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET);
     } catch {
       res.writeHead(307, { Location: '/login', 'Set-Cookie': 'token=; Max-Age=0; Path=/; HttpOnly' });
       res.end();
       return;
+    }
+
+    // Signed in but not verified/approved yet → waiting page only
+    try {
+      if (decoded.role !== 'admin' && !(await isUserApproved(decoded.id))) {
+        res.writeHead(307, { Location: '/account-pending' });
+        res.end();
+        return;
+      }
+    } catch (err) {
+      // Database unreachable: let the page load; its API calls are still checked by withAuth
+      console.error('Approval check failed:', err.message);
     }
 
     handle(req, res, parsedUrl);

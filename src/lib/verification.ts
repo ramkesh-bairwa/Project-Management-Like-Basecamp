@@ -12,3 +12,20 @@ export async function isEmailVerificationEnabled() {
   );
   return setting[0]?.value === '1';
 }
+
+// Signed-in users whose account is still unverified are kept on /account-pending.
+// The result is cached briefly so every request doesn't hit the database,
+// and an admin's approval takes effect within APPROVAL_CACHE_MS.
+const APPROVAL_CACHE_MS = 15_000;
+const approvalCache = new Map<number, { approved: boolean; at: number }>();
+
+export async function isUserApproved(userId: number) {
+  const hit = approvalCache.get(userId);
+  if (hit && Date.now() - hit.at < APPROVAL_CACHE_MS) return hit.approved;
+  const rows = await query<{ email_verified: number }[]>(
+    'SELECT email_verified FROM users WHERE id = ? LIMIT 1', [userId]
+  );
+  const approved = rows.length > 0 && rows[0].email_verified == 1;
+  approvalCache.set(userId, { approved, at: Date.now() });
+  return approved;
+}
