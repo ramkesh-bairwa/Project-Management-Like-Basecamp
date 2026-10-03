@@ -67,7 +67,7 @@ export default function FeaturesPage() {
         <h2 style={{ fontSize:36, fontWeight:900, color:'#fff', margin:'0 0 12px' }}>{get('cta','title','Ready to try it all?')}</h2>
         <p style={{ color:'rgba(255,255,255,0.5)', fontSize:16, margin:'0 0 32px' }}>{get('cta','subtitle','Free forever. No credit card required.')}</p>
         <Link href="/register" style={{ display:'inline-block', padding:'14px 36px', borderRadius:12, background:'#e63946', color:'#fff', fontWeight:800, fontSize:16, textDecoration:'none' }}>
-          {get('cta','button','Get Started Free →')}
+          {get('cta','button','Get Started →')}
         </Link>
       </section>
       <footer style={{ background:'#0f1f35', padding:'24px', textAlign:'center' }}>
