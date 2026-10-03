@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { query } from '@/lib/db';
-import { signToken } from '@/lib/auth';
 import { apiError } from '@/lib/api';
 import { sendVerificationEmail } from '@/lib/mailer';
+import { isEmailVerificationEnabled, PENDING_APPROVAL_MESSAGE } from '@/lib/verification';
 
 export async function POST(req: NextRequest) {
   const { name, email, password, invite_token } = await req.json();
@@ -14,18 +14,18 @@ export async function POST(req: NextRequest) {
     'SELECT id, email_verified FROM users WHERE email = ?', [email]
   );
 
-  // If user exists but unverified, allow resend
+  const verificationEnabled = await isEmailVerificationEnabled();
+
+  // If user exists but unverified, allow resend (or tell them they're still waiting for approval)
   if (existing.length > 0) {
     if (existing[0].email_verified === 0) {
+      if (!verificationEnabled) {
+        return NextResponse.json({ error: PENDING_APPROVAL_MESSAGE, code: 'PENDING_APPROVAL' }, { status: 409 });
+      }
       return NextResponse.json({ error: 'Email already registered but not verified. Please check your inbox or resend verification.', code: 'UNVERIFIED' }, { status: 409 });
     }
     return apiError('Email already registered');
   }
-
-  const setting = await query<{ value: string }[]>(
-    "SELECT value FROM site_settings WHERE `key` = 'email_verification_enabled' LIMIT 1"
-  );
-  const verificationEnabled = setting[0]?.value === '1';
 
   const hashed = await bcrypt.hash(password, 10);
 
@@ -66,25 +66,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Verification disabled — register and log in immediately
+  // Verification disabled — save the account unverified; an admin must approve it before it can log in
   const result = await query<{ insertId: number }>(
-    'INSERT INTO users (name, email, password, email_verified) VALUES (?, ?, ?, 1)',
+    'INSERT INTO users (name, email, password, email_verified) VALUES (?, ?, ?, 0)',
     [name, email, hashed]
   );
-  
+
   // Handle invitation if present
   if (invite_token) {
     await handleInvitation(invite_token, result.insertId);
   }
-  
-  const token = signToken({ id: result.insertId, email, role: 'user', is_org: false });
 
-  const res = NextResponse.json(
-    { user: { id: result.insertId, name, email, role: 'user', is_org: false }, token },
+  return NextResponse.json(
+    { message: 'Registration successful. ' + PENDING_APPROVAL_MESSAGE, code: 'PENDING_APPROVAL' },
     { status: 201 }
   );
-  res.cookies.set('token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'lax' });
-  return res;
 }
 
 async function handleInvitation(token: string, userId: number) {

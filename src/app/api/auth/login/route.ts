@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '@/lib/db';
 import { signToken } from '@/lib/auth';
 import { apiError } from '@/lib/api';
+import { isEmailVerificationEnabled, PENDING_APPROVAL_MESSAGE } from '@/lib/verification';
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
@@ -17,14 +18,12 @@ export async function POST(req: NextRequest) {
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return apiError('Invalid credentials', 401);
 
-  // Check verification only if the feature is enabled
-  const setting = await query<{ value: string }[]>(
-    "SELECT value FROM site_settings WHERE `key` = 'email_verification_enabled' LIMIT 1"
-  );
-  const verificationEnabled = setting[0]?.value === '1';
-
-  if (verificationEnabled && user.email_verified != 1) {
-    return apiError('Please verify your email before logging in. Check your inbox.', 403);
+  // Unverified accounts can't log in: they verify by email when that's enabled, otherwise an admin must approve them
+  if (user.email_verified != 1) {
+    if (await isEmailVerificationEnabled()) {
+      return apiError('Please verify your email before logging in. Check your inbox.', 403);
+    }
+    return NextResponse.json({ error: PENDING_APPROVAL_MESSAGE, code: 'PENDING_APPROVAL' }, { status: 403 });
   }
 
   const token = signToken({ id: user.id, email: user.email, role: user.role, is_org: user.is_org });

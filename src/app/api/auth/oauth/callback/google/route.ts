@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { signToken } from '@/lib/auth';
+import { isEmailVerificationEnabled } from '@/lib/verification';
 
 async function ensureOAuthColumns() {
   try {
@@ -75,6 +76,8 @@ export async function GET(req: NextRequest) {
       oauthId: String(profile.id),
     });
 
+    // null = account exists but is waiting for admin approval
+    if (!token) return htmlResponse(null, 'pending_approval');
     return htmlResponse(token);
   } catch (e) {
     console.error('[Google OAuth]', e);
@@ -83,29 +86,39 @@ export async function GET(req: NextRequest) {
 }
 
 async function upsertOAuthUser({ email, name, oauthProvider, oauthId }: { email: string; name: string; oauthProvider: string; oauthId: string }) {
-  let users = await query<{ id: number; email: string; role: string; is_org: boolean }[]>(
-    'SELECT id, email, role, is_org FROM users WHERE oauth_provider = ? AND oauth_id = ?',
+  // With email verification OFF, new accounts need admin approval (email_verified=1) before they can sign in
+  const needsApproval = !(await isEmailVerificationEnabled());
+
+  let users = await query<{ id: number; email: string; role: string; is_org: boolean; email_verified: number }[]>(
+    'SELECT id, email, role, is_org, email_verified FROM users WHERE oauth_provider = ? AND oauth_id = ?',
     [oauthProvider, oauthId]
   );
 
   if (!users.length) {
-    users = await query<{ id: number; email: string; role: string; is_org: boolean }[]>(
-      'SELECT id, email, role, is_org FROM users WHERE email = ?', [email]
+    users = await query<{ id: number; email: string; role: string; is_org: boolean; email_verified: number }[]>(
+      'SELECT id, email, role, is_org, email_verified FROM users WHERE email = ?', [email]
     );
     if (users.length) {
-      await query('UPDATE users SET oauth_provider = ?, oauth_id = ?, email_verified = 1 WHERE id = ?',
-        [oauthProvider, oauthId, users[0].id]);
+      await query('UPDATE users SET oauth_provider = ?, oauth_id = ?, email_verified = IF(?, email_verified, 1) WHERE id = ?',
+        [oauthProvider, oauthId, needsApproval, users[0].id]);
+      if (!needsApproval) users[0].email_verified = 1;
     }
   }
 
   if (!users.length) {
     const result = await query<{ insertId: number }>(
-      'INSERT INTO users (name, email, password, email_verified, oauth_provider, oauth_id) VALUES (?, ?, ?, 1, ?, ?)',
-      [name, email, '', oauthProvider, oauthId]
+      'INSERT INTO users (name, email, password, email_verified, oauth_provider, oauth_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email, '', needsApproval ? 0 : 1, oauthProvider, oauthId]
     );
+    if (needsApproval) return null;
     return signToken({ id: result.insertId, email, role: 'user', is_org: false });
   }
 
   const user = users[0];
+  if (user.email_verified != 1) {
+    if (needsApproval) return null;
+    // Email verification mode: signing in with the provider proves the email
+    await query('UPDATE users SET email_verified = 1 WHERE id = ?', [user.id]);
+  }
   return signToken({ id: user.id, email: user.email, role: user.role, is_org: user.is_org });
 }

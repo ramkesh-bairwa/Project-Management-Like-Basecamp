@@ -142,7 +142,7 @@ export default function SmtpSettingsPage() {
                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                       {emailVerification
                         ? 'New users must verify their email before logging in'
-                        : 'New users can log in immediately after registration'}
+                        : 'New users must be approved by an admin (Users → Verify) before logging in'}
                     </div>
                   </div>
                   <span style={{
@@ -156,10 +156,13 @@ export default function SmtpSettingsPage() {
                 </div>
               </div>
               {unverifiedCount > 0 && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 12, background: emailVerification ? 'rgba(245,158,11,0.1)' : '#f8fafc', color: emailVerification ? '#92400e' : '#475569' }}>
-                  <strong>{unverifiedCount} user{unverifiedCount === 1 ? ' has' : 's have'} not verified their email.</strong>{' '}
-                  {emailVerification ? 'They cannot log in until they do. ' : 'They can log in while verification is off. '}
-                  <a href="/admin/users?verified=0" style={{ color: '#6366f1', fontWeight: 700 }}>Manage unverified users →</a>
+                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 12, background: 'rgba(245,158,11,0.1)', color: '#92400e' }}>
+                  {emailVerification ? (
+                    <><strong>{unverifiedCount} user{unverifiedCount === 1 ? ' has' : 's have'} not verified their email.</strong> They cannot log in until they do or an admin verifies them. </>
+                  ) : (
+                    <><strong>{unverifiedCount} user{unverifiedCount === 1 ? ' is' : 's are'} waiting for approval.</strong> They cannot log in until an admin approves them. </>
+                  )}
+                  <a href="/admin/users?verified=0" style={{ color: '#6366f1', fontWeight: 700 }}>{emailVerification ? 'Manage unverified users →' : 'Review pending users →'}</a>
                 </div>
               )}
               {toggleMsg && (

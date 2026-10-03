@@ -10,11 +10,13 @@ export default function ChatMeRegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setInfo('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -37,9 +39,12 @@ export default function ChatMeRegisterPage() {
 
       const data = await res.json();
 
-      if (res.ok) {
+      if (res.ok && data.token) {
         localStorage.setItem('token', data.token);
         router.push('/chatme');
+      } else if (res.ok) {
+        // No token: account must be verified by email or approved by an admin first
+        setInfo(data.message || 'Account created. You can log in once it is verified.');
       } else {
         setError(data.error || 'Registration failed');
       }
@@ -104,6 +109,12 @@ export default function ChatMeRegisterPage() {
           {error && (
             <div style={{ padding: '12px 16px', borderRadius: '10px', background: '#fee2e2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '14px', marginBottom: '20px' }}>
               {error}
+            </div>
+          )}
+
+          {info && (
+            <div style={{ padding: '12px 16px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontSize: '14px', marginBottom: '20px' }}>
+              {info}
             </div>
           )}
 

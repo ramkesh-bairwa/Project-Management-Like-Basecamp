@@ -36,6 +36,8 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
   const [role, setRole] = useState('');
   const [verified, setVerified] = useState(initialVerified === '0' || initialVerified === '1' ? initialVerified : '');
   const [unverified, setUnverified] = useState(0);
+  // Email verification OFF: unverified users are waiting for an admin to approve them
+  const [approvalMode, setApprovalMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<{ id: number; type: 'delete' | 'ban' | 'unban' } | null>(null);
@@ -53,7 +55,7 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       .then(r => r.json())
       .then(d => {
         if (d.error) showNotice(`Could not load users: ${d.error}`, false);
-        setUsers(d.users || []); setTotal(d.total || 0); setUnverified(d.unverified || 0);
+        setUsers(d.users || []); setTotal(d.total || 0); setUnverified(d.unverified || 0); setApprovalMode(!!d.approval_mode);
       })
       .catch(() => showNotice('Could not load users: server error', false))
       .finally(() => setLoading(false));
@@ -113,13 +115,13 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
           <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Users</h1>
           <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>
             {total} {verified || search || role ? 'matching' : 'total'} users
-            {unverified > 0 && <> · <span style={{ color: '#f87171', fontWeight: 600 }}>{unverified} unverified</span></>}
+            {unverified > 0 && <> · <span style={{ color: '#f87171', fontWeight: 600 }}>{unverified} {approvalMode ? 'waiting for approval' : 'unverified'}</span></>}
           </p>
         </div>
         {unverified > 0 && (
           <button onClick={() => setConfirmVerifyAll(true)}
             style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.35)', cursor: 'pointer' }}>
-            ✓ Verify all {unverified}
+            ✓ {approvalMode ? 'Approve' : 'Verify'} all {unverified}
           </button>
         )}
       </div>
@@ -141,8 +143,8 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
         </select>
         <select value={verified} onChange={e => { setVerified(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">All email statuses</option>
-          <option value="1">Verified</option>
-          <option value="0">Unverified</option>
+          <option value="1">{approvalMode ? 'Approved' : 'Verified'}</option>
+          <option value="0">{approvalMode ? 'Waiting for approval' : 'Unverified'}</option>
         </select>
       </div>
 
@@ -184,15 +186,15 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
                       <button
                         onClick={() => updateUser(u.id, { email_verified: u.email_verified ? 0 : 1 })}
                         disabled={actionId === u.id}
-                        title={u.email_verified ? 'Click to unverify' : 'Click to verify'}
+                        title={u.email_verified ? 'Click to unverify (blocks login)' : approvalMode ? 'Click to approve — the user can then log in' : 'Click to verify'}
                         style={{
                           fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
                           background: u.email_verified ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
                           color: u.email_verified ? '#059669' : '#ef4444',
                         }}>
-                        {u.email_verified ? '✓ Verified' : '✗ Unverified'}
+                        {u.email_verified ? (approvalMode ? '✓ Approved' : '✓ Verified') : (approvalMode ? '⏳ Pending · Approve' : '✗ Unverified')}
                       </button>
-                      {!u.email_verified && (
+                      {!u.email_verified && !approvalMode && (
                         <button
                           onClick={() => resendVerification(u)}
                           disabled={actionId === u.id}
@@ -260,11 +262,11 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       {confirmVerifyAll && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>Verify {unverified} user{unverified === 1 ? '' : 's'}?</div>
+            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>{approvalMode ? 'Approve' : 'Verify'} {unverified} user{unverified === 1 ? '' : 's'}?</div>
             <div style={{ color: '#64748b', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>They will be able to log in without confirming their email address.</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setConfirmVerifyAll(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={verifyAll} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#10b981', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Verify all</button>
+              <button onClick={verifyAll} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#10b981', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{approvalMode ? 'Approve all' : 'Verify all'}</button>
             </div>
           </div>
         </div>

@@ -1,6 +1,13 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { sendWelcomeEmail } from '@/lib/mailer';
+import { isEmailVerificationEnabled } from '@/lib/verification';
+
+// Tell newly approved users they can log in. Best effort: SMTP failures must not block the admin.
+function notifyApproved(users: { name: string; email: string }[]) {
+  void Promise.allSettled(users.map(u => sendWelcomeEmail(u.email, u.name)));
+}
 
 function adminOnly(user: { role: string }) {
   if (user.role !== 'admin') throw new Error('Admin only');
@@ -30,7 +37,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   if (role) params.push(role);
   if (verified === '1' || verified === '0') params.push(Number(verified));
 
-  const [users, total, unverified] = await Promise.all([
+  const [users, total, unverified, verificationEnabled] = await Promise.all([
     query<unknown[]>(
       `SELECT u.id, u.name, u.email, u.role, u.is_org, u.created_at, u.email_verified,
         p.name as plan_name, u.plan_expires_at,
@@ -42,9 +49,11 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     ),
     query<{ total: number }[]>(`SELECT COUNT(*) as total FROM users u ${where}`, params),
     query<{ n: number }[]>('SELECT COUNT(*) as n FROM users WHERE email_verified = 0'),
+    isEmailVerificationEnabled(),
   ]);
 
-  return apiResponse({ users, total: total[0]?.total || 0, unverified: unverified[0]?.n || 0, page, limit });
+  // approval_mode: email verification is off, so unverified users are waiting for an admin to approve them
+  return apiResponse({ users, total: total[0]?.total || 0, unverified: unverified[0]?.n || 0, approval_mode: !verificationEnabled, page, limit });
 });
 
 // PUT /api/admin/users — update one user, or { verify_all: true } to verify every unverified user
@@ -53,9 +62,13 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
   const { id, role, plan_id, is_org, ban, email_verified, verify_all } = await req.json();
 
   if (verify_all) {
+    const pending = await query<{ id: number; name: string; email: string }[]>(
+      'SELECT id, name, email FROM users WHERE email_verified=0'
+    );
     const result = await query<{ affectedRows: number }>(
       'UPDATE users SET email_verified=1, verification_token=NULL, verification_token_expires=NULL WHERE email_verified=0'
     );
+    notifyApproved(pending);
     return apiResponse({ message: `${result.affectedRows} user(s) marked as verified` });
   }
 
@@ -63,7 +76,13 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
   if (role !== undefined) await query('UPDATE users SET role=? WHERE id=?', [role, id]);
   if (plan_id !== undefined) await query('UPDATE users SET plan_id=? WHERE id=?', [plan_id, id]);
   if (is_org !== undefined) await query('UPDATE users SET is_org=? WHERE id=?', [is_org ? 1 : 0, id]);
-  if (email_verified !== undefined) await query('UPDATE users SET email_verified=?, verification_token=NULL, verification_token_expires=NULL WHERE id=?', [email_verified ? 1 : 0, id]);
+  if (email_verified !== undefined) {
+    const before = await query<{ name: string; email: string; email_verified: number }[]>(
+      'SELECT name, email, email_verified FROM users WHERE id=?', [id]
+    );
+    await query('UPDATE users SET email_verified=?, verification_token=NULL, verification_token_expires=NULL WHERE id=?', [email_verified ? 1 : 0, id]);
+    if (email_verified && before[0] && before[0].email_verified != 1) notifyApproved([before[0]]);
+  }
   if (ban !== undefined) {
     await query('UPDATE users SET role=? WHERE id=?', [ban ? 'banned' : 'user', id]);
   }

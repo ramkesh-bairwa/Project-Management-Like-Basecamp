@@ -32,6 +32,9 @@ export default function LoginPage() {
     const inviteToken = params.get('invite');
     if (emailParam) setForm(p => ({ ...p, email: emailParam }));
     if (inviteToken) sessionStorage.setItem('invite_token', inviteToken);
+    if (params.get('error') === 'pending_approval') {
+      setError('Your account is waiting for admin approval. You will be able to log in once an admin approves it.');
+    }
     try {
       const token = localStorage.getItem('token');
       if (!token) return;

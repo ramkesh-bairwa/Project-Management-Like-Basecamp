@@ -23,6 +23,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [verifyPending, setVerifyPending] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [emailFailed, setEmailFailed] = useState('');
   const [resending, setResending] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
@@ -58,6 +59,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await res.json();
     setLoading(false);
+    if (data.code === 'PENDING_APPROVAL') { setPendingApproval(true); return; }
     if (data.code === 'UNVERIFIED') { setVerifyPending(true); return; }
     if (!res.ok) { setError(data.error || 'Registration failed'); return; }
     if (data.code === 'EMAIL_FAILED') { setEmailFailed(data.error || 'Could not send verification email.'); setVerifyPending(true); return; }
@@ -163,7 +165,18 @@ export default function RegisterPage() {
       }}>
         <div style={{ width: '100%', maxWidth: 420, animation: 'fadeUp 0.4s ease' }}>
 
-          {verifyPending ? (
+          {pendingApproval ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: 60, marginBottom: 20 }}>⏳</div>
+              <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1a1a2e', margin: '0 0 10px' }}>Waiting for approval</h2>
+              <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.7, margin: '0 0 28px' }}>
+                Your account <strong style={{ color: '#e63946' }}>{form.email}</strong> has been created<br />
+                and is waiting for an admin to approve it.<br />
+                You can log in as soon as it&apos;s approved.
+              </p>
+              <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: '#6b7280', textDecoration: 'none' }}>← Back to Login</Link>
+            </div>
+          ) : verifyPending ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ fontSize: 60, marginBottom: 20 }}>📧</div>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1a1a2e', margin: '0 0 10px' }}>Check your inbox!</h2>
