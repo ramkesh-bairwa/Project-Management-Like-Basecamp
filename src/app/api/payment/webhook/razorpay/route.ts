@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { activatePlan, planExpiry } from '@/lib/subscription';
 
 export const POST = withAuth(async (req: NextRequest, user) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, payment_id } = await req.json();
@@ -46,24 +47,11 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     [finalPaymentId, payment.id]
   );
 
-  // Activate subscription
-  const expires = new Date();
-  if (payment.billing_cycle === 'monthly') expires.setMonth(expires.getMonth() + 1);
-  else if (payment.billing_cycle === 'quarterly') expires.setMonth(expires.getMonth() + 3);
-  else if (payment.billing_cycle === 'yearly') expires.setFullYear(expires.getFullYear() + 1);
-  else expires.setFullYear(expires.getFullYear() + 100);
-
-  const expiresStr = expires.toISOString().slice(0, 19).replace('T', ' ');
-
-  await query(
-    'INSERT INTO subscriptions (user_id, plan_id, billing_cycle, status, expires_at, payment_ref, amount_paid) VALUES (?,?,?,?,?,?,?)',
-    [user.id, payment.plan_id, payment.billing_cycle, 'active', expiresStr, finalPaymentId, payment.amount]
-  );
-
-  await query(
-    'UPDATE users SET plan_id=?, plan_expires_at=?, is_org=TRUE WHERE id=?',
-    [payment.plan_id, expiresStr, user.id]
-  );
+  const expiresStr = planExpiry(payment.billing_cycle);
+  await activatePlan({
+    userId: user.id, planId: payment.plan_id, billingCycle: payment.billing_cycle,
+    expiresAt: expiresStr, paymentRef: finalPaymentId, amount: Number(payment.amount),
+  });
 
   return apiResponse({ message: 'Payment verified and plan activated', expires_at: expiresStr });
 });

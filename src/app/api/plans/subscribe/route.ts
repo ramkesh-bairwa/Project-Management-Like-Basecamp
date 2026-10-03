@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, apiResponse, apiError } from '@/lib/api';
+import { activatePlan } from '@/lib/subscription';
 
 export const POST = withAuth(async (req: NextRequest, user) => {
   const { plan_id, org_id, payment_ref, gateway } = await req.json();
@@ -16,22 +17,11 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
   // --- FREE PLAN: activate immediately, no payment record needed ---
   if (isFree) {
-    try {
-      await query(
-        'INSERT INTO subscriptions (user_id, org_id, plan_id, expires_at, payment_ref, amount_paid) VALUES (?, ?, ?, NULL, ?, ?)',
-        [user.id, org_id || null, plan_id, payment_ref || `FREE-${Date.now()}`, 0]
-      );
-    } catch { /* ignore if subscriptions insert fails */ }
-
     // Free plan: keep is_org as-is (don't downgrade if already org)
-    await query(
-      'UPDATE users SET plan_id = ?, plan_expires_at = NULL WHERE id = ?',
-      [plan_id, user.id]
-    );
-
-    if (org_id) {
-      await query('UPDATE organizations SET plan_id = ?, plan_expires_at = NULL WHERE id = ? AND owner_id = ?', [plan_id, org_id, user.id]);
-    }
+    await activatePlan({
+      userId: user.id, planId: plan.id, billingCycle: plan.billing_cycle, expiresAt: null,
+      paymentRef: payment_ref || `FREE-${Date.now()}`, amount: 0, orgId: org_id || null, makeOrg: false,
+    });
 
     return apiResponse({ message: 'Free plan activated', is_org: false }, 201);
   }
@@ -50,25 +40,6 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     return apiResponse({ message: 'Sandbox payment created', payment_id: result.insertId }, 201);
   }
 
-  // --- PAID PLAN via other gateway: just record and return ---
-  const expires = new Date();
-  if (plan.billing_cycle === 'monthly') expires.setMonth(expires.getMonth() + 1);
-  else if (plan.billing_cycle === 'yearly') expires.setFullYear(expires.getFullYear() + 1);
-  else expires.setFullYear(expires.getFullYear() + 100);
-
-  const expiresStr = expires.toISOString().slice(0, 19).replace('T', ' ');
-
-  try {
-    await query(
-      'INSERT INTO subscriptions (user_id, org_id, plan_id, expires_at, payment_ref, amount_paid) VALUES (?, ?, ?, ?, ?, ?)',
-      [user.id, org_id || null, plan_id, expiresStr, payment_ref || null, plan.price]
-    );
-  } catch { /* ignore */ }
-
-  await query(
-    'UPDATE users SET plan_id = ?, plan_expires_at = ?, is_org = TRUE WHERE id = ?',
-    [plan_id, expiresStr, user.id]
-  );
-
-  return apiResponse({ message: 'Subscription activated', expires_at: expiresStr, is_org: true }, 201);
+  // --- PAID PLAN via a real gateway: activated by that gateway's webhook after payment, never here ---
+  return apiError('Paid plans must be purchased through the payment gateway', 400);
 });

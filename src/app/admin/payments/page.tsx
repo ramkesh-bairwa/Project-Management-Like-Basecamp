@@ -32,6 +32,7 @@ export default function AdminPaymentsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || localStorage.getItem('token') || '') : '';
   const limit = 20;
@@ -42,7 +43,8 @@ export default function AdminPaymentsPage() {
     const params = new URLSearchParams({ page: String(page), search, status });
     fetch(`/api/admin/payments?${params}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(d => { setPayments(d.payments || []); setTotal(d.total || 0); setSummary(d.summary || null); })
+      .then(d => { setError(d.error || ''); setPayments(d.payments || []); setTotal(d.total || 0); setSummary(d.summary || null); })
+      .catch(() => setError('server error'))
       .finally(() => setLoading(false));
   }, [page, search, status, token]);
 
@@ -66,6 +68,12 @@ export default function AdminPaymentsPage() {
           <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>Transaction history & revenue</p>
         </div>
       </div>
+
+      {error && (
+        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: 'rgba(239,68,68,0.08)', color: '#991b1b' }}>
+          Could not load payments: {error}
+        </div>
+      )}
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>

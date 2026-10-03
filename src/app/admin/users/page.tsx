@@ -3,7 +3,7 @@ import { use, useEffect, useState, useCallback } from 'react';
 
 interface User {
   id: number; name: string; email: string; role: string;
-  plan_name: string | null; project_count: number; active_subs: number;
+  plan_name: string | null; plan_expires_at: string | null; project_count: number; active_subs: number;
   created_at: string; is_org: number; email_verified: number;
 }
 
@@ -51,7 +51,11 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
     const params = new URLSearchParams({ page: String(page), search, role, verified });
     fetch(`/api/admin/users?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
-      .then(d => { setUsers(d.users || []); setTotal(d.total || 0); setUnverified(d.unverified || 0); })
+      .then(d => {
+        if (d.error) showNotice(`Could not load users: ${d.error}`, false);
+        setUsers(d.users || []); setTotal(d.total || 0); setUnverified(d.unverified || 0);
+      })
+      .catch(() => showNotice('Could not load users: server error', false))
       .finally(() => setLoading(false));
   }, [page, search, role, verified]);
 
@@ -208,7 +212,18 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
                       </select>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      {u.plan_name ? <Badge label={u.plan_name} color="#6366f1" bg="rgba(99,102,241,0.08)" /> : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>}
+                      {u.plan_name ? (() => {
+                        const expired = !!u.plan_expires_at && new Date(u.plan_expires_at) < new Date();
+                        return (
+                          <div>
+                            <Badge label={u.plan_name} color="#6366f1" bg="rgba(99,102,241,0.08)" />
+                            <div style={{ fontSize: 10, fontWeight: 600, marginTop: 3, color: expired ? '#ef4444' : '#10b981', whiteSpace: 'nowrap' }}>
+                              {expired ? 'Expired' : 'Active'}
+                              {u.plan_expires_at && ` · ${new Date(u.plan_expires_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                            </div>
+                          </div>
+                        );
+                      })() : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 13 }}>{u.project_count}</td>
                     <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 12, whiteSpace: 'nowrap' }}>

@@ -33,6 +33,7 @@ export default function AdminProjectsPage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<number | null>(null);
+  const [error, setError] = useState('');
 
   const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || localStorage.getItem('token') || '') : '';
   const limit = 20;
@@ -43,7 +44,8 @@ export default function AdminProjectsPage() {
     const params = new URLSearchParams({ page: String(page), search, status });
     fetch(`/api/admin/projects?${params}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(d => { setProjects(d.projects || []); setTotal(d.total || 0); })
+      .then(d => { setError(d.error || ''); setProjects(d.projects || []); setTotal(d.total || 0); })
+      .catch(() => setError('server error'))
       .finally(() => setLoading(false));
   }, [page, search, status, token]);
 
@@ -66,6 +68,12 @@ export default function AdminProjectsPage() {
           <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>{total} total projects</p>
         </div>
       </div>
+
+      {error && (
+        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: 'rgba(239,68,68,0.08)', color: '#991b1b' }}>
+          Could not load projects: {error}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
         <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search project or owner..." style={{ ...inputStyle, width: 260 }} />

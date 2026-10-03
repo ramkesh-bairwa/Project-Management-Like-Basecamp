@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get('conversationId');
-  const limit = parseInt(searchParams.get('limit') || '50');
+  const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50));
   const before = searchParams.get('before');
 
   if (!conversationId) {
@@ -33,9 +33,9 @@ export async function GET(req: NextRequest) {
        FROM messages m
        JOIN users u ON u.id = m.sender_id
        WHERE m.conversation_id = ?
-       ORDER BY m.created_at DESC LIMIT ?`;
+       ORDER BY m.created_at DESC LIMIT ${limit}`;
 
-    const params = [conversationId, limit];
+    const params = [conversationId];
     const result = await query(messagesQuery, params);
 
     await query(

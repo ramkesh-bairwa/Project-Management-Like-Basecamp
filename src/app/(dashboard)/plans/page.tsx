@@ -26,8 +26,19 @@ export default function PlansPage() {
   const [success, setSuccess] = useState('');
   const [confirmPlan, setConfirmPlan] = useState<Plan | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [current, setCurrent] = useState<{ plan_id: number | null; plan_expires_at: string | null } | null>(null);
+
+  function loadCurrentPlan() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/user/plan-limits', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (!d.error) setCurrent({ plan_id: d.plan_id ?? null, plan_expires_at: d.plan_expires_at ?? null }); })
+      .catch(() => {});
+  }
 
   useEffect(() => {
+    loadCurrentPlan();
     fetch('/api/plans').then(r => r.json()).then(d => {
       if (!Array.isArray(d)) return;
       setPlans(d.map((p: Plan & { features: string | string[]; max_tasks?: number; max_groups?: number }) => ({
@@ -54,6 +65,7 @@ export default function PlansPage() {
     if (res.ok) {
       setConfirmPlan(null);
       setSuccess('🎉 Free plan activated! You can now create projects.');
+      loadCurrentPlan();
     } else {
       alert(data.error || 'Failed to activate plan. Please try again.');
     }
@@ -125,6 +137,7 @@ export default function PlansPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
         {plans.map(plan => {
           const isFree = Number(plan.price) === 0;
+          const isCurrent = current?.plan_id === plan.id;
           const c = planColors[plan.name] || planColors.Free;
           const features = [
             `${plan.max_projects === -1 ? 'Unlimited' : plan.max_projects} projects`,
@@ -136,8 +149,10 @@ export default function PlansPage() {
           ];
           return (
             <div key={plan.id} className="rounded-2xl p-6 flex flex-col relative overflow-hidden"
-              style={{ background: c.bg, border: `2px solid ${c.border}`, boxShadow: '0 4px 16px rgba(29,53,87,0.08)' }}>
-              {c.badge && (
+              style={{ background: c.bg, border: `2px solid ${isCurrent ? '#2a9d8f' : c.border}`, boxShadow: isCurrent ? '0 0 0 3px rgba(42,157,143,0.35)' : '0 4px 16px rgba(29,53,87,0.08)' }}>
+              {isCurrent ? (
+                <div className="absolute top-4 right-4 text-xs font-black px-2.5 py-1 rounded-full" style={{ background: '#2a9d8f', color: '#fff' }}>✓ Active</div>
+              ) : c.badge && (
                 <div className="absolute top-4 right-4 text-xs font-black px-2.5 py-1 rounded-full" style={{ background: '#e63946', color: '#fff' }}>{c.badge}</div>
               )}
 
@@ -162,7 +177,19 @@ export default function PlansPage() {
               </ul>
 
               {/* Button — completely separate for free vs paid */}
-              {isFree ? (
+              {isCurrent ? (
+                <>
+                  <div className="w-full py-3 rounded-xl font-black text-sm text-center"
+                    style={{ background: 'rgba(42,157,143,0.15)', color: c.text, border: '1.5px solid #2a9d8f' }}>
+                    ✓ Your current plan
+                  </div>
+                  <p className="text-xs text-center mt-2 font-medium" style={{ color: c.muted }}>
+                    {current?.plan_expires_at
+                      ? `Active until ${new Date(current.plan_expires_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                      : 'Active · never expires'}
+                  </p>
+                </>
+              ) : isFree ? (
                 <>
                   <button
                     onClick={() => setConfirmPlan(plan)}

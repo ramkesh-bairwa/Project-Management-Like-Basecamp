@@ -20,7 +20,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const search = searchParams.get('search') || '';
   const role = searchParams.get('role') || '';
   const verified = searchParams.get('verified') || '';
-  const page = Math.max(1, Number(searchParams.get('page') || 1));
+  const page = Math.max(1, Math.floor(Number(searchParams.get('page'))) || 1);
   const limit = 20;
   const offset = (page - 1) * limit;
 
@@ -37,8 +37,8 @@ export const GET = withAuth(async (req: NextRequest, user) => {
         (SELECT COUNT(*) FROM projects WHERE owner_id=u.id AND deleted_at IS NULL) as project_count,
         (SELECT COUNT(*) FROM subscriptions WHERE user_id=u.id AND status='active') as active_subs
        FROM users u LEFT JOIN plans p ON p.id=u.plan_id
-       ${where} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+       ${where} ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+      params
     ),
     query<{ total: number }[]>(`SELECT COUNT(*) as total FROM users u ${where}`, params),
     query<{ n: number }[]>('SELECT COUNT(*) as n FROM users WHERE email_verified = 0'),

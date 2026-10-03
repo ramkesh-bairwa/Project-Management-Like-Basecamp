@@ -43,6 +43,8 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
 
   return apiResponse({
     plan: plan.name,
+    plan_id: hasPlan ? planId : null,
+    plan_expires_at: hasPlan ? u?.plan_expires_at ?? null : null,
     has_plan: hasPlan,
     limits: {
       max_projects: plan.max_projects,

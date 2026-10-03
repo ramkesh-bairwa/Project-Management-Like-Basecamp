@@ -20,7 +20,7 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
     ),
     query<{ id: number; name: string; price: number; subscribers: number }[]>(
       `SELECT p.id, p.name, p.price,
-        (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id AND s.status='active') as subscribers
+        (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id AND s.status='active' AND (s.expires_at IS NULL OR s.expires_at > NOW())) as subscribers
        FROM plans p WHERE p.is_active=TRUE ORDER BY p.price ASC`
     ),
     query<unknown[]>(

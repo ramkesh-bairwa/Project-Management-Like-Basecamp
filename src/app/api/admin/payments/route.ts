@@ -7,7 +7,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') || '';
   const status = searchParams.get('status') || '';
-  const page = Math.max(1, Number(searchParams.get('page') || 1));
+  const page = Math.max(1, Math.floor(Number(searchParams.get('page'))) || 1);
   const limit = 20;
   const offset = (page - 1) * limit;
 
@@ -25,8 +25,8 @@ export const GET = withAuth(async (req: NextRequest, user) => {
        FROM payments py
        JOIN users u ON u.id=py.user_id
        JOIN plans pl ON pl.id=py.plan_id
-       ${where} ORDER BY py.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+       ${where} ORDER BY py.created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+      params
     ),
     query<{ total: number }[]>(
       `SELECT COUNT(*) as total FROM payments py JOIN users u ON u.id=py.user_id JOIN plans pl ON pl.id=py.plan_id ${where}`, params
