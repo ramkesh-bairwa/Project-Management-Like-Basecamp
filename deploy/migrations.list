@@ -33,3 +33,4 @@ database/migrations/create_daily_reports.sql
 database/migrations/add_blocker_type.sql
 database/migrations/add_task_comments_activity.sql
 database/migrations/add_comment_history_actions.sql
+deploy/schema_sync.sql

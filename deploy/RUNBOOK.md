@@ -41,6 +41,12 @@ pm2 restart project-crm                  # restart
 ls -l /var/www/project-crm/current       # which release is live
 cat /var/www/project-crm/shared/.env.local   # production env (secrets!)
 ```
+**Create the first admin** for the admin panel (`/admin/login`). This works only while no admin exists:
+```bash
+curl -X PUT https://project-crm.glamofashion.com/api/admin/auth \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Your Name","email":"you@example.com","password":"a-long-password"}'
+```
 **Roll back** to an earlier release:
 ```bash
 ls -1t /var/www/project-crm/releases                       # newest first
@@ -129,8 +135,17 @@ ss -ltnp | grep LISTEN   # ports in use
 
 ## 4. Deploy a new project on a subdomain (with Jenkins)
 
-Example: a Node/Next.js project at **xyz.glamofashion.com** on port **3300**.
-Replace `xyz` and `3300` everywhere below.
+Example: a Node/Next.js project at **xyz.glamofashion.com** on port **3300**, repo
+`https://github.com/<you>/xyz.git`, checked out on your Mac at `~/code/xyz`.
+Replace `xyz`, `3300` and the paths everywhere below.
+
+**Before you start, the project needs:**
+- a `start` script in `package.json` that listens on `process.env.PORT`
+  (`next start` does; for Express use `app.listen(process.env.PORT)`)
+- a production env file on your Mac, e.g. `~/code/xyz/.env.production`
+  - with a database: `DB_HOST=127.0.0.1`, `DB_NAME=xyz`, `DB_USER=xyz`, `DB_PASSWORD=<long random>`.
+    The first deploy creates the database and user.
+  - without a database: leave out `DB_NAME`
 
 ### Step 1 — DNS
 hPanel → Domains → glamofashion.com → DNS / Nameservers → **Add record**:
@@ -139,76 +154,86 @@ hPanel → Domains → glamofashion.com → DNS / Nameservers → **Add record**
 |---|---|---|---|
 | A | `xyz` | `187.126.117.103` | 300 |
 
-Check it (on your Mac) — should print the IP:
+Check it on your Mac. It should print the IP:
 ```bash
 dig +short xyz.glamofashion.com
 ```
 
-### Step 2 — Copy the deploy files into the new project's repo
-From this repo, copy:
-
-| File | Change in it |
-|---|---|
-| `Jenkinsfile` | the `environment` block (see below) |
-| `ecosystem.config.js` | `script:` — how the app starts (see below) |
-| `deploy/remote-deploy.sh` | nothing |
-| `deploy/db-migrate.sh` | nothing (only used if the env file sets `DB_NAME`) |
-| `deploy/nginx.conf` | nothing (`client_max_body_size` if uploads are big) |
-| `deploy/migrations.list` | list the project's own `.sql` files, or leave it out |
-
-`Jenkinsfile` → `environment` block:
-```groovy
-APP_ROOT          = '/var/www/xyz'
-DOMAIN            = 'xyz.glamofashion.com'
-APP_PORT          = '3300'
-PM2_APP_NAME      = 'xyz'
-HEALTH_PATH       = '/'              // a page that returns 200 without login
-ENV_CREDENTIAL_ID = 'xyz-env'
+### Step 2 — Jenkins API token (once, reuse for every project)
+Jenkins → **admin** (top right) → **Security** → **API Token** → **Add new token** → copy it.
+Then, in your Mac terminal:
+```bash
+export JENKINS_USER=admin
+export JENKINS_TOKEN=paste-the-token-here
 ```
-`ecosystem.config.js` → set `name` default to `'xyz'`, `APP_ROOT` default to `'/var/www/xyz'`,
-log file names to `xyz-*.log`, and `script` to how the app starts:
 
-| App type | `script` | `args` |
-|---|---|---|
-| Custom server (like this repo) | `'server.js'` | – |
-| Plain Next.js | `'node_modules/next/dist/bin/next'` | `'start'` |
-| Express / Node | `'index.js'` (your entry file) | – |
+### Step 3 — Run the setup script
+From this repo (Project-Management-Like-Basecamp), on your Mac:
+```bash
+cd ~/Desktop/Advance-Project/Working/Project-Management-Like-Basecamp
 
-The app must listen on `process.env.PORT` (`next start` does this already).
-`npm run build` runs if the project has a `build` script.
+deploy/new-project.sh \
+  --dir ~/code/xyz \
+  --name xyz \
+  --domain xyz.glamofashion.com \
+  --port 3300 \
+  --repo https://github.com/<you>/xyz.git \
+  --env-file ~/code/xyz/.env.production \
+  --health /
+```
+What it does:
+- writes `Jenkinsfile`, `ecosystem.config.js` and `deploy/` (remote-deploy.sh, db-migrate.sh, nginx.conf) into `~/code/xyz`, already filled in for `xyz`
+- creates the Jenkins credential `xyz-env` from your env file
+- creates the Jenkins job `xyz`, which checks GitHub every 5 minutes and deploys `main`
 
-Commit and push these files to the project's `main` branch.
+Options: `--branch <name>` (default `main`), `--health /path` (a page that returns 200 without login),
+`--git-credential <id>` for a private repo (see "By hand" below for creating it).
+Without `JENKINS_TOKEN` set, the script only writes the files.
 
-### Step 3 — Jenkins credentials (once per project)
-https://jenkins.glamofashion.com → **Manage Jenkins → Credentials → System → Global credentials → Add Credentials**:
-
-1. **Kind:** Secret file · **File:** the project's production `.env` · **ID:** `xyz-env`
-   - Use `DB_HOST=127.0.0.1` and a non-root `DB_USER`. With `DB_NAME` set, the deploy
-     creates the database and user for you. Without `DB_NAME`, database setup is skipped.
-2. **Private GitHub repo only:** Kind *Username with password* · username = your GitHub user ·
-   password = a GitHub personal access token (repo read) · ID `github-token`.
-
-The SSH key `vps-ssh-key` already exists and is shared by all projects.
-
-### Step 4 — Jenkins job
-**New Item** → name `xyz` → **Pipeline** → OK, then:
-
-- **Triggers:** tick **Poll SCM**, schedule `H/5 * * * *` (deploys within 5 min of a push)
-- **Pipeline → Definition:** *Pipeline script from SCM*
-  - SCM: **Git** · Repository URL: `https://github.com/<you>/<repo>.git`
-  - Credentials: `github-token` (private repos only)
-  - Branch: `*/main` · Script Path: `Jenkinsfile`
-- **Save** → **Build Now**
-
-The first build creates the nginx site, the HTTPS certificate, the database (if any)
-and starts the app. Watch it under **Build #1 → Console Output**; the job page shows
-each stage as green or red.
+### Step 4 — Push
+```bash
+cd ~/code/xyz
+git add Jenkinsfile ecosystem.config.js deploy
+git commit -m "Add VPS deploy"
+git push
+```
+Within 5 minutes Jenkins runs build #1. It creates the nginx site, the HTTPS certificate and
+the database (if any), then starts the app. To start it straight away:
+```bash
+curl -X POST -u $JENKINS_USER:$JENKINS_TOKEN https://jenkins.glamofashion.com/job/xyz/build
+```
+Watch it at `https://jenkins.glamofashion.com/job/xyz/` → the build → **Console Output**.
 
 ### Step 5 — Check
 ```bash
-curl -I https://xyz.glamofashion.com          # on your Mac: expect 200 or 30x
+curl -I https://xyz.glamofashion.com          # expect 200 or 30x
 ssh root@187.126.117.103 'pm2 ls'             # xyz should be "online"
 ```
+
+### By hand (instead of the script)
+1. Copy `Jenkinsfile`, `deploy/remote-deploy.sh`, `deploy/db-migrate.sh`, `deploy/nginx.conf` into the project.
+   In the `Jenkinsfile` `environment` block set:
+   ```groovy
+   APP_ROOT          = '/var/www/xyz'
+   DOMAIN            = 'xyz.glamofashion.com'
+   APP_PORT          = '3300'
+   PM2_APP_NAME      = 'xyz'
+   HEALTH_PATH       = '/'
+   ENV_CREDENTIAL_ID = 'xyz-env'
+   ```
+   Create `ecosystem.config.js` with `name: 'xyz'`, `script: 'npm'`, `args: 'start'`,
+   `cwd: '/var/www/xyz/current'`, `env: { NODE_ENV: 'production', PORT: 3300 }`.
+2. Jenkins → **Manage Jenkins → Credentials → System → Global credentials → Add Credentials**:
+   - **Kind:** Secret file · **File:** the production env · **ID:** `xyz-env`
+   - **Private repo only:** Kind *Username with password* · your GitHub user · a GitHub
+     personal access token (repo read) as the password · **ID:** `github-token`
+3. Jenkins → **New Item** → name `xyz` → **Pipeline** → OK:
+   - **Triggers:** tick **Poll SCM**, schedule `H/5 * * * *`
+   - **Pipeline → Definition:** *Pipeline script from SCM* · SCM **Git** · your repo URL ·
+     credentials `github-token` (private only) · branch `*/main` · Script Path `Jenkinsfile`
+   - **Save** → **Build Now**
+
+The SSH key `vps-ssh-key` already exists in Jenkins and is shared by all projects.
 
 ---
 
@@ -302,6 +327,31 @@ Then delete the Jenkins job, its `xyz-env` credential, and the DNS record.
 
 ## 9. Troubleshooting
 
+### "I pushed but the site didn't change"
+Work down this list. Each line answers one question.
+```bash
+# 1. Is the commit on GitHub main? (on your Mac, in the project)
+git fetch && git log origin/main --oneline -1
+
+# 2. Did Jenkins see it? Last poll result:
+ssh root@187.126.117.103 'tail -3 /var/lib/jenkins/jobs/project-crm/scm-polling.log'
+
+# 3. Did the build pass? (green/red on the job page, or:)
+curl -s -u $JENKINS_USER:$JENKINS_TOKEN "https://jenkins.glamofashion.com/job/project-crm/lastBuild/api/json?tree=number,result,building"
+
+# 4. Is the app running the newest release?
+ssh root@187.126.117.103 'ls -1t /var/www/project-crm/releases | head -1; readlink /var/www/project-crm/current; pm2 ls'
+
+# 5. Is the app throwing errors? (a missing DB column shows up here)
+ssh root@187.126.117.103 'pm2 logs project-crm --err --lines 50 --nostream'
+```
+- Step 1 shows an old commit → you haven't pushed, or pushed to another branch. Jenkins only deploys `main`.
+- Step 2 says "No changes" but step 1 has a new commit → wait up to 5 minutes, or start a build (§7).
+- Step 3 shows `FAILURE` → open the build's **Console Output**. The previous release is still running.
+- Step 4 shows the new release but the page looks old → hard-refresh the browser (⌘⇧R).
+- Step 5 shows `Unknown column` / `doesn't exist` → the code needs a schema change. Add a `.sql` file
+  and append it to `deploy/migrations.list`; the next build applies it.
+
 | Symptom | Cause | Fix |
 |---|---|---|
 | Browser: `ERR_SSL_UNRECOGNIZED_NAME_ALERT` | No certificate for that name | `certbot --nginx -d <name> --redirect` (DNS must point here first) |
@@ -309,6 +359,6 @@ Then delete the Jenkins job, its `xyz-env` credential, and the DNS record.
 | "Welcome to nginx!" or nginx `404` | No nginx site for that name | Add a site in `/etc/nginx/sites-available` + link it in `sites-enabled` |
 | MySQL `ERROR 1045 Access denied` | Wrong password, or user exists for another host | `ALTER USER '<u>'@'localhost' IDENTIFIED BY '…'`; create `'<u>'@'127.0.0.1'` too |
 | MySQL `ERROR 1410 … create a user with GRANT` | `GRANT` names a user that doesn't exist | Run `CREATE USER` first, with the same name and host |
-| MySQL syntax error near `groups` | `groups` is a reserved word in MySQL 8 | Write it as `` `groups` `` |
+| MySQL syntax error near `groups` | `groups` is a reserved word in MySQL 8 | Wrap the name in backticks in every SQL statement, as `database/schema.sql` does |
 | Jenkins build red at "Migrate, build & start" | Build or migration failed | Build → Console Output; the previous release keeps running |
 | Jenkins down after editing `casc.yaml` | Invalid config | `journalctl -u jenkins -n 200 \| grep -A3 SEVERE`, fix the file, `systemctl reset-failed jenkins && systemctl restart jenkins` |
