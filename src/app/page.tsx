@@ -191,7 +191,7 @@ export default function Home() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, alignItems: 'start' }}>
           {[
-            { name: 'Free', price: '$0', period: '/forever', desc: 'Perfect for individuals and small teams.', color: '#457b9d', features: ['3 projects', '5 members', '20 tasks', '1GB storage', 'Basic chat'], cta: 'Get Started Free', highlight: false },
+            { name: 'Free', price: '$0', period: '/forever', desc: 'Perfect for individuals and small teams.', color: '#457b9d', features: ['3 projects', '5 members', '20 tasks', '1GB storage', 'Basic chat'], cta: 'Get Started', highlight: false },
             { name: 'Pro', price: '$9.99', period: '/month', desc: 'For growing teams that need more power.', color: '#e63946', features: ['20 projects', '50 members', 'Unlimited tasks', '20GB storage', 'Group chat', 'Priority support', 'Analytics'], cta: 'Start Pro Trial', highlight: true },
             { name: 'Enterprise', price: '$99.99', period: '/month', desc: 'For large organizations at scale.', color: '#2a9d8f', features: ['Unlimited everything', '1000GB storage', 'Custom roles', 'API access', 'SLA guarantee', 'Dedicated support'], cta: 'Contact Sales', highlight: false },
           ].map(p => (

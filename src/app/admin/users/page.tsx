@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 
 interface User {
   id: number; name: string; email: string; role: string;
@@ -26,15 +26,21 @@ const roleColor: Record<string, { color: string; bg: string }> = {
   banned: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
 };
 
-export default function AdminUsersPage() {
+export default function AdminUsersPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  // Allow linking straight to a filter, e.g. /admin/users?verified=0
+  const initialVerified = use(searchParams).verified;
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
+  const [verified, setVerified] = useState(initialVerified === '0' || initialVerified === '1' ? initialVerified : '');
+  const [unverified, setUnverified] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<{ id: number; type: 'delete' | 'ban' | 'unban' } | null>(null);
+  const [confirmVerifyAll, setConfirmVerifyAll] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
 
   const limit = 20;
   function getToken() { return localStorage.getItem('admin_token') || localStorage.getItem('token') || ''; }
@@ -42,12 +48,37 @@ export default function AdminUsersPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), search, role });
+    const params = new URLSearchParams({ page: String(page), search, role, verified });
     fetch(`/api/admin/users?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
-      .then(d => { setUsers(d.users || []); setTotal(d.total || 0); })
+      .then(d => { setUsers(d.users || []); setTotal(d.total || 0); setUnverified(d.unverified || 0); })
       .finally(() => setLoading(false));
-  }, [page, search, role]);
+  }, [page, search, role, verified]);
+
+  function showNotice(text: string, ok: boolean) {
+    setNotice({ text, ok });
+    setTimeout(() => setNotice(null), 5000);
+  }
+
+  async function resendVerification(u: User) {
+    setActionId(u.id);
+    const res = await fetch('/api/admin/users/resend-verification', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` }, body: JSON.stringify({ id: u.id }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setActionId(null);
+    showNotice(d.message || d.error || (res.ok ? 'Email sent' : 'Could not send the email'), res.ok);
+  }
+
+  async function verifyAll() {
+    setConfirmVerifyAll(false);
+    const res = await fetch('/api/admin/users', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` }, body: JSON.stringify({ verify_all: true }),
+    });
+    const d = await res.json().catch(() => ({}));
+    showNotice(d.message || d.error || 'Done', res.ok);
+    load();
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -76,9 +107,24 @@ export default function AdminUsersPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, background: '#0f172a', borderRadius: 14, padding: '16px 24px', border: '1px solid #1e293b' }}>
         <div>
           <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Users</h1>
-          <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>{total} total users</p>
+          <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>
+            {total} {verified || search || role ? 'matching' : 'total'} users
+            {unverified > 0 && <> · <span style={{ color: '#f87171', fontWeight: 600 }}>{unverified} unverified</span></>}
+          </p>
         </div>
+        {unverified > 0 && (
+          <button onClick={() => setConfirmVerifyAll(true)}
+            style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.35)', cursor: 'pointer' }}>
+            ✓ Verify all {unverified}
+          </button>
+        )}
       </div>
+
+      {notice && (
+        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: notice.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: notice.ok ? '#065f46' : '#991b1b' }}>
+          {notice.text}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -88,6 +134,11 @@ export default function AdminUsersPage() {
           <option value="user">User</option>
           <option value="admin">Admin</option>
           <option value="banned">Banned</option>
+        </select>
+        <select value={verified} onChange={e => { setVerified(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">All email statuses</option>
+          <option value="1">Verified</option>
+          <option value="0">Unverified</option>
         </select>
       </div>
 
@@ -137,6 +188,15 @@ export default function AdminUsersPage() {
                         }}>
                         {u.email_verified ? '✓ Verified' : '✗ Unverified'}
                       </button>
+                      {!u.email_verified && (
+                        <button
+                          onClick={() => resendVerification(u)}
+                          disabled={actionId === u.id}
+                          title="Send a new verification link to this user"
+                          style={{ display: 'block', marginTop: 4, fontSize: 11, fontWeight: 600, padding: 0, border: 'none', background: 'none', color: '#6366f1', cursor: 'pointer', textDecoration: 'underline' }}>
+                          {actionId === u.id ? 'Sending…' : 'Resend email'}
+                        </button>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <select value={u.role} disabled={actionId === u.id}
@@ -180,6 +240,20 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {/* Verify-all modal */}
+      {confirmVerifyAll && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>Verify {unverified} user{unverified === 1 ? '' : 's'}?</div>
+            <div style={{ color: '#64748b', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>They will be able to log in without confirming their email address.</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmVerifyAll(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={verifyAll} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#10b981', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Verify all</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm modal */}
       {confirm && (

@@ -628,7 +628,7 @@ export default function DailyReportsPage() {
       if (defaultProject) setProjectFilter(defaultProject);
 
       if (adminUser) {
-        const usersRes = await fetch('/api/admin/users', { 
+        const usersRes = await fetch('/api/admin/users?all=1', { 
           headers: { Authorization: `Bearer ${token}` } 
         });
         const usersData = await usersRes.json();
