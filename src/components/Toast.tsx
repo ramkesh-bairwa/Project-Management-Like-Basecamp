@@ -20,25 +20,31 @@ export function showToast(
   message?: string,
   duration = 4000
 ) {
-  const toast: Toast = {
-    id: ++toastId,
-    type,
-    title,
-    message,
-    duration,
-  };
+  const toast: Toast = { id: ++toastId, type, title, message, duration };
   listeners.forEach((listener) => listener(toast));
 }
 
+const ICONS: Record<Toast['type'], React.ReactNode> = {
+  success: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  error: <path d="M18 6 6 18M6 6l12 12" />,
+  warning: <><path d="M12 9v4" /><path d="M12 17h.01" /></>,
+  info: <><path d="M12 16v-4" /><path d="M12 8h.01" /></>,
+};
+
+const TONE: Record<Toast['type'], string> = {
+  success: 'var(--success)',
+  error: 'var(--danger)',
+  warning: 'var(--warning)',
+  info: 'var(--primary)',
+};
+
 export function ToastContainer() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<(Toast & { leaving?: boolean })[]>([]);
 
   useEffect(() => {
     const listener = (toast: Toast) => {
-      setToasts((prev) => [...prev, toast]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, toast.duration);
+      setToasts((prev) => [...prev.slice(-4), toast]);
+      setTimeout(() => dismiss(toast.id), toast.duration);
     };
     listeners.push(listener);
     return () => {
@@ -47,105 +53,30 @@ export function ToastContainer() {
     };
   }, []);
 
-  const removeToast = (id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  const config = {
-    success: {
-      icon: '✓',
-      bg: '#f0fdf9',
-      border: '#99f6e4',
-      iconBg: '#2a9d8f',
-      text: '#0f766e',
-    },
-    warning: {
-      icon: '⚠',
-      bg: '#fef9c3',
-      border: '#fef08a',
-      iconBg: '#f59e0b',
-      text: '#854d0e',
-    },
-    error: {
-      icon: '✕',
-      bg: '#fef2f2',
-      border: '#fecaca',
-      iconBg: '#e63946',
-      text: '#b91c1c',
-    },
-    info: {
-      icon: 'ℹ',
-      bg: '#eff6ff',
-      border: '#bfdbfe',
-      iconBg: '#457b9d',
-      text: '#1d4ed8',
-    },
-  };
+  function dismiss(id: number) {
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 220);
+  }
 
   return (
-    <div className="toast-container">
+    <div className="toast-container" aria-live="polite">
       {toasts.map((toast) => {
-        const cfg = config[toast.type];
+        const tone = TONE[toast.type];
         return (
-          <div
-            key={toast.id}
-            className="toast-item"
-            style={{
-              background: cfg.bg,
-              border: `2px solid ${cfg.border}`,
-            }}
-          >
-            {/* Progress bar */}
-            <div
-              className="toast-progress"
-              style={{
-                background: cfg.iconBg,
-                animation: `shrink ${toast.duration}ms linear`,
-              }}
-            />
-
-            {/* Icon */}
-            <div
-              className="toast-icon"
-              style={{
-                background: cfg.iconBg,
-              }}
-            >
-              {cfg.icon}
+          <div key={toast.id} className={`toast-item ${toast.leaving ? 'toast-leave' : ''}`} role="status">
+            <div className="toast-icon" style={{ background: tone }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                {ICONS[toast.type]}
+              </svg>
             </div>
-
-            {/* Content */}
             <div className="toast-content">
-              <div
-                className="toast-title"
-                style={{
-                  color: cfg.text,
-                }}
-              >
-                {toast.title}
-              </div>
-              {toast.message && (
-                <div
-                  className="toast-message"
-                  style={{
-                    color: cfg.text,
-                  }}
-                >
-                  {toast.message}
-                </div>
-              )}
+              <div className="toast-title">{toast.title}</div>
+              {toast.message && <div className="toast-message">{toast.message}</div>}
             </div>
-
-            {/* Close button */}
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="toast-close"
-              style={{
-                color: cfg.text,
-              }}
-            >
-              ×
+            <button onClick={() => dismiss(toast.id)} className="toast-close" aria-label="Dismiss">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>
+            <div className="toast-progress" style={{ background: tone, animationDuration: `${toast.duration}ms` }} />
           </div>
         );
       })}

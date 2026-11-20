@@ -209,9 +209,14 @@ export const PUT = withAuth(async (req: NextRequest, user) => {
     }
   }
 
+  // Partial update: a field left out of the body keeps its stored value
+  // (sending only { id, status } from the kanban board must not wipe the
+  // description, assignee, due date or image). Sending null still clears it.
+  const prev = old as unknown as Record<string, unknown>;
+  const keep = <T,>(next: T | undefined, key: string) => (next === undefined ? prev[key] ?? null : next);
   await query(
     'UPDATE tasks SET title=?, description=?, assignee_id=?, status=?, priority=?, due_date=?, actual_hours=?, position=?, group_id=?, image=? WHERE id=?',
-    [title ?? old.title, description ?? null, assignee_id ?? null, status ?? old.status, priority ?? old.priority, due_date ?? null, actual_hours ?? null, position ?? 0, group_id ?? old.group_id, image ?? null, id]
+    [title || old.title, keep(description, 'description'), keep(assignee_id, 'assignee_id'), status || old.status, priority || old.priority, keep(due_date, 'due_date'), keep(actual_hours, 'actual_hours'), keep(position, 'position') ?? 0, group_id ?? old.group_id, keep(image, 'image'), id]
   );
 
   // Log each change

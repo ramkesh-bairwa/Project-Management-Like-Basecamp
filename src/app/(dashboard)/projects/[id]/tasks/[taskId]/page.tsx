@@ -22,27 +22,27 @@ interface HistoryEntry {
 
 const statusOptions = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'];
 const priorityOptions = ['low', 'medium', 'high', 'critical'];
-const statusColors: Record<string, string> = { todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946' };
+const statusColors: Record<string, string> = { todo: '#94a3b8', in_progress: '#6366f1', in_review: '#f59e0b', done: '#10b981', cancelled: '#f43f5e' };
 const statusLabels: Record<string, string> = { todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done', cancelled: 'Cancelled' };
-const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
+const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#6366f1', high: '#f59e0b', critical: '#f43f5e' };
 
 const actionCfg: Record<string, { icon: string; color: string }> = {
-  created:                 { icon: '✦', color: '#2a9d8f' },
-  status_changed:          { icon: '⇄', color: '#457b9d' },
+  created:                 { icon: '✦', color: '#10b981' },
+  status_changed:          { icon: '⇄', color: '#6366f1' },
   closed:                  { icon: '✓', color: '#0f766e' },
   reopened:                { icon: '↺', color: '#c2410c' },
-  assigned:                { icon: '→', color: '#6d6875' },
+  assigned:                { icon: '→', color: '#8b5cf6' },
   unassigned:              { icon: '←', color: '#94a3b8' },
-  priority_changed:        { icon: '!', color: '#f4a261' },
-  title_changed:           { icon: '✎', color: '#457b9d' },
-  moved_group:             { icon: '⇢', color: '#e9c46a' },
-  subtask_added:           { icon: '+', color: '#2a9d8f' },
-  subtask_status_changed:  { icon: '☑', color: '#2a9d8f' },
-  comment_added:           { icon: '💬', color: '#457b9d' },
-  comment_deleted:         { icon: '🗑', color: '#e63946' },
+  priority_changed:        { icon: '!', color: '#f59e0b' },
+  title_changed:           { icon: '✎', color: '#6366f1' },
+  moved_group:             { icon: '⇢', color: '#eab308' },
+  subtask_added:           { icon: '+', color: '#10b981' },
+  subtask_status_changed:  { icon: '☑', color: '#10b981' },
+  comment_added:           { icon: '💬', color: '#6366f1' },
+  comment_deleted:         { icon: '🗑', color: '#f43f5e' },
   comment_updated:         { icon: '✎', color: '#9333ea' },
-  deleted:                 { icon: '🗑', color: '#e63946' },
-  attachment_deleted:      { icon: '📎', color: '#e63946' },
+  deleted:                 { icon: '🗑', color: '#f43f5e' },
+  attachment_deleted:      { icon: '📎', color: '#f43f5e' },
 };
 
 function buildMessage(action: string, by: string, oldVal: string | null, newVal: string | null): string {
@@ -484,57 +484,57 @@ export default function TaskDetailPage() {
   if (accessDenied) return (
     <div className="flex flex-col items-center justify-center py-32 text-center">
       <div className="text-5xl mb-4">🔒</div>
-      <div className="font-black text-xl text-[#1d3557] mb-2">Access Denied</div>
-      <div className="text-sm text-[#6b7a8d] mb-6">You are not a member of this group or project.</div>
+      <div className="font-black text-xl text-[var(--text)] mb-2">Access Denied</div>
+      <div className="text-sm text-[var(--text-muted)] mb-6">You are not a member of this group or project.</div>
       <button onClick={() => router.push('/projects')}
         className="px-5 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90"
-        style={{ background: '#1d3557' }}>← Back to Projects</button>
+        style={{ background: 'var(--primary)' }}>← Back to Projects</button>
     </div>
   );
 
   if (!task) return (
     <div className="flex items-center justify-center py-32">
-      <div className="text-4xl mb-3 text-center">⏳<br /><span className="text-sm" style={{ color: '#6b7a8d' }}>Loading...</span></div>
+      <div className="text-4xl mb-3 text-center">⏳<br /><span className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</span></div>
     </div>
   );
 
   return (
     <div className="max-w-4xl">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-5 flex-wrap" style={{ color: '#6b7a8d' }}>
-        <Link href="/projects" className="hover:text-[#1d3557]">Projects</Link><span>/</span>
-        <Link href={`/projects/${id}`} className="hover:text-[#1d3557]">Overview</Link><span>/</span>
-        <Link href={`/projects/${id}/tasks`} className="hover:text-[#1d3557]">Tasks</Link><span>/</span>
-        <span className="font-bold truncate max-w-48" style={{ color: '#1d3557' }}>{task.title}</span>
+      <div className="flex items-center gap-2 text-sm mb-5 flex-wrap" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/projects" className="hover:text-[var(--text)]">Projects</Link><span>/</span>
+        <Link href={`/projects/${id}`} className="hover:text-[var(--text)]">Overview</Link><span>/</span>
+        <Link href={`/projects/${id}/tasks`} className="hover:text-[var(--text)]">Tasks</Link><span>/</span>
+        <span className="font-bold truncate max-w-48" style={{ color: 'var(--text)' }}>{task.title}</span>
       </div>
 
       {/* Task header */}
-      <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '1px solid #d0dce8' }}>
+      <div className="bg-surface rounded-2xl p-5 mb-4" style={{ border: '1px solid var(--border)' }}>
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              {projectName && <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: '#eff6ff', color: '#457b9d' }}>📁 {projectName}</span>}
+              {projectName && <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: 'var(--info-soft)', color: 'var(--link)' }}>📁 {projectName}</span>}
               {task.group_name && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>{task.group_name}</span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || 'var(--link)' }}>{task.group_name}</span>
               )}
-              <span className="text-xs" style={{ color: '#94a3b8' }}>#{task.id}</span>
+              <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>#{task.id}</span>
             </div>
-            <h1 className="text-xl font-black" style={{ color: '#1d3557' }}>{task.title}</h1>
+            <h1 className="text-xl font-black" style={{ color: 'var(--text)' }}>{task.title}</h1>
             {task.description && (
-              <div className="text-sm mt-2 space-y-1" style={{ color: '#6b7a8d' }}>
+              <div className="text-sm mt-2 space-y-1" style={{ color: 'var(--text-muted)' }}>
                 {task.description.split('\n').map((line, i) => {
                   const imgMatch = line.match(/^!\[.*?\]\((.+?)\)$/);
                   const videoMatch = line.match(/^🎥 \[video\]\((.+?)\)$/);
                   const linkMatch = line.match(/^🔗 (.+)$/);
-                  if (imgMatch) return <img key={i} src={imgMatch[1]} alt="attachment" className="rounded-xl max-w-full max-h-64 object-contain mt-1" style={{ border: '1px solid #e2e8f0' }} />;
+                  if (imgMatch) return <img key={i} src={imgMatch[1]} alt="attachment" className="rounded-xl max-w-full max-h-64 object-contain mt-1" style={{ border: '1px solid var(--border)' }} />;
                   if (videoMatch) return (
                     <div key={i}>
                       {/youtube|youtu\.be|vimeo/i.test(videoMatch[1])
-                        ? <a href={videoMatch[1]} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>🎥 Watch Video</a>
-                        : <video src={videoMatch[1]} controls className="rounded-xl max-w-full max-h-48 mt-1" style={{ border: '1px solid #e2e8f0' }} />}
+                        ? <a href={videoMatch[1]} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1.5px solid var(--warning-soft)' }}>🎥 Watch Video</a>
+                        : <video src={videoMatch[1]} controls className="rounded-xl max-w-full max-h-48 mt-1" style={{ border: '1px solid var(--border)' }} />}
                     </div>
                   );
-                  if (linkMatch) return <a key={i} href={linkMatch[1]} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs hover:underline" style={{ color: '#457b9d' }}>🔗 {linkMatch[1].length > 60 ? linkMatch[1].substring(0,60)+'...' : linkMatch[1]}</a>;
+                  if (linkMatch) return <a key={i} href={linkMatch[1]} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs hover:underline" style={{ color: 'var(--link)' }}>🔗 {linkMatch[1].length > 60 ? linkMatch[1].substring(0,60)+'...' : linkMatch[1]}</a>;
                   return line ? <p key={i}>{line}</p> : null;
                 })}
               </div>
@@ -545,18 +545,18 @@ export default function TaskDetailPage() {
                   style={{ background: `hsl(${(task.assignee_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                   {task.assignee_name[0].toUpperCase()}
                 </div>
-                <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{task.assignee_name}</span>
-                <span className="text-xs" style={{ color: '#94a3b8' }}>assigned</span>
+                <span className="text-xs font-bold" style={{ color: 'var(--text)' }}>{task.assignee_name}</span>
+                <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>assigned</span>
               </div>
             )}
 
             {/* Saved Attachments */}
             <div className="mt-3">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <div className="text-xs font-bold" style={{ color: '#6b7a8d' }}>📎 Attachments ({savedAttachments.length})</div>
+                <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📎 Attachments ({savedAttachments.length})</div>
                 <label
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition hover:opacity-80"
-                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}
+                  style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-soft)' }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                   {uploading ? 'Uploading...' : 'Add Image'}
@@ -584,29 +584,29 @@ export default function TaskDetailPage() {
                           // Show as image preview
                           <a href={a.file_url} target="_blank" rel="noopener noreferrer">
                             <img src={a.file_url} alt={a.file_name}
-                              style={{ width: 140, height: 110, objectFit: 'cover', borderRadius: 10, border: '2px solid #d0dce8', display: 'block' }} />
+                              style={{ width: 140, height: 110, objectFit: 'cover', borderRadius: 10, border: '2px solid var(--border)', display: 'block' }} />
                           </a>
                         ) : a.file_type === 'video' ? (
                           // Video — inline player
                           /youtube|youtu\.be|vimeo/i.test(a.file_url)
                             ? <a href={a.file_url} target="_blank" rel="noopener noreferrer"
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 140, height: 110, background: '#1d3557', borderRadius: 10, gap: 4, textDecoration: 'none' }}>
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 140, height: 110, background: 'var(--primary)', borderRadius: 10, gap: 4, textDecoration: 'none' }}>
                                 <span style={{ fontSize: 30 }}>🎥</span>
                                 <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>Watch Video</span>
                               </a>
                             : <video src={a.file_url} controls
-                                style={{ width: 200, maxHeight: 140, borderRadius: 10, border: '2px solid #d0dce8', display: 'block' }} />
+                                style={{ width: 200, maxHeight: 140, borderRadius: 10, border: '2px solid var(--border)', display: 'block' }} />
                         ) : a.file_type === 'link' ? (
                           // External link
                           <a href={a.file_url} target="_blank" rel="noopener noreferrer"
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: '1.5px solid #bfdbfe', borderRadius: 10, background: '#eff6ff', maxWidth: 200, textDecoration: 'none' }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: '1.5px solid var(--info-soft)', borderRadius: 10, background: 'var(--info-soft)', maxWidth: 200, textDecoration: 'none' }}>
                             <span style={{ fontSize: 18 }}>🔗</span>
-                            <span style={{ color: '#457b9d', fontSize: 11, fontWeight: 600, wordBreak: 'break-all' }}>{a.file_url.length > 30 ? a.file_url.substring(0,30)+'...' : a.file_url}</span>
+                            <span style={{ color: 'var(--link)', fontSize: 11, fontWeight: 600, wordBreak: 'break-all' }}>{a.file_url.length > 30 ? a.file_url.substring(0,30)+'...' : a.file_url}</span>
                           </a>
                         ) : (
                           // Other file types — download card
                           <a href={a.file_url} download={a.file_name} target="_blank" rel="noopener noreferrer"
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, background: '#f8fafc', maxWidth: 200, textDecoration: 'none' }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', maxWidth: 200, textDecoration: 'none' }}>
                             <span style={{ fontSize: 22 }}>
                               {['mp4','webm','mov','avi'].includes(ext) ? '🎥' :
                                ['pdf'].includes(ext) ? '📄' :
@@ -615,16 +615,16 @@ export default function TaskDetailPage() {
                                ['zip','rar','tar'].includes(ext) ? '🗂' : '📎'}
                             </span>
                             <div>
-                              <div style={{ color: '#1d3557', fontSize: 11, fontWeight: 700, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.file_name}</div>
-                              <div style={{ color: '#94a3b8', fontSize: 10 }}>{ext.toUpperCase()} • Download</div>
+                              <div style={{ color: 'var(--text)', fontSize: 11, fontWeight: 700, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.file_name}</div>
+                              <div style={{ color: 'var(--text-subtle)', fontSize: 10 }}>{ext.toUpperCase()} • Download</div>
                             </div>
                           </a>
                         )}
                         <button
                           onClick={() => setDeleteAttachTarget({ id: a.id, name: a.file_name })}
-                          style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 99 }}
+                          style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--accent)', color: '#fff', border: '2px solid #fff', fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 99 }}
                         >×</button>
-                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uploaded_by_name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-subtle)', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uploaded_by_name}</div>
                       </div>
                     );
                   })}
@@ -632,20 +632,20 @@ export default function TaskDetailPage() {
               )}
             </div>
           </div>
-          <button onClick={() => router.back()} className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-100 transition" style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>← Back</button>
+          <button onClick={() => router.back()} className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-100 transition" style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}>← Back</button>
           {['owner', 'admin', 'manager'].includes(myRole) && (
             <button onClick={() => setDeleteTaskConfirm(true)}
               className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-50 transition"
-              style={{ color: '#e63946', border: '1px solid #fecaca' }}>
+              style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>
               🗑 Delete Task
             </button>
           )}
         </div>
 
         {/* Inline controls */}
-        <div className="flex items-center gap-3 flex-wrap pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+        <div className="flex items-center gap-3 flex-wrap pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Status</span>
             <select value={editStatus}
               onChange={e => {
                 const s = e.target.value;
@@ -658,7 +658,7 @@ export default function TaskDetailPage() {
             </select>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Priority</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Priority</span>
             <select value={editPriority}
               onChange={e => { setEditPriority(e.target.value); updateTask({ priority: e.target.value }); }}
               className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
@@ -667,34 +667,34 @@ export default function TaskDetailPage() {
             </select>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Assignee</span>
             <select value={editAssignee}
               onChange={e => { setEditAssignee(e.target.value); updateTask({ assignee_id: e.target.value ? Number(e.target.value) : null }); }}
               className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
-              style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+              style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
               <option value="">{task.assignee_name || 'Unassigned'}</option>
               {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
             </select>
           </div>
-          {task.due_date && <span className="text-xs" style={{ color: '#6b7a8d' }}>📅 {fmtD(task.due_date)}</span>}
-          {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
-          {saveError && <span className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {saveError}</span>}
+          {task.due_date && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>📅 {fmtD(task.due_date)}</span>}
+          {saving && <span className="text-xs" style={{ color: 'var(--link)' }}>Saving...</span>}
+          {saveError && <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>⚠ {saveError}</span>}
         </div>
-        <div className="flex items-center gap-2 mt-3 pt-3 text-xs" style={{ borderTop: '1px solid #f1f5f9', color: '#94a3b8' }}>
+        <div className="flex items-center gap-2 mt-3 pt-3 text-xs" style={{ borderTop: '1px solid var(--border-soft)', color: 'var(--text-subtle)' }}>
           <span>🕐 Created {fmtDT(task.created_at)}</span>
-          {task.creator_name && <><span>·</span><span>by <strong style={{ color: '#6b7a8d' }}>{task.creator_name}</strong></span></>}
+          {task.creator_name && <><span>·</span><span>by <strong style={{ color: 'var(--text-muted)' }}>{task.creator_name}</strong></span></>}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 p-1 rounded-xl w-fit" style={{ background: '#e8f0f7' }}>
+      <div className="flex gap-1 mb-4 p-1 rounded-xl w-fit" style={{ background: 'var(--surface-3)' }}>
         {[
           { key: 'activity' as const, label: `📋 Activity (${feed.length})` },
           { key: 'subtasks' as const, label: `✅ Subtasks (${subtasks.length})` },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className="px-4 py-2 rounded-lg text-sm font-bold transition"
-            style={{ background: activeTab === tab.key ? '#1d3557' : 'transparent', color: activeTab === tab.key ? '#fff' : '#6b7a8d' }}>
+            style={{ background: activeTab === tab.key ? 'var(--primary)' : 'transparent', color: activeTab === tab.key ? '#fff' : 'var(--text-muted)' }}>
             {tab.label}
           </button>
         ))}
@@ -704,37 +704,37 @@ export default function TaskDetailPage() {
       {activeTab === 'activity' && (
         <div className="space-y-2">
           {/* Comment input */}
-          <div className="bg-white rounded-2xl p-4 mb-2" style={{ border: '1px solid #d0dce8' }}>
+          <div className="bg-surface rounded-2xl p-4 mb-2" style={{ border: '1px solid var(--border)' }}>
             <form onSubmit={postComment}>
               <div className="flex gap-2 mb-3">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                  style={{ background: '#457b9d' }}>
+                  style={{ background: 'var(--link)' }}>
                   {members.find(m => m.id === myId)?.name?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <input value={newComment} onChange={e => setNewComment(e.target.value)}
                   onPaste={handlePaste}
                   placeholder="Write a comment... (paste image with Ctrl+V)"
                   className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               </div>
 
               {/* Attachment toolbar */}
               <div className="flex items-center gap-2 mb-3 pl-9">
                 <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition hover:opacity-80"
-                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                  style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1.5px solid var(--success-soft)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                   {uploading ? 'Uploading...' : 'Image'}
                   <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0])} />
                 </label>
                 <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition hover:opacity-80"
-                  style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>
+                  style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1.5px solid var(--warning-soft)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                   Video
                   <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0])} />
                 </label>
                 <button type="button" onClick={() => setShowLinkInput(v => !v)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition hover:opacity-80"
-                  style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                  style={{ background: 'var(--info-soft)', color: 'var(--link)', border: '1.5px solid var(--info-soft)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                   Link
                 </button>
@@ -747,20 +747,20 @@ export default function TaskDetailPage() {
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLink())}
                     placeholder="Paste image/video URL..."
                     className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                    style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', color: '#1d3557' }} />
+                    style={{ background: 'var(--surface-2)', border: '1.5px solid var(--info-soft)', color: 'var(--text)' }} />
                   <button type="button" onClick={addLink}
                     className="px-3 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
-                    style={{ background: '#457b9d' }}>Add</button>
+                    style={{ background: 'var(--link)' }}>Add</button>
                 </div>
               )}
 
               {uploading && (
                 <div style={{ paddingLeft: 36, marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: "#457b9d", fontWeight: 700 }}>⏳ Uploading...</span>
+                  <span style={{ fontSize: 11, color: "var(--link)", fontWeight: 700 }}>⏳ Uploading...</span>
                 </div>
               )}
               <div className="flex items-center gap-2 flex-wrap pl-9">
-                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#6b7a8d' }}>Status:</span>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Status:</span>
                 {statusOptions.map(s => (
                   <button type="button" key={s} onClick={() => setCommentStatus(s === commentStatus ? '' : s)}
                     className="px-2.5 py-1 rounded-lg text-xs font-bold transition"
@@ -774,7 +774,7 @@ export default function TaskDetailPage() {
                 ))}
                 <button type="submit" disabled={posting || uploading || !newComment.trim()}
                   className="ml-auto px-4 py-1.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition flex-shrink-0"
-                  style={{ background: '#457b9d' }}>
+                  style={{ background: 'var(--link)' }}>
                   {posting ? '...' : 'Post'}
                 </button>
               </div>
@@ -783,9 +783,9 @@ export default function TaskDetailPage() {
 
 
           {feed.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center" style={{ border: '2px dashed #d0dce8' }}>
+            <div className="bg-surface rounded-2xl p-12 text-center" style={{ border: '2px dashed var(--border)' }}>
               <div className="text-3xl mb-2">📋</div>
-              <div className="text-sm" style={{ color: '#6b7a8d' }}>No activity yet</div>
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>No activity yet</div>
             </div>
           ) : (() => {
             // Group feed items by date
@@ -803,10 +803,10 @@ export default function TaskDetailPage() {
             return groups.map(group => (
               <div key={group.dateLabel}>
                 <div className="flex items-center gap-3 my-4">
-                  <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                  <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                   <span className="text-xs font-black px-3 py-1 rounded-full flex-shrink-0"
-                    style={{ background: '#f1f5f9', color: '#64748b' }}>{group.dateLabel}</span>
-                  <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                    style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>{group.dateLabel}</span>
+                  <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                 </div>
                 <div className="space-y-2">
                 {group.items.map((item) => {
@@ -816,10 +816,10 @@ export default function TaskDetailPage() {
                 const isOpen = expandedItems.has(key);
                 const msg = buildMessage(item.entry.action, item.entry.changed_by_name, item.entry.old_value, item.entry.new_value);
                 return (
-                  <div key={key} className="bg-white rounded-xl overflow-hidden transition-all"
+                  <div key={key} className="bg-surface rounded-xl overflow-hidden transition-all"
                     style={{ border: `1px solid ${isOpen ? cfg.color + '40' : '#e2e8f0'}` }}>
                     {/* Row — always clickable */}
-                    <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                    <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[var(--surface-2)] transition"
                       onClick={() => toggleItem(key)}>
                       <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                         style={{ background: cfg.color }}>{cfg.icon}</div>
@@ -827,8 +827,8 @@ export default function TaskDetailPage() {
                         style={{ background: `hsl(${(item.entry.changed_by_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                         {item.entry.changed_by_name[0]}
                       </div>
-                      <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>{msg}</span>
-                      <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
+                      <span className="flex-1 text-sm min-w-0" style={{ color: 'var(--text)' }}>{msg}</span>
+                      <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>
                         {fmtDT(item.entry.created_at)}
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
@@ -842,24 +842,24 @@ export default function TaskDetailPage() {
                     {isOpen && (
                       <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: `1px solid ${cfg.color}30`, background: '#fafbfc' }}>
                         {/* Detail card */}
-                        <div className="rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                        <div className="rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                             style={{ background: cfg.color }}>{cfg.icon}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black mb-0.5" style={{ color: '#1d3557' }}>{item.entry.changed_by_name}</div>
-                            <div className="text-xs" style={{ color: '#6b7a8d' }}>{msg}</div>
+                            <div className="text-xs font-black mb-0.5" style={{ color: 'var(--text)' }}>{item.entry.changed_by_name}</div>
+                            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{msg}</div>
                           </div>
                           {/* old → new values */}
                           {(item.entry.old_value || item.entry.new_value) && (
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {item.entry.old_value && (
-                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>
                                   {item.entry.old_value}
                                 </span>
                               )}
-                              {item.entry.old_value && item.entry.new_value && <span className="text-xs" style={{ color: '#94a3b8' }}>→</span>}
+                              {item.entry.old_value && item.entry.new_value && <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>→</span>}
                               {item.entry.new_value && (
-                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: '#f0fdf9', color: '#0f766e' }}>
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>
                                   {item.entry.new_value}
                                 </span>
                               )}
@@ -868,12 +868,12 @@ export default function TaskDetailPage() {
                         </div>
 
                         {/* Quick-change controls */}
-                        <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-                          <div className="text-xs font-black mb-2" style={{ color: '#6b7a8d' }}>QUICK UPDATE</div>
+                        <div className="rounded-xl p-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                          <div className="text-xs font-black mb-2" style={{ color: 'var(--text-muted)' }}>QUICK UPDATE</div>
                           <div className="flex items-center gap-3 flex-wrap">
                             {/* Status */}
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+                              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Status</span>
                               <select value={editStatus}
                                 onChange={e => {
                                   const s = e.target.value;
@@ -887,7 +887,7 @@ export default function TaskDetailPage() {
                             </div>
                             {/* Priority */}
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Priority</span>
+                              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Priority</span>
                               <select value={editPriority}
                                 onChange={e => { setEditPriority(e.target.value); updateTask({ priority: e.target.value }); }}
                                 className="text-xs font-bold px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
@@ -897,17 +897,17 @@ export default function TaskDetailPage() {
                             </div>
                             {/* Assignee */}
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+                              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Assignee</span>
                               <select value={editAssignee}
                                 onChange={e => { setEditAssignee(e.target.value); updateTask({ assignee_id: e.target.value ? Number(e.target.value) : null }); }}
                                 className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
-                                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                                 <option value="">Unassigned</option>
                                 {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                               </select>
                             </div>
-                            {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
-                            {saveError && <span className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {saveError}</span>}
+                            {saving && <span className="text-xs" style={{ color: 'var(--link)' }}>Saving...</span>}
+                            {saveError && <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>⚠ {saveError}</span>}
                           </div>
                         </div>
                       </div>
@@ -920,31 +920,31 @@ export default function TaskDetailPage() {
               const key = `c-${item.comment.id}`;
               const isOpen = expandedItems.has(key);
               return (
-                <div key={key} className="bg-white rounded-xl overflow-hidden"
-                  style={{ border: `1px solid ${isOpen ? '#bfdbfe' : '#e2e8f0'}` }}>
+                <div key={key} className="bg-surface rounded-xl overflow-hidden"
+                  style={{ border: `1px solid ${isOpen ? 'var(--info-soft)' : 'var(--border)'}` }}>
                   {/* Compact comment row */}
-                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[var(--surface-2)] transition"
                     onClick={() => toggleItem(key)}>
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                       style={{ background: `hsl(${(item.comment.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                       {item.comment.user_name[0]}
                     </div>
                     <div className="flex-1 flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-bold flex-shrink-0" style={{ color: '#1d3557' }}>{item.comment.user_name}</span>
-                      <span className="text-xs flex-shrink-0" style={{ color: '#6b7a8d' }}>commented</span>
+                      <span className="text-xs font-bold flex-shrink-0" style={{ color: 'var(--text)' }}>{item.comment.user_name}</span>
+                      <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>commented</span>
                       {!isOpen && (
-                        <span className="text-xs truncate" style={{ color: '#94a3b8' }}>
+                        <span className="text-xs truncate" style={{ color: 'var(--text-subtle)' }}>
                           — {item.comment.content.length > 60 ? item.comment.content.substring(0, 60) + '…' : item.comment.content}
                         </span>
                       )}
                       {item.comment.is_resolved && (
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: '#f0fdf9', color: '#0f766e' }}>✓ Resolved</span>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>✓ Resolved</span>
                       )}
                       {(item.comment.children?.length ?? 0) > 0 && !isOpen && (
-                        <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>💬 {item.comment.children!.length} repl{item.comment.children!.length === 1 ? 'y' : 'ies'}</span>
+                        <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>💬 {item.comment.children!.length} repl{item.comment.children!.length === 1 ? 'y' : 'ies'}</span>
                       )}
                     </div>
-                    <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
+                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>
                       {fmtDT(item.comment.created_at)}
                     </span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
@@ -955,7 +955,7 @@ export default function TaskDetailPage() {
                   </div>
                   {/* Expanded comment thread */}
                   {isOpen && (
-                    <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid #bfdbfe', background: '#f8fbff' }}>
+                    <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid var(--info-soft)', background: 'var(--surface-2)' }}>
                       <CommentThread
                         comment={item.comment}
                         currentUserId={myId}
@@ -983,29 +983,29 @@ export default function TaskDetailPage() {
 
       {/* SUBTASKS TAB */}
       {activeTab === 'subtasks' && (
-        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl p-5" style={{ border: '1px solid var(--border)' }}>
           <form onSubmit={addSubtask} className="flex gap-2 mb-4">
             <input value={newSubtask} onChange={e => setNewSubtask(e.target.value)} placeholder="Add a subtask..."
               className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-              style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90" style={{ background: '#2a9d8f' }}>+ Add</button>
+              style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90" style={{ background: 'var(--success)' }}>+ Add</button>
           </form>
           {subtasks.length === 0 ? (
-            <div className="text-center py-10 rounded-xl" style={{ border: '2px dashed #e2e8f0' }}>
+            <div className="text-center py-10 rounded-xl" style={{ border: '2px dashed var(--border)' }}>
               <div className="text-3xl mb-2">✅</div>
-              <div className="text-sm" style={{ color: '#6b7a8d' }}>No subtasks yet</div>
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>No subtasks yet</div>
             </div>
           ) : (
             <div className="space-y-2">
               {subtasks.map(sub => (
                 <div key={sub.id} className="rounded-xl overflow-hidden"
-                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   {/* Subtask row */}
                   <div className="flex items-center gap-3 px-4 py-3">
                     <input type="checkbox" checked={sub.status === 'done' || sub.status === 'completed'} onChange={() => toggleSubtask(sub)}
                       className="w-4 h-4 rounded accent-teal-600 flex-shrink-0 cursor-pointer" />
                     <span className={`flex-1 text-sm font-medium ${(sub.status === 'done' || sub.status === 'completed') ? 'line-through' : ''}`}
-                      style={{ color: (sub.status === 'done' || sub.status === 'completed') ? '#94a3b8' : '#1d3557' }}>
+                      style={{ color: (sub.status === 'done' || sub.status === 'completed') ? 'var(--text-subtle)' : 'var(--text)' }}>
                       {sub.title}
                     </span>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -1016,22 +1016,22 @@ export default function TaskDetailPage() {
                     <button onClick={() => toggleSubtaskComments(sub.id)}
                       className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition"
                       style={{
-                        color: expandedSubtask === sub.id ? '#457b9d' : '#94a3b8',
-                        background: expandedSubtask === sub.id ? '#eff6ff' : 'transparent',
-                        border: `1px solid ${expandedSubtask === sub.id ? '#bfdbfe' : '#e2e8f0'}`
+                        color: expandedSubtask === sub.id ? 'var(--link)' : 'var(--text-subtle)',
+                        background: expandedSubtask === sub.id ? 'var(--info-soft)' : 'transparent',
+                        border: `1px solid ${expandedSubtask === sub.id ? 'var(--info-soft)' : 'var(--border)'}`
                       }}>
                       💬 {sub.comment_count || 0}
                     </button>
                     {['owner', 'admin', 'manager'].includes(myRole) && (
                       <button onClick={() => setDeleteSubtaskTarget(sub)}
                         className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
-                        style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                        style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>✕</button>
                     )}
                   </div>
 
                   {/* Comments section */}
                   {expandedSubtask === sub.id && (
-                    <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid #e2e8f0', background: '#f8fbff' }}>
+                    <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
                       {/* Comment input */}
                       <form onSubmit={(e) => postSubtaskComment(e, sub.id)} className="mb-3">
                         <div className="flex gap-2">
@@ -1040,13 +1040,13 @@ export default function TaskDetailPage() {
                             onChange={e => setSubtaskCommentInput(prev => ({ ...prev, [sub.id]: e.target.value }))}
                             placeholder="Write a comment..."
                             className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                            style={{ background: '#fff', border: '1.5px solid #bfdbfe', color: '#1d3557' }}
+                            style={{ background: 'var(--surface)', border: '1.5px solid var(--info-soft)', color: 'var(--text)' }}
                           />
                           <button
                             type="submit"
                             disabled={postingSubtaskComment === sub.id || !subtaskCommentInput[sub.id]?.trim()}
                             className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-40 transition"
-                            style={{ background: '#457b9d' }}>
+                            style={{ background: 'var(--link)' }}>
                             {postingSubtaskComment === sub.id ? '...' : 'Post'}
                           </button>
                         </div>
@@ -1054,9 +1054,9 @@ export default function TaskDetailPage() {
 
                       {/* Comments list */}
                       {!subtaskComments[sub.id] ? (
-                        <div className="text-xs py-2 text-center" style={{ color: '#94a3b8' }}>Loading comments...</div>
+                        <div className="text-xs py-2 text-center" style={{ color: 'var(--text-subtle)' }}>Loading comments...</div>
                       ) : subtaskComments[sub.id].length === 0 ? (
-                        <div className="text-xs py-2 text-center rounded-lg" style={{ color: '#94a3b8', border: '1px dashed #e2e8f0' }}>
+                        <div className="text-xs py-2 text-center rounded-lg" style={{ color: 'var(--text-subtle)', border: '1px dashed var(--border)' }}>
                           No comments yet
                         </div>
                       ) : (
@@ -1079,7 +1079,7 @@ export default function TaskDetailPage() {
                   )}
                 </div>
               ))}
-              <div className="text-xs pt-1" style={{ color: '#6b7a8d' }}>
+              <div className="text-xs pt-1" style={{ color: 'var(--text-muted)' }}>
                 {subtasks.filter(s => s.status === 'done' || s.status === 'completed').length}/{subtasks.length} completed
               </div>
             </div>

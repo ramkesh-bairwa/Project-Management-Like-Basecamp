@@ -18,11 +18,11 @@ interface Props {
 function UsageBar({ label, used, max }: { label: string; used: number; max: number }) {
   if (max === -1) return null;
   const pct = Math.min(100, Math.round((used / max) * 100));
-  const color = pct >= 100 ? '#e63946' : pct >= 80 ? '#f4a261' : '#2a9d8f';
+  const color = pct >= 100 ? '#f43f5e' : pct >= 80 ? '#f59e0b' : '#10b981';
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <span className="text-xs font-bold w-16 flex-shrink-0" style={{ color: '#6b7a8d' }}>{label}</span>
-      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#e2e8f0' }}>
+      <span className="text-xs font-bold w-16 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
       </div>
       <span className="text-xs font-bold flex-shrink-0" style={{ color }}>
@@ -49,13 +49,13 @@ export default function PlanLimitBanner({ plan, limits, usage, show = ['projects
 
   return (
     <div className="rounded-2xl p-4 mb-5 flex items-center gap-4 flex-wrap"
-      style={{ background: atLimit ? '#fef2f2' : '#fff7ed', border: `1.5px solid ${atLimit ? '#fecaca' : '#fed7aa'}` }}>
+      style={{ background: atLimit ? 'var(--danger-soft)' : 'var(--warning-soft)', border: `1.5px solid ${atLimit ? 'var(--danger-soft)' : 'var(--warning-soft)'}` }}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-black" style={{ color: atLimit ? '#e63946' : '#c2410c' }}>
+          <span className="text-sm font-black" style={{ color: atLimit ? 'var(--accent)' : 'var(--warning-text)' }}>
             {atLimit ? '🚫 Plan limit reached' : '⚠️ Approaching plan limit'}
           </span>
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--primary)', color: '#fff' }}>
             {plan}
           </span>
         </div>
@@ -68,7 +68,7 @@ export default function PlanLimitBanner({ plan, limits, usage, show = ['projects
       </div>
       <Link href="/plans"
         className="px-4 py-2 rounded-xl text-sm font-black text-white hover:opacity-90 transition flex-shrink-0"
-        style={{ background: '#e63946' }}>
+        style={{ background: 'var(--accent)' }}>
         Upgrade Plan →
       </Link>
     </div>

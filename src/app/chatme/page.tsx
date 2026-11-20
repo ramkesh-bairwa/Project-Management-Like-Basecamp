@@ -507,7 +507,7 @@ export default function ChatPage() {
                   top: '100%',
                   right: 0,
                   marginTop: '8px',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   border: '1px solid #e2deff',
                   borderRadius: '12px',
                   boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
@@ -532,7 +532,7 @@ export default function ChatPage() {
                       gap: '10px',
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#f4f2ff'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--violet-soft)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
                     🏠 Dashboard
@@ -555,7 +555,7 @@ export default function ChatPage() {
                       gap: '10px',
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--danger-soft)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
                     🚪 Logout
@@ -760,7 +760,7 @@ export default function ChatPage() {
                           <div style={{ position: 'relative' }}>
                             <div className={`bbl ${isMe ? 'me' : ''}`} style={{ opacity: (msg as any).deleted_at ? 0.5 : 1, fontStyle: (msg as any).deleted_at ? 'italic' : 'normal' }}>
                               {(msg as any).deleted_at ? (
-                                <span style={{ color: '#94a3b8' }}>🚫 This message was deleted</span>
+                                <span style={{ color: 'var(--text-subtle)' }}>🚫 This message was deleted</span>
                               ) : editingMessageId === msg.id ? null : (
                                 /^```[\s\S]*```$/.test(msg.content) ? (
                                   <pre style={{ 
@@ -823,7 +823,7 @@ export default function ChatPage() {
                                     position: 'absolute',
                                     right: 0,
                                     top: '100%',
-                                    background: '#fff',
+                                    background: 'var(--surface)',
                                     border: '1px solid #c4baff',
                                     borderRadius: '8px',
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -834,7 +834,7 @@ export default function ChatPage() {
                                       <button
                                         onClick={() => startEdit(msg)}
                                         style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', fontSize: '13px' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f4f2ff'}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--violet-soft)'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
                                         ✏️ Edit
@@ -846,7 +846,7 @@ export default function ChatPage() {
                                         setMessageMenuOpen(null);
                                       }}
                                       style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', fontSize: '13px', color: '#ef4444' }}
-                                      onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--danger-soft)'}
                                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                     >
                                       🗑️ Delete
@@ -883,7 +883,7 @@ export default function ChatPage() {
               style={{
                 padding: '16px 28px',
                 borderTop: '0.5px solid #e2deff',
-                background: '#fff',
+                background: 'var(--surface)',
                 position: 'relative',
               }}
             >
@@ -892,7 +892,7 @@ export default function ChatPage() {
                   position: 'absolute',
                   bottom: '100%',
                   left: '28px',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   border: '1px solid #c4baff',
                   borderRadius: '12px',
                   padding: '12px',
@@ -916,7 +916,7 @@ export default function ChatPage() {
                         borderRadius: '4px',
                         transition: 'background 0.2s',
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#f4f2ff'}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--violet-soft)'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       {emoji}
@@ -935,7 +935,7 @@ export default function ChatPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
-                  background: '#f4f2ff',
+                  background: 'var(--violet-soft)',
                   border: '1px solid #c4baff',
                   borderRadius: '12px',
                   padding: '12px 16px',
@@ -1156,14 +1156,14 @@ export default function ChatPage() {
               <button className="modal-close" onClick={() => setDeleteConfirmId(null)}>×</button>
             </div>
             <div className="modal-body">
-              <p style={{ marginBottom: '20px', color: '#64748b' }}>Are you sure you want to delete this message? This action cannot be undone.</p>
+              <p style={{ marginBottom: '20px', color: 'var(--text-muted)' }}>Are you sure you want to delete this message? This action cannot be undone.</p>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setDeleteConfirmId(null)}
                   style={{
                     padding: '10px 20px',
                     border: '1px solid #c4baff',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     color: '#534AB7',
                     borderRadius: '8px',
                     cursor: 'pointer',
@@ -1285,7 +1285,7 @@ export default function ChatPage() {
                   style={{
                     padding: '10px 20px',
                     border: '1px solid #c4baff',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     color: '#534AB7',
                     borderRadius: '8px',
                     cursor: 'pointer',

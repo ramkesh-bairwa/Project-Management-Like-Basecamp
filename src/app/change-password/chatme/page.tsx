@@ -2,6 +2,18 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AuthShell, {
+  Alert, AuthHeading, Icon, PasswordField, StatusIcon, StrengthMeter, SubmitButton,
+  type BrandContent,
+} from '@/components/auth/AuthShell';
+
+const brand: BrandContent = {
+  eyebrow: 'ChatMe · Security',
+  title: <>Keep your account<br /><span className="text-gradient">secure.</span></>,
+  subtitle: 'A strong, unique password is the simplest way to protect your conversations and your team.',
+  preview: 'security',
+  features: ['Secure password encryption', 'Instant password update', 'Email confirmation', 'No downtime for your team'],
+};
 
 export default function ChangePasswordChatMe() {
   const router = useRouter();
@@ -39,7 +51,7 @@ export default function ChangePasswordChatMe() {
       const token = localStorage.getItem('token');
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -62,138 +74,54 @@ export default function ChangePasswordChatMe() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20px 20px, white 2px, transparent 0)', backgroundSize: '40px 40px' }} />
-        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
-          <div className="mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl mb-6">🔐</div>
-            <h1 className="text-5xl font-black mb-4">ChatMe</h1>
-            <p className="text-xl text-white/80 mb-8">Keep your account secure with a strong password</p>
-          </div>
-          <div className="space-y-4">
-            {['🔒 Secure password encryption', '✅ Instant password update', '🔔 Email confirmation'].map((feature, i) => (
-              <div key={i} className="flex items-center gap-3 text-white/90">
-                <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center flex-shrink-0">{feature.split(' ')[0]}</div>
-                <span className="font-medium">{feature.substring(3)}</span>
-              </div>
-            ))}
-          </div>
+    <AuthShell brand={brand} productName="ChatMe">
+      <Link href="/chatme" className="mb-6 inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted hover:text-fg transition">
+        <Icon.ArrowLeft size={15} />Back to ChatMe
+      </Link>
+
+      {success ? (
+        <div className="text-center">
+          <StatusIcon tone="success"><Icon.CheckCircle size={30} /></StatusIcon>
+          <h1 className="font-display text-[1.6rem] font-extrabold text-fg">Password Changed!</h1>
+          <p className="mt-3 text-[14.5px] text-muted">Your password has been updated successfully</p>
+          <p className="mt-2 text-[12.5px] text-subtle">Redirecting to ChatMe...</p>
         </div>
-      </div>
+      ) : (
+        <>
+          <AuthHeading title="Change Password" subtitle="Update your ChatMe account password." />
 
-      {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          <div className="mb-8">
-            <Link href="/chatme" className="inline-flex items-center text-sm font-bold text-purple-600 hover:underline mb-6">
-              ← Back to ChatMe
-            </Link>
-            <h2 className="text-3xl font-black text-gray-900 mb-2">Change Password</h2>
-            <p className="text-gray-600">Update your ChatMe account password</p>
-          </div>
+          {error && <Alert tone="danger" className="mb-5">{error}</Alert>}
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-              {error}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <PasswordField
+              label="Current Password" icon={<Icon.Key size={17} />}
+              show={showCurrent} onToggleShow={() => setShowCurrent(!showCurrent)}
+              value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password" required autoComplete="current-password"
+            />
+            <div>
+              <PasswordField
+                label="New Password" show={showNew} onToggleShow={() => setShowNew(!showNew)}
+                value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password" required autoComplete="new-password"
+                hint="Minimum 6 characters"
+              />
+              <StrengthMeter password={newPassword} />
             </div>
-          )}
+            <PasswordField
+              label="Confirm New Password" show={showConfirm} onToggleShow={() => setShowConfirm(!showConfirm)}
+              value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password" required autoComplete="new-password"
+            />
+            <SubmitButton loading={loading} loadingText="Updating Password..." className="mt-2">Change Password</SubmitButton>
+          </form>
+        </>
+      )}
 
-          {success ? (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-              <div className="text-4xl mb-3">✅</div>
-              <h3 className="text-lg font-bold text-green-900 mb-2">Password Changed!</h3>
-              <p className="text-sm text-green-700 mb-4">Your password has been updated successfully</p>
-              <p className="text-xs text-gray-500">Redirecting to ChatMe...</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Current Password</label>
-                <div className="relative">
-                  <input
-                    type={showCurrent ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                    required
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrent(!showCurrent)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showCurrent ? '🙈' : '👁️'}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showNew ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    required
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNew(!showNew)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showNew ? '🙈' : '👁️'}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Confirm New Password</label>
-                <div className="relative">
-                  <input
-                    type={showConfirm ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                    required
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showConfirm ? '🙈' : '👁️'}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-bold text-white transition disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-              >
-                {loading ? 'Updating Password...' : 'Change Password'}
-              </button>
-            </form>
-          )}
-
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-600">
-              Need Projects access?{' '}
-              <Link href="/change-password/projects" className="font-bold text-red-600 hover:underline">
-                Change Projects password
-              </Link>
-            </p>
-          </div>
-        </div>
+      <div className="mt-8 pt-6 border-t border-line text-center text-[13px] text-muted">
+        Need Projects access?{' '}
+        <Link href="/change-password/projects" className="font-semibold text-primary-text hover:underline underline-offset-4">Change Projects password</Link>
       </div>
-    </div>
+    </AuthShell>
   );
 }

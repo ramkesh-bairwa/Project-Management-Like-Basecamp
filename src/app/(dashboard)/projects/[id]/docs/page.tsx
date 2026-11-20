@@ -14,7 +14,7 @@ interface Folder { id: number; name: string; created_by_name: string; doc_count:
 interface Toast { msg: string; type: 'success' | 'error'; }
 
 const typeIcon: Record<string, string> = { doc: '📄', file: '📎', spreadsheet: '📊', design: '🎨', other: '📁' };
-const typeColors: Record<string, string> = { doc: '#457b9d', file: '#6d6875', spreadsheet: '#2a9d8f', design: '#e9c46a', other: '#94a3b8' };
+const typeColors: Record<string, string> = { doc: '#6366f1', file: '#8b5cf6', spreadsheet: '#10b981', design: '#eab308', other: '#94a3b8' };
 
 
 function fmtDT(d: string | Date): string {
@@ -41,11 +41,11 @@ type ViewMode = 'grid' | 'list' | 'box';
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
       {(['grid','list','box'] as ViewMode[]).map(v => (
         <button key={v} onClick={() => onChange(v)}
           className="px-3 py-1.5 text-xs font-bold transition"
-          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          style={{ background: view === v ? 'var(--primary)' : 'var(--surface)', color: view === v ? '#fff' : 'var(--text-muted)' }}
           title={v.charAt(0).toUpperCase() + v.slice(1)}>
           {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
         </button>
@@ -269,37 +269,37 @@ export default function ProjectDocsPage() {
       {/* Toast */}
       {toast && (
         <div className="fixed top-5 right-5 z-[100] px-5 py-3 rounded-xl shadow-xl font-bold text-sm text-white flex items-center gap-2 animate-fade-in"
-          style={{ background: toast.type === 'success' ? '#2a9d8f' : '#e63946' }}>
+          style={{ background: toast.type === 'success' ? 'var(--success)' : 'var(--accent)' }}>
           {toast.msg}
           <button onClick={() => setToast(null)} className="ml-2 opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-6" style={{ color: '#6b7a8d' }}>
-        <Link href="/projects" className="hover:text-[#1d3557] transition">Projects</Link>
+      <div className="flex items-center gap-2 text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/projects" className="hover:text-[var(--text)] transition">Projects</Link>
         <span>/</span>
-        <Link href={`/projects/${id}`} className="hover:text-[#1d3557] transition">Overview</Link>
+        <Link href={`/projects/${id}`} className="hover:text-[var(--text)] transition">Overview</Link>
         <span>/</span>
-        <button onClick={() => setActiveFolderId(null)} className="hover:text-[#1d3557] transition font-bold" style={{ color: activeFolderId ? '#6b7a8d' : '#1d3557' }}>Docs & Files</button>
-        {activeFolder && <><span>/</span><span className="font-bold" style={{ color: '#1d3557' }}>📁 {activeFolder.name}</span></>}
+        <button onClick={() => setActiveFolderId(null)} className="hover:text-[var(--text)] transition font-bold" style={{ color: activeFolderId ? 'var(--text-muted)' : 'var(--text)' }}>Docs & Files</button>
+        {activeFolder && <><span>/</span><span className="font-bold" style={{ color: 'var(--text)' }}>📁 {activeFolder.name}</span></>}
       </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>
+        <h2 className="text-xl font-black" style={{ color: 'var(--text)' }}>
           {activeFolder ? `📁 ${activeFolder.name}` : 'Docs & Files'}
         </h2>
         <div className="flex gap-2 ml-auto">
           <ViewToggle view={view} onChange={setView} />
           <button onClick={() => setShowFolderForm(true)}
             className="px-4 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition flex items-center gap-1"
-            style={{ background: '#f1faee', color: '#1d3557', border: '1.5px solid #d0dce8' }}>
+            style={{ background: 'var(--bg)', color: 'var(--text)', border: '1.5px solid var(--border)' }}>
             📁 New Folder
           </button>
           <button onClick={() => setShowDocForm(true)}
             className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition flex items-center gap-1"
-            style={{ background: '#e63946' }}>
+            style={{ background: 'var(--accent)' }}>
             + Upload / New Doc
           </button>
         </div>
@@ -310,19 +310,19 @@ export default function ProjectDocsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
           {folders.map(folder => (
             <div key={folder.id} onClick={() => setActiveFolderId(folder.id)}
-              className="bg-white rounded-2xl p-4 cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all group relative"
-              style={{ border: '1.5px solid #d0dce8' }}>
+              className="bg-surface rounded-2xl p-4 cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all group relative"
+              style={{ border: '1.5px solid var(--border)' }}>
               {/* SVG Folder Icon */}
               <svg width="40" height="36" viewBox="0 0 40 36" fill="none" className="mb-3" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 6C0 4.343 1.343 3 3 3H15L19 8H37C38.657 8 40 9.343 40 11V33C40 34.657 38.657 36 37 36H3C1.343 36 0 34.657 0 33V6Z" fill="#e9c46a"/>
+                <path d="M0 6C0 4.343 1.343 3 3 3H15L19 8H37C38.657 8 40 9.343 40 11V33C40 34.657 38.657 36 37 36H3C1.343 36 0 34.657 0 33V6Z" fill="#eab308"/>
                 <path d="M0 11C0 9.343 1.343 8 3 8H37C38.657 8 40 9.343 40 11V33C40 34.657 38.657 36 37 36H3C1.343 36 0 34.657 0 33V11Z" fill="#f4d06f"/>
               </svg>
-              <div className="font-black text-sm truncate" style={{ color: '#1d3557' }}>{folder.name}</div>
-              <div className="text-xs mt-1" style={{ color: '#6b7a8d' }}>{folder.doc_count} item{folder.doc_count !== 1 ? 's' : ''}</div>
-              <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>by {folder.created_by_name}</div>
+              <div className="font-black text-sm truncate" style={{ color: 'var(--text)' }}>{folder.name}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{folder.doc_count} item{folder.doc_count !== 1 ? 's' : ''}</div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--text-subtle)' }}>by {folder.created_by_name}</div>
               <button onClick={e => deleteFolder(folder.id, e)}
                 className="absolute top-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50"
-                style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
             </div>
           ))}
         </div>
@@ -330,41 +330,41 @@ export default function ProjectDocsPage() {
 
       {/* Docs grid */}
       {docs.length === 0 ? (
-        <div className="bg-white rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8' }}>
+        <div className="bg-surface rounded-2xl p-16 text-center" style={{ border: '2px dashed var(--border)' }}>
           <div className="text-5xl mb-4">{activeFolderId ? '📁' : '📄'}</div>
-          <div className="font-black text-[#1d3557] mb-2">{activeFolderId ? 'This folder is empty' : 'No documents yet'}</div>
-          <div className="text-sm text-[#6b7a8d] mb-6">Upload files or write documents for this project</div>
-          <button onClick={() => setShowDocForm(true)} className="px-5 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>
+          <div className="font-black text-[var(--text)] mb-2">{activeFolderId ? 'This folder is empty' : 'No documents yet'}</div>
+          <div className="text-sm text-[var(--text-muted)] mb-6">Upload files or write documents for this project</div>
+          <button onClick={() => setShowDocForm(true)} className="px-5 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: 'var(--accent)' }}>
             + Upload / New Doc
           </button>
         </div>
       ) : view === 'list' ? (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {docs.map((doc, i) => (
             <div key={doc.id}
-              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
-              style={{ borderBottom: i < docs.length - 1 ? '1px solid #f1f5f9' : 'none' }}
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-2)] transition cursor-pointer"
+              style={{ borderBottom: i < docs.length - 1 ? '1px solid var(--border-soft)' : 'none' }}
               onClick={() => router.push(`/projects/${id}/docs/${doc.id}`)}>  
               <span className="text-lg flex-shrink-0">{typeIcon[doc.type] || '📁'}</span>
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{doc.title}</div>
-                <div className="text-xs" style={{ color: '#6b7a8d' }}>by {doc.created_by_name}</div>
+                <div className="font-bold text-sm truncate" style={{ color: 'var(--text)' }}>{doc.title}</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>by {doc.created_by_name}</div>
               </div>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: (typeColors[doc.type] || '#94a3b8') + '20', color: typeColors[doc.type] || '#94a3b8' }}>
+                style={{ background: (typeColors[doc.type] || '#94a3b8') + '20', color: typeColors[doc.type] || 'var(--text-subtle)' }}>
                 v{doc.current_version}
               </span>
-              {doc.last_updated_at && <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>{fmtD(doc.last_updated_at)}</span>}
+              {doc.last_updated_at && <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>{fmtD(doc.last_updated_at)}</span>}
               <button onClick={e => { e.stopPropagation(); downloadDoc(doc.id, doc.title); }}
                 className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition flex-shrink-0"
-                style={{ background: '#1d3557' }}>
+                style={{ background: 'var(--primary)' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
               </button>
               <button onClick={e => deleteDoc(doc.id, e)}
                 className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition flex-shrink-0"
-                style={{ background: '#e63946' }}>
+                style={{ background: 'var(--accent)' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                 </svg>
@@ -376,24 +376,24 @@ export default function ProjectDocsPage() {
         <div className={view === 'box' ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}>
           {docs.map(doc => (
             <div key={doc.id}
-              className="bg-white rounded-2xl p-5 hover:shadow-lg transition-all"
-              style={{ border: '1px solid #d0dce8' }}>
+              className="bg-surface rounded-2xl p-5 hover:shadow-lg transition-all"
+              style={{ border: '1px solid var(--border)' }}>
               <div className="flex items-start gap-3 mb-3" onClick={() => router.push(`/projects/${id}/docs/${doc.id}`)} style={{ cursor: 'pointer' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                   style={{ background: (typeColors[doc.type] || '#94a3b8') + '15' }}>
                   {typeIcon[doc.type] || '📁'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-black text-sm leading-snug truncate" style={{ color: '#1d3557' }}>{doc.title}</div>
-                  <div className="text-xs mt-0.5" style={{ color: '#6b7a8d' }}>by {doc.created_by_name}</div>
+                  <div className="font-black text-sm leading-snug truncate" style={{ color: 'var(--text)' }}>{doc.title}</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>by {doc.created_by_name}</div>
                 </div>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ background: (typeColors[doc.type] || '#94a3b8') + '20', color: typeColors[doc.type] || '#94a3b8' }}>
+                  style={{ background: (typeColors[doc.type] || '#94a3b8') + '20', color: typeColors[doc.type] || 'var(--text-subtle)' }}>
                   v{doc.current_version}
                 </span>
               </div>
-              {doc.description && <p className="text-xs mb-3 line-clamp-2" style={{ color: '#6b7a8d' }}>{doc.description}</p>}
-              <div className="flex items-center justify-between text-xs" style={{ color: '#94a3b8' }}>
+              {doc.description && <p className="text-xs mb-3 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{doc.description}</p>}
+              <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-subtle)' }}>
                 <div className="flex items-center gap-3">
                   {doc.comment_count > 0 && <span>💬 {doc.comment_count}</span>}
                   {doc.last_updated_at && <span>{fmtD(doc.last_updated_at)}</span>}
@@ -403,7 +403,7 @@ export default function ProjectDocsPage() {
                       onClick={e => { e.stopPropagation(); downloadDoc(doc.id, doc.title); }}
                       title="Download"
                       className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-                      style={{ background: '#1d3557' }}>
+                      style={{ background: 'var(--primary)' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="7 10 12 15 17 10"/>
@@ -414,7 +414,7 @@ export default function ProjectDocsPage() {
                       onClick={e => deleteDoc(doc.id, e)}
                       title="Delete"
                       className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-                      style={{ background: '#e63946' }}>
+                      style={{ background: 'var(--accent)' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6"/>
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -424,7 +424,7 @@ export default function ProjectDocsPage() {
                     </button>
                     <button onClick={() => router.push(`/projects/${id}/docs/${doc.id}`)}
                       className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100 transition"
-                      style={{ color: '#457b9d', border: '1px solid #d0dce8' }}>Open →</button>
+                      style={{ color: 'var(--link)', border: '1px solid var(--border)' }}>Open →</button>
                   </div>
               </div>
             </div>
@@ -434,20 +434,20 @@ export default function ProjectDocsPage() {
 
       {/* New Folder Modal */}
       {showFolderForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(15,18,34,0.5)' }}>
+          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-2xl" style={{ border: '1px solid var(--border)' }}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-black text-lg" style={{ color: '#1d3557' }}>📁 New Folder</h3>
-              <button onClick={() => setShowFolderForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100" style={{ color: '#6b7a8d' }}>✕</button>
+              <h3 className="font-black text-lg" style={{ color: 'var(--text)' }}>📁 New Folder</h3>
+              <button onClick={() => setShowFolderForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100" style={{ color: 'var(--text-muted)' }}>✕</button>
             </div>
             <form onSubmit={createFolder} className="space-y-4">
               <input value={folderName} onChange={e => setFolderName(e.target.value)} required
                 placeholder="Folder name *" autoFocus
                 className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               <div className="flex gap-3">
-                <button type="submit" className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90" style={{ background: '#1d3557' }}>Create Folder</button>
-                <button type="button" onClick={() => setShowFolderForm(false)} className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50" style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>Cancel</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90" style={{ background: 'var(--primary)' }}>Create Folder</button>
+                <button type="button" onClick={() => setShowFolderForm(false)} className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50" style={{ color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>Cancel</button>
               </div>
             </form>
           </div>
@@ -456,24 +456,24 @@ export default function ProjectDocsPage() {
 
       {/* New Doc / Upload Modal */}
       {showDocForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
-            <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #d0dce8' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(15,18,34,0.5)' }}>
+          <div className="bg-surface rounded-2xl w-full max-w-lg shadow-2xl" style={{ border: '1px solid var(--border)' }}>
+            <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
-                <h3 className="font-black text-lg" style={{ color: '#1d3557' }}>Upload / New Document</h3>
-                {activeFolder && <div className="text-xs mt-0.5" style={{ color: '#6b7a8d' }}>Saving to 📁 {activeFolder.name}</div>}
+                <h3 className="font-black text-lg" style={{ color: 'var(--text)' }}>Upload / New Document</h3>
+                {activeFolder && <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Saving to 📁 {activeFolder.name}</div>}
               </div>
-              <button onClick={() => { setShowDocForm(false); setFile(null); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100" style={{ color: '#6b7a8d' }}>✕</button>
+              <button onClick={() => { setShowDocForm(false); setFile(null); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100" style={{ color: 'var(--text-muted)' }}>✕</button>
             </div>
             <form onSubmit={createDoc} className="p-6 space-y-4">
 
               {/* Folder selector */}
               {folders.length > 0 && (
                 <div>
-                  <label className="text-xs font-bold mb-1 block" style={{ color: '#6b7a8d' }}>Save to folder</label>
+                  <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-muted)' }}>Save to folder</label>
                   <select value={activeFolderId ?? ''} onChange={e => setActiveFolderId(e.target.value ? Number(e.target.value) : null)}
                     className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                    style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                     <option value="">📂 Root (no folder)</option>
                     {folders.map(f => <option key={f.id} value={f.id}>📁 {f.name}</option>)}
                   </select>
@@ -486,9 +486,9 @@ export default function ProjectDocsPage() {
                   <button key={t} type="button" onClick={() => { setForm(p => ({ ...p, type: t })); setFile(null); }}
                     className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-bold transition"
                     style={{
-                      background: form.type === t ? '#1d3557' : '#f1faee',
-                      color: form.type === t ? '#fff' : '#6b7a8d',
-                      border: `2px solid ${form.type === t ? '#1d3557' : '#d0dce8'}`
+                      background: form.type === t ? 'var(--primary)' : 'var(--bg)',
+                      color: form.type === t ? '#fff' : 'var(--text-muted)',
+                      border: `2px solid ${form.type === t ? 'var(--primary)' : 'var(--border)'}`
                     }}>
                     <span className="text-xl">{typeIcon[t]}</span>
                     <span className="capitalize">{t}</span>
@@ -500,20 +500,20 @@ export default function ProjectDocsPage() {
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required
                 placeholder="Title *"
                 className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
 
               {/* Description */}
               <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 placeholder="Description (optional)"
                 className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
 
               {/* Content for doc */}
               {form.type === 'doc' && (
                 <textarea value={form.content} onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
                   placeholder="Write your document content here..." rows={6}
                   className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none resize-none"
-                  style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                  style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               )}
 
               {/* File upload */}
@@ -524,7 +524,7 @@ export default function ProjectDocsPage() {
                   onDrop={handleFileDrop}
                   onClick={() => fileRef.current?.click()}
                   className="rounded-xl p-6 text-center cursor-pointer transition"
-                  style={{ border: `2px dashed ${dragOver ? '#e63946' : '#d0dce8'}`, background: dragOver ? '#fff5f5' : '#f8fafc' }}>
+                  style={{ border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`, background: dragOver ? '#fff5f5' : 'var(--surface-2)' }}>
                   <input ref={fileRef} type="file" className="hidden"
                     onChange={e => {
                       const f = e.target.files?.[0];
@@ -534,17 +534,17 @@ export default function ProjectDocsPage() {
                     <div className="flex items-center justify-center gap-3">
                       <span className="text-2xl">📎</span>
                       <div className="text-left">
-                        <div className="font-bold text-sm" style={{ color: '#1d3557' }}>{file.name}</div>
-                        <div className="text-xs" style={{ color: '#6b7a8d' }}>{(file.size / 1024).toFixed(1)} KB · Ready to upload</div>
+                        <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>{file.name}</div>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{(file.size / 1024).toFixed(1)} KB · Ready to upload</div>
                       </div>
                       <button type="button" onClick={e => { e.stopPropagation(); setFile(null); }}
-                        className="ml-2 text-xs px-2 py-1 rounded-lg hover:bg-red-50" style={{ color: '#e63946' }}>✕</button>
+                        className="ml-2 text-xs px-2 py-1 rounded-lg hover:bg-red-50" style={{ color: 'var(--accent)' }}>✕</button>
                     </div>
                   ) : (
                     <div>
                       <div className="text-3xl mb-2">☁️</div>
-                      <div className="font-bold text-sm" style={{ color: '#1d3557' }}>Drop file here or click to browse</div>
-                      <div className="text-xs mt-1" style={{ color: '#6b7a8d' }}>Any file type supported</div>
+                      <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>Drop file here or click to browse</div>
+                      <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Any file type supported</div>
                     </div>
                   )}
                 </div>
@@ -553,12 +553,12 @@ export default function ProjectDocsPage() {
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={uploading}
                   className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition disabled:opacity-50"
-                  style={{ background: '#e63946' }}>
+                  style={{ background: 'var(--accent)' }}>
                   {uploading ? '⏳ Uploading...' : '⬆️ Upload / Create'}
                 </button>
                 <button type="button" onClick={() => { setShowDocForm(false); setFile(null); }}
                   className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition"
-                  style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>Cancel</button>
+                  style={{ color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>Cancel</button>
               </div>
             </form>
           </div>

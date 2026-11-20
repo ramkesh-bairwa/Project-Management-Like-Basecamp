@@ -16,7 +16,7 @@ interface Props {
 function ToolbarBtn({ onClick, active, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) {
   return (
     <button type="button" title={title} onClick={onClick}
-      style={{ padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: active ? '#6366f1' : 'transparent', color: active ? '#fff' : '#475569', transition: 'all 0.15s' }}>
+      style={{ padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: active ? '#6366f1' : 'transparent', color: active ? '#fff' : 'var(--text-muted)', transition: 'all 0.15s' }}>
       {children}
     </button>
   );
@@ -59,15 +59,15 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
   }
 
   return (
-    <div style={{ border: '1.5px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+    <div style={{ border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
       {/* Toolbar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, padding: '8px 10px', borderBottom: '1px solid var(--border-soft)', background: 'var(--surface-2)', alignItems: 'center' }}>
         {/* Headings */}
         <ToolbarBtn title="Heading 1" active={editor.isActive('heading', { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>H1</ToolbarBtn>
         <ToolbarBtn title="Heading 2" active={editor.isActive('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</ToolbarBtn>
         <ToolbarBtn title="Heading 3" active={editor.isActive('heading', { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</ToolbarBtn>
 
-        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--surface-3)', margin: '0 4px' }} />
 
         {/* Marks */}
         <ToolbarBtn title="Bold" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></ToolbarBtn>
@@ -76,7 +76,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
         <ToolbarBtn title="Strikethrough" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></ToolbarBtn>
         <ToolbarBtn title="Code" active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()}>{'<>'}</ToolbarBtn>
 
-        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--surface-3)', margin: '0 4px' }} />
 
         {/* Lists */}
         <ToolbarBtn title="Bullet list" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</ToolbarBtn>
@@ -84,25 +84,25 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
         <ToolbarBtn title="Blockquote" active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()}>" Quote</ToolbarBtn>
         <ToolbarBtn title="Code block" active={editor.isActive('codeBlock')} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>Code Block</ToolbarBtn>
 
-        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--surface-3)', margin: '0 4px' }} />
 
         {/* Align */}
         <ToolbarBtn title="Align left" active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}>≡L</ToolbarBtn>
         <ToolbarBtn title="Align center" active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()}>≡C</ToolbarBtn>
         <ToolbarBtn title="Align right" active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()}>≡R</ToolbarBtn>
 
-        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--surface-3)', margin: '0 4px' }} />
 
         {/* Link */}
         <ToolbarBtn title="Link" active={editor.isActive('link')} onClick={setLink}>🔗 Link</ToolbarBtn>
 
-        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--surface-3)', margin: '0 4px' }} />
 
         {/* History */}
         <ToolbarBtn title="Undo" onClick={() => editor.chain().focus().undo().run()}>↩</ToolbarBtn>
         <ToolbarBtn title="Redo" onClick={() => editor.chain().focus().redo().run()}>↪</ToolbarBtn>
 
-        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--surface-3)', margin: '0 4px' }} />
 
         <ToolbarBtn title="Clear formatting" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}>✕ Clear</ToolbarBtn>
       </div>
@@ -110,7 +110,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
       {/* Editor area */}
       <div style={{ position: 'relative' }}>
         {editor.isEmpty && placeholder && (
-          <div style={{ position: 'absolute', top: 14, left: 16, color: '#94a3b8', fontSize: 14, pointerEvents: 'none', userSelect: 'none' }}>{placeholder}</div>
+          <div style={{ position: 'absolute', top: 14, left: 16, color: 'var(--text-subtle)', fontSize: 14, pointerEvents: 'none', userSelect: 'none' }}>{placeholder}</div>
         )}
         <EditorContent editor={editor} />
       </div>

@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
   ssr: false,
-  loading: () => <div style={{ height: 80, background: '#f8fafc', borderRadius: 8, border: '1.5px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 12 }}>Loading…</div>,
+  loading: () => <div style={{ height: 80, background: 'var(--surface-2)', borderRadius: 8, border: '1.5px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-subtle)', fontSize: 12 }}>Loading…</div>,
 });
 
 type Row = { page: string; section: string; content_key: string; content_value: string };
@@ -15,7 +15,7 @@ const PAGES = [
   { key: 'about',    label: 'About',    icon: '🏢', color: '#6366f1' },
   { key: 'blog',     label: 'Blog',     icon: '📝', color: '#ec4899' },
   { key: 'docs',     label: 'Docs',     icon: '📚', color: '#0ea5e9' },
-  { key: 'contact',  label: 'Contact',  icon: '📞', color: '#e63946' },
+  { key: 'contact',  label: 'Contact',  icon: '📞', color: '#f43f5e' },
 ];
 
 const RICH_KEYS     = new Set(['body', 'subtitle']);
@@ -125,7 +125,7 @@ export default function AdminContentPage() {
   }, [save]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface-2)', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
       <style>{`
         @keyframes spin  { to { transform: rotate(360deg); } }
         @keyframes pop   { 0%{opacity:0;transform:translateY(8px)} 20%{opacity:1;transform:translateY(0)} 80%{opacity:1} 100%{opacity:0} }
@@ -134,17 +134,17 @@ export default function AdminContentPage() {
       `}</style>
 
       {/* ── Sticky header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
         {/* Top row */}
         <div style={{ padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>📄</div>
-            <span style={{ fontWeight: 800, fontSize: 15, color: '#0f172a' }}>Content Editor</span>
-            {unsaved && <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, background: '#fef9c3', padding: '2px 8px', borderRadius: 20 }}>● Unsaved</span>}
+            <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)' }}>Content Editor</span>
+            {unsaved && <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, background: 'var(--warning-soft)', padding: '2px 8px', borderRadius: 20 }}>● Unsaved</span>}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <a href={`/${activePage}`} target="_blank" rel="noreferrer"
-              style={{ padding: '6px 14px', borderRadius: 8, background: '#f1f5f9', color: '#64748b', fontSize: 12, fontWeight: 600, textDecoration: 'none', border: '1px solid #e2e8f0' }}>
+              style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--surface-3)', color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--border)' }}>
               Preview ↗
             </a>
             <button onClick={save} disabled={saving}
@@ -157,10 +157,10 @@ export default function AdminContentPage() {
         </div>
 
         {/* Page tabs */}
-        <div style={{ display: 'flex', gap: 0, padding: '0 20px', borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', gap: 0, padding: '0 20px', borderTop: '1px solid var(--border-soft)' }}>
           {PAGES.map(p => (
             <button key={p.key} onClick={() => setActivePage(p.key)}
-              style={{ padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: activePage === p.key ? 700 : 500, color: activePage === p.key ? p.color : '#64748b', borderBottom: activePage === p.key ? `2.5px solid ${p.color}` : '2.5px solid transparent', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.15s' }}>
+              style={{ padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: activePage === p.key ? 700 : 500, color: activePage === p.key ? p.color : 'var(--text-muted)', borderBottom: activePage === p.key ? `2.5px solid ${p.color}` : '2.5px solid transparent', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.15s' }}>
               {p.icon} {p.label}
             </button>
           ))}
@@ -177,14 +177,14 @@ export default function AdminContentPage() {
             <div key={section} style={{ marginBottom: 32 }}>
               {/* Section label + actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                <div style={{ height: 1, flex: 1, background: '#e2e8f0' }} />
+                <div style={{ height: 1, flex: 1, background: 'var(--surface-3)' }} />
                 <span style={{ fontSize: 11, fontWeight: 800, color: activeMeta.color, textTransform: 'uppercase', letterSpacing: '0.1em', background: `${activeMeta.color}10`, padding: '3px 12px', borderRadius: 20, border: `1px solid ${activeMeta.color}25` }}>
                   {sectionLabel(section)}
                 </span>
-                <div style={{ height: 1, flex: 1, background: '#e2e8f0' }} />
+                <div style={{ height: 1, flex: 1, background: 'var(--surface-3)' }} />
                 {/* Per-section preview + save */}
                 <a href={`/${activePage}`} target="_blank" rel="noreferrer"
-                  style={{ padding: '4px 10px', borderRadius: 7, background: '#f1f5f9', color: '#64748b', fontSize: 11, fontWeight: 600, textDecoration: 'none', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
+                  style={{ padding: '4px 10px', borderRadius: 7, background: 'var(--surface-3)', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
                   Preview ↗
                 </a>
                 <button onClick={() => saveSection(section)} disabled={savingSection === section}
@@ -196,7 +196,7 @@ export default function AdminContentPage() {
               </div>
 
               {/* Fields as a clean 2-col table */}
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
                 {sRows.map((r, ri) => {
                   const type = RICH_KEYS.has(r.content_key) ? 'rich' : TEXTAREA_KEYS.has(r.content_key) ? 'textarea' : 'text';
                   const label = FIELD_LABELS[r.content_key] || r.content_key.replace(/_/g, ' ');
@@ -205,13 +205,13 @@ export default function AdminContentPage() {
 
                   return (
                     <div key={r.content_key}
-                      style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}>
+                      style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: isLast ? 'none' : '1px solid var(--border-soft)' }}>
                       {/* Label col */}
-                      <div style={{ padding: '14px 16px', background: '#fafafa', borderRight: '1px solid #f1f5f9', display: 'flex', alignItems: type === 'text' ? 'center' : 'flex-start', paddingTop: type !== 'text' ? 16 : 14 }}>
+                      <div style={{ padding: '14px 16px', background: 'var(--surface-2)', borderRight: '1px solid var(--border-soft)', display: 'flex', alignItems: type === 'text' ? 'center' : 'flex-start', paddingTop: type !== 'text' ? 16 : 14 }}>
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{label}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>{label}</div>
                           {type === 'rich' && <div style={{ fontSize: 10, color: '#8b5cf6', fontWeight: 600, marginTop: 2 }}>Rich Text</div>}
-                          {type === 'textarea' && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Multi-line</div>}
+                          {type === 'textarea' && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>Multi-line</div>}
                         </div>
                       </div>
 
@@ -223,12 +223,12 @@ export default function AdminContentPage() {
                           <textarea value={val}
                             onChange={e => { setEdited(p => ({ ...p, [rk(r)]: e.target.value })); setUnsaved(true); }}
                             placeholder={`Enter ${label}…`} rows={3}
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#0f172a', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: 1.6 }} />
+                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--text)', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: 1.6 }} />
                         ) : (
                           <input value={val}
                             onChange={e => { setEdited(p => ({ ...p, [rk(r)]: e.target.value })); setUnsaved(true); }}
                             placeholder={`Enter ${label}…`}
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#0f172a', boxSizing: 'border-box' }} />
+                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--text)', boxSizing: 'border-box' }} />
                         )}
                       </div>
                     </div>

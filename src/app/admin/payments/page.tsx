@@ -50,7 +50,7 @@ export default function AdminPaymentsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const inputStyle = { padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, color: '#0f172a', background: '#fff', outline: 'none' };
+  const inputStyle = { padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', background: 'var(--surface)', outline: 'none' };
 
   const summaryCards = [
     { label: 'Total Revenue', value: `$${Number(summary?.total_revenue ?? 0).toLocaleString('en', { minimumFractionDigits: 2 })}`, icon: '💰', accent: '#10b981', bg: 'rgba(16,185,129,0.08)' },
@@ -65,12 +65,12 @@ export default function AdminPaymentsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, background: '#0f172a', borderRadius: 14, padding: '16px 24px', border: '1px solid #1e293b' }}>
         <div>
           <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Payments</h1>
-          <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>Transaction history & revenue</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0' }}>Transaction history & revenue</p>
         </div>
       </div>
 
       {error && (
-        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: 'rgba(239,68,68,0.08)', color: '#991b1b' }}>
+        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: 'rgba(239,68,68,0.08)', color: 'var(--danger-text)' }}>
           Could not load payments: {error}
         </div>
       )}
@@ -78,9 +78,9 @@ export default function AdminPaymentsPage() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
         {summaryCards.map(s => (
-          <div key={s.label} className="stat-card" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s, box-shadow 0.2s' }}>
+          <div key={s.label} className="stat-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s, box-shadow 0.2s' }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, marginBottom: 12 }}>{s.icon}</div>
-            <div style={{ color: '#0f172a', fontWeight: 800, fontSize: 22, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+            <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 22, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
             <div style={{ color: s.accent, fontWeight: 700, fontSize: 12 }}>{s.label}</div>
           </div>
         ))}
@@ -99,50 +99,50 @@ export default function AdminPaymentsPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border-soft)' }}>
                 {['User', 'Plan', 'Amount', 'Cycle', 'Status', 'Ref', 'Date'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
-                  <div style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                  <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
                 </td></tr>
               )}
               {!loading && payments.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No payments found</td></tr>
+                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-subtle)', fontSize: 13 }}>No payments found</td></tr>
               )}
               {!loading && payments.map(pay => {
                 const ss = statusStyle[pay.status] || statusStyle.pending;
                 return (
-                  <tr key={pay.id} className="row-hover" style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
+                  <tr key={pay.id} className="row-hover" style={{ borderBottom: '1px solid var(--border-soft)', transition: 'background 0.15s' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Avatar name={pay.user_name || '?'} size={30} />
                         <div>
-                          <div style={{ color: '#0f172a', fontWeight: 600, fontSize: 13 }}>{pay.user_name}</div>
-                          <div style={{ color: '#94a3b8', fontSize: 11 }}>{pay.user_email}</div>
+                          <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{pay.user_name}</div>
+                          <div style={{ color: 'var(--text-subtle)', fontSize: 11 }}>{pay.user_email}</div>
                         </div>
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>{pay.plan_name}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#0f172a', fontWeight: 700, fontSize: 14 }}>${Number(pay.amount).toFixed(2)}</td>
-                    <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 12, textTransform: 'capitalize' }}>{pay.billing_cycle}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>${Number(pay.amount).toFixed(2)}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12, textTransform: 'capitalize' }}>{pay.billing_cycle}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: ss.bg, color: ss.color, textTransform: 'capitalize' }}>{pay.status}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-subtle)', fontSize: 11, fontFamily: 'monospace' }}>
                       {pay.provider_ref ? pay.provider_ref.slice(0, 12) + '...' : '—'}
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 12, whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-subtle)', fontSize: 12, whiteSpace: 'nowrap' }}>
                       {new Date(pay.created_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                   </tr>
@@ -153,13 +153,13 @@ export default function AdminPaymentsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid #f1f5f9' }}>
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>Page {page} of {totalPages} · {total} total</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border-soft)' }}>
+            <span style={{ color: 'var(--text-subtle)', fontSize: 12 }}>Page {page} of {totalPages} · {total} total</span>
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}>← Prev</button>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}>← Prev</button>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: 12, cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}>Next →</button>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 12, cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}>Next →</button>
             </div>
           </div>
         )}

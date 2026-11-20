@@ -12,13 +12,13 @@ interface Plan { id: number; name: string; price: number; billing_cycle: string;
 
 const statusCfg: Record<string, { dot: string; label: string; bg: string; text: string }> = {
   planning:  { dot: '#94a3b8', label: 'Planning',  bg: '#f1f5f9', text: '#475569' },
-  active:    { dot: '#2a9d8f', label: 'Active',    bg: '#f0fdf9', text: '#0f766e' },
-  on_hold:   { dot: '#f4a261', label: 'On Hold',   bg: '#fff7ed', text: '#c2410c' },
-  completed: { dot: '#457b9d', label: 'Completed', bg: '#eff6ff', text: '#1d4ed8' },
-  archived:  { dot: '#e63946', label: 'Archived',  bg: '#fef2f2', text: '#b91c1c' },
+  active:    { dot: '#10b981', label: 'Active',    bg: '#f0fdf9', text: '#0f766e' },
+  on_hold:   { dot: '#f59e0b', label: 'On Hold',   bg: '#fff7ed', text: '#c2410c' },
+  completed: { dot: '#6366f1', label: 'Completed', bg: '#eff6ff', text: '#1d4ed8' },
+  archived:  { dot: '#f43f5e', label: 'Archived',  bg: '#fef2f2', text: '#b91c1c' },
 };
 
-const accentColors = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#6d6875'];
+const accentColors = ['#f43f5e','#6366f1','#10b981','#eab308','#f59e0b','#8b5cf6'];
 
 
 function fmtDT(d: string | Date): string {
@@ -45,11 +45,11 @@ type ViewMode = 'grid' | 'list' | 'box';
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
       {(['grid','list','box'] as ViewMode[]).map(v => (
         <button key={v} onClick={() => onChange(v)}
           className="px-3 py-1.5 text-xs font-bold transition"
-          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          style={{ background: view === v ? 'var(--primary)' : 'var(--surface)', color: view === v ? '#fff' : 'var(--text-muted)' }}
           title={v.charAt(0).toUpperCase() + v.slice(1)}>
           {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
         </button>
@@ -277,6 +277,16 @@ export default function ProjectsPage() {
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   }
 
+  // Deep link from the sidebar / ⌘K / "C" shortcut: /projects?new=1 opens the create form
+  useEffect(() => {
+    if (!planLoaded) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') !== '1') return;
+    window.history.replaceState(null, '', '/projects');
+    handleNewProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planLoaded]);
+
   return (
     <div onClick={() => setActiveMember(null)}>
       {planInfo && <PlanLimitBanner plan={planInfo.plan} limits={planInfo.limits} usage={planInfo.usage} show={['projects']} />}
@@ -285,7 +295,7 @@ export default function ProjectsPage() {
           {['all', 'planning', 'active', 'on_hold', 'completed', 'archived'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className="px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition"
-              style={{ background: filter === f ? '#1d3557' : '#fff', color: filter === f ? '#fff' : '#6b7a8d', border: '1px solid', borderColor: filter === f ? '#1d3557' : '#d0dce8' }}>
+              style={{ background: filter === f ? 'var(--primary)' : 'var(--surface)', color: filter === f ? '#fff' : 'var(--text-muted)', border: '1px solid', borderColor: filter === f ? 'var(--primary)' : 'var(--border)' }}>
               {f === 'all' ? `All (${projects.length})` : f.replace('_', ' ')}
             </button>
           ))}
@@ -293,8 +303,8 @@ export default function ProjectsPage() {
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
           <button onClick={handleNewProject}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition hover:opacity-90"
-            style={{ background: !planLoaded || atProjectLimit ? '#94a3b8' : '#e63946', cursor: !planLoaded || atProjectLimit ? 'not-allowed' : 'pointer' }}
+            className={`btn ${!planLoaded || atProjectLimit ? 'btn-secondary opacity-60' : 'btn-gradient'}`}
+            style={{ cursor: !planLoaded || atProjectLimit ? 'not-allowed' : 'pointer' }}
             title={!planLoaded ? 'Loading...' : noPlan ? 'Select a plan to create projects' : atProjectLimit ? `Limit reached: ${planInfo?.usage.projects}/${planInfo?.limits.max_projects} projects` : ''}>
             + New Project
           </button>
@@ -311,38 +321,38 @@ export default function ProjectsPage() {
           marginBottom: showForm ? '24px' : '0',
         }}
       >
-        <div className="bg-white rounded-2xl p-8 w-full shadow-xl" style={{ border: '1px solid #d0dce8' }} onClick={() => setShowMemberDropdown(false)}>
+        <div className="bg-surface rounded-2xl p-8 w-full shadow-xl" style={{ border: '1px solid var(--border)' }} onClick={() => setShowMemberDropdown(false)}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black text-[#1d3557]">New Project</h2>
-            <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee] transition text-lg">✕</button>
+            <h2 className="text-xl font-black text-[var(--text)]">New Project</h2>
+            <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--bg)] transition text-lg">✕</button>
           </div>
           <form onSubmit={createProject} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project name *</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Project name *</label>
                 <input placeholder="e.g. Website Redesign" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}
-                  onFocus={e => e.target.style.borderColor = '#457b9d'} onBlur={e => e.target.style.borderColor = '#d0dce8'} />
+                  className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none transition"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}
+                  onFocus={e => e.target.style.borderColor = 'var(--link)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Description</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Description</label>
                 <textarea placeholder="What is this project about?" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none transition resize-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                  className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none transition resize-none"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Project Image</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Project Image</label>
                 <div className="flex items-center gap-4">
                   {(imagePreview || form.image) && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imagePreview || form.image} alt="preview" className="w-20 h-20 rounded-xl object-cover"
-                      style={{ border: '2px solid #d0dce8' }} />
+                      style={{ border: '2px solid var(--border)' }} />
                   )}
                   <div className="flex-1">
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                     <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                       className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
-                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
+                      style={{ border: '1.5px dashed var(--link)', color: 'var(--link)', background: 'rgba(99,102,241,0.05)' }}>
                       {uploading ? 'Uploading…' : '📷 Choose Image'}
                     </button>
                   </div>
@@ -350,46 +360,46 @@ export default function ProjectsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Priority</label>
+                  <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Priority</label>
                   <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
-                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                    className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none"
+                    style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
                     {['low','medium','high','critical'].map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Visibility</label>
+                  <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Visibility</label>
                   <select value={form.visibility} onChange={e => setForm(p => ({ ...p, visibility: e.target.value }))}
-                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                    className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none"
+                    style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
                     {['private','team','public'].map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Due date</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Due date</label>
                 <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))}
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                  className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Add Members (Optional)</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Add Members (Optional)</label>
                 <div className="mb-3">
-                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">👥 Select from Organizations</label>
+                  <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">👥 Select from Organizations</label>
                   <div className="relative">
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); setShowMemberDropdown(!showMemberDropdown); }}
-                      className="w-full rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none text-left flex items-center justify-between"
-                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                      className="w-full rounded-xl px-4 py-2.5 text-[var(--text)] text-sm focus:outline-none text-left flex items-center justify-between"
+                      style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
                       <span>{selectedMembers.length > 0 ? `${selectedMembers.length} member(s) selected` : 'Choose members...'}</span>
                       <span>{showMemberDropdown ? '▲' : '▼'}</span>
                     </button>
                     {showMemberDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg" style={{ border: '1.5px solid #d0dce8', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                        <div className="p-2 border-b" style={{ borderColor: '#d0dce8' }}>
+                      <div className="absolute z-10 w-full mt-1 bg-surface rounded-xl shadow-lg" style={{ border: '1.5px solid var(--border)', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                        <div className="p-2 border-b" style={{ borderColor: 'var(--border)' }}>
                           <input type="text" placeholder="Search members..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
                             className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                            style={{ background: '#f1faee', border: '1px solid #d0dce8' }}
+                            style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
                             onClick={e => e.stopPropagation()} />
                         </div>
                         <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
@@ -402,27 +412,27 @@ export default function ProjectsPage() {
                                   <button key={member.id} type="button"
                                     onClick={(e) => { e.stopPropagation(); if (isSelected) setSelectedMembers(prev => prev.filter(id => id !== member.id)); else setSelectedMembers(prev => [...prev, member.id]); }}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left"
-                                    style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    style={{ borderBottom: '1px solid var(--border-soft)' }}>
                                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden"
                                       style={{ background: `hsl(${(member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                                       {member.avatar ? <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" /> : member.name[0].toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-bold text-[#1d3557] truncate">{member.name}</div>
-                                      <div className="text-xs text-[#6b7a8d] truncate">{member.email} • {member.org_name}</div>
+                                      <div className="text-sm font-bold text-[var(--text)] truncate">{member.name}</div>
+                                      <div className="text-xs text-[var(--text-muted)] truncate">{member.email} • {member.org_name}</div>
                                     </div>
-                                    {isSelected && <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: '#2a9d8f' }}>✓</div>}
+                                    {isSelected && <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: 'var(--success)' }}>✓</div>}
                                   </button>
                                 );
                               })
                           ) : (
-                            <div className="px-4 py-8 text-center text-sm text-[#6b7a8d]">No organization members found</div>
+                            <div className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">No organization members found</div>
                           )}
                         </div>
-                        <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                        <div className="p-2 border-t" style={{ borderColor: 'var(--border)' }}>
                           <button type="button" onClick={(e) => { e.stopPropagation(); setShowMemberDropdown(false); }}
                             className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
-                            style={{ background: '#2a9d8f', color: '#fff' }}>Done</button>
+                            style={{ background: 'var(--success)', color: '#fff' }}>Done</button>
                         </div>
                       </div>
                     )}
@@ -434,7 +444,7 @@ export default function ProjectsPage() {
                         if (!user) return null;
                         return (
                           <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                            style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                            style={{ background: 'var(--info-soft)', color: 'var(--info-text)', border: '1px solid #bae6fd' }}>
                             <span>{user.name}</span>
                             <button type="button" onClick={() => setSelectedMembers(prev => prev.filter(id => id !== userId))} className="text-xs hover:opacity-70">✕</button>
                           </div>
@@ -444,12 +454,12 @@ export default function ProjectsPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6b7a8d] mb-1.5">📧 Or Invite by Email</label>
+                  <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">📧 Or Invite by Email</label>
                   <div className="flex gap-2">
                     <input type="email" placeholder="Enter email address..." value={emailInput} onChange={e => setEmailInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const em = emailInput.toLowerCase().trim(); if (em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && !inviteEmails.includes(em)) { setInviteEmails(prev => [...prev, em]); setEmailInput(''); } } }}
-                      className="flex-1 rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none"
-                      style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                      className="flex-1 rounded-xl px-4 py-2.5 text-[var(--text)] text-sm focus:outline-none"
+                      style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }} />
                     <button type="button"
                       onClick={() => { const em = emailInput.toLowerCase().trim(); if (em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && !inviteEmails.includes(em)) { setInviteEmails(prev => [...prev, em]); setEmailInput(''); } }}
                       className="px-4 py-2.5 rounded-xl font-bold text-sm text-white transition hover:opacity-90 flex-shrink-0"
@@ -459,7 +469,7 @@ export default function ProjectsPage() {
                     <div className="flex flex-wrap gap-2 mt-2">
                       {inviteEmails.map(email => (
                         <div key={email} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                          style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                          style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1px solid var(--warning-soft)' }}>
                           <span>📧 {email}</span>
                           <button type="button" onClick={() => setInviteEmails(prev => prev.filter(e => e !== email))} className="text-xs hover:opacity-70">✕</button>
                         </div>
@@ -469,7 +479,7 @@ export default function ProjectsPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ background: '#e63946' }}>
+                <button type="submit" disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ background: 'var(--accent)' }}>
                   {creating ? (
                     <span className="flex items-center justify-center gap-2">
                       <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -480,22 +490,22 @@ export default function ProjectsPage() {
                     </span>
                   ) : 'Create Project'}
                 </button>
-                <button type="button" onClick={() => { setShowForm(false); setShowMemberDropdown(false); }} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] transition hover:bg-[#f1faee] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+                <button type="button" onClick={() => { setShowForm(false); setShowMemberDropdown(false); }} disabled={creating} className="flex-1 py-3 rounded-xl font-bold text-sm text-[var(--text)] transition hover:bg-[var(--bg)] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" style={{ border: '1.5px solid var(--border)' }}>Cancel</button>
               </div>
             </form>
         </div>
       </div>
 
       {view === 'list' ? (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {filtered.map((p, i) => {
             const sc = statusCfg[p.status] || statusCfg.planning;
             const accent = accentColors[i % accentColors.length];
             return (
               <div key={p.id} className="relative">
                 <Link href={`/projects/${p.slug || p.id}`}
-                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition group"
-                  style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-2)] transition group"
+                  style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
                   {p.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
@@ -503,15 +513,15 @@ export default function ProjectsPage() {
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: accent }} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm group-hover:text-[#e63946] transition truncate" style={{ color: '#1d3557' }}>{p.name}</div>
-                    {p.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{p.description}</div>}
+                    <div className="font-bold text-sm group-hover:text-[var(--accent)] transition truncate" style={{ color: 'var(--text)' }}>{p.name}</div>
+                    {p.description && <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{p.description}</div>}
                   </div>
                   <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
                     style={{ background: sc.bg, color: sc.text }}>
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />{sc.label}
                   </span>
                   <span className="text-xs font-semibold capitalize flex-shrink-0" style={{ color: accent }}>{p.priority}</span>
-                  {p.due_date && <span className="text-xs flex-shrink-0" style={{ color: '#6b7a8d' }}>{fmtD(p.due_date)}</span>}
+                  {p.due_date && <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{fmtD(p.due_date)}</span>}
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {(members[p.id] || []).slice(0, 3).map((m, mi) => {
                       const memberData = m as ProjectMember & { avatar?: string };
@@ -547,7 +557,7 @@ export default function ProjectsPage() {
                   </div>
                   <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
                     className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
-                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                    style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
                 </Link>
               </div>
             );
@@ -555,8 +565,8 @@ export default function ProjectsPage() {
           {filtered.length === 0 && (
             <div className="p-16 text-center">
               <div className="text-5xl mb-4">📋</div>
-              <div className="font-black text-[#1d3557] mb-2">No projects yet</div>
-              <button onClick={handleNewProject} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
+              <div className="font-black text-[var(--text)] mb-2">No projects yet</div>
+              <button onClick={handleNewProject} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: 'var(--accent)' }}>Create Project</button>
             </div>
           )}
         </div>
@@ -567,8 +577,8 @@ export default function ProjectsPage() {
           const accent = accentColors[i % accentColors.length];
           return (
             <Link key={p.id} href={`/projects/${p.slug || p.id}`}
-              className={`bg-white rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group relative${view === 'box' ? ' flex gap-5 items-start' : ''}`}
-              style={{ border: '1px solid #d0dce8', boxShadow: '0 2px 8px rgba(29,53,87,0.06)' }}>
+              className={`bg-surface rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group relative${view === 'box' ? ' flex gap-5 items-start' : ''}`}
+              style={{ border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(15,18,34,0.06)' }}>
               {/* Top accent bar */}
               <div className="relative" style={{ height: '8px', background: accent }} />
               
@@ -577,7 +587,7 @@ export default function ProjectsPage() {
                 <div className="flex items-start gap-3 mb-3">
                   {/* Project icon */}
                   {p.image ? (
-                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden" style={{ border: '2px solid #d0dce8' }}>
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden" style={{ border: '2px solid var(--border)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                     </div>
@@ -590,7 +600,7 @@ export default function ProjectsPage() {
                   
                   {/* Title */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-[#1d3557] text-base leading-snug group-hover:text-[#e63946] transition truncate">{p.name}</h3>
+                    <h3 className="font-black text-[var(--text)] text-base leading-snug group-hover:text-[var(--accent)] transition truncate">{p.name}</h3>
                     <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full inline-flex mt-1"
                       style={{ background: sc.bg, color: sc.text }}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
@@ -634,17 +644,17 @@ export default function ProjectsPage() {
                   </div>
                 </div>
                 
-                {p.description && <p className="text-sm text-[#6b7a8d] mb-4 line-clamp-2">{p.description}</p>}
+                {p.description && <p className="text-sm text-[var(--text-muted)] mb-4 line-clamp-2">{p.description}</p>}
                 
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold capitalize px-2.5 py-1 rounded-full" style={{ background: `${accent}15`, color: accent }}>{p.priority}</span>
-                  <div className="flex items-center gap-3 text-[#6b7a8d]">
+                  <div className="flex items-center gap-3 text-[var(--text-muted)]">
                     {p.due_date && <span>📅 {fmtD(p.due_date)}</span>}
-                    {p.org_id && <span style={{ color: '#2a9d8f' }}>🏢 Org</span>}
+                    {p.org_id && <span style={{ color: 'var(--success)' }}>🏢 Org</span>}
                   </div>
                   <button onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(p); }}
                     className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50"
-                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                    style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
                 </div>
               </div>
             </Link>
@@ -652,11 +662,11 @@ export default function ProjectsPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="col-span-3 bg-white rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8' }}>
+          <div className="col-span-3 bg-surface rounded-2xl p-16 text-center" style={{ border: '2px dashed var(--border)' }}>
             <div className="text-5xl mb-4">📋</div>
-            <div className="font-black text-[#1d3557] mb-2">No projects yet</div>
-            <div className="text-[#6b7a8d] text-sm mb-6">Create your first project to get started</div>
-            <button onClick={handleNewProject} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: '#e63946' }}>Create Project</button>
+            <div className="font-black text-[var(--text)] mb-2">No projects yet</div>
+            <div className="text-[var(--text-muted)] text-sm mb-6">Create your first project to get started</div>
+            <button onClick={handleNewProject} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: 'var(--accent)' }}>Create Project</button>
           </div>
         )}
       </div>
@@ -675,8 +685,8 @@ export default function ProjectsPage() {
       {/* Member info popup */}
       {activeMember && (
         <div
-          className="fixed z-[200] bg-white rounded-2xl shadow-2xl p-4"
-          style={{ top: activeMember.y, left: activeMember.x, minWidth: 200, border: '1.5px solid #d0dce8' }}
+          className="fixed z-[200] bg-surface rounded-2xl shadow-2xl p-4"
+          style={{ top: activeMember.y, left: activeMember.x, minWidth: 200, border: '1.5px solid var(--border)' }}
           onClick={e => e.stopPropagation()}>
           {/* Avatar */}
           <div className="flex items-center gap-3 mb-3">
@@ -685,18 +695,18 @@ export default function ProjectsPage() {
               {activeMember.member.name[0].toUpperCase()}
             </div>
             <div>
-              <div className="font-black text-sm" style={{ color: '#1d3557' }}>{activeMember.member.name}</div>
+              <div className="font-black text-sm" style={{ color: 'var(--text)' }}>{activeMember.member.name}</div>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize"
                 style={{
-                  background: activeMember.member.role === 'owner' ? '#fef2f2' : activeMember.member.role === 'manager' ? '#eff6ff' : '#f0fdf9',
-                  color: activeMember.member.role === 'owner' ? '#e63946' : activeMember.member.role === 'manager' ? '#457b9d' : '#2a9d8f'
+                  background: activeMember.member.role === 'owner' ? 'var(--danger-soft)' : activeMember.member.role === 'manager' ? 'var(--info-soft)' : 'var(--success-soft)',
+                  color: activeMember.member.role === 'owner' ? 'var(--accent)' : activeMember.member.role === 'manager' ? 'var(--link)' : 'var(--success)'
                 }}>
                 {activeMember.member.role}
               </span>
             </div>
             <button onClick={() => setActiveMember(null)}
               className="ml-auto w-6 h-6 rounded-lg flex items-center justify-center hover:bg-gray-100 transition text-xs"
-              style={{ color: '#94a3b8' }}>✕</button>
+              style={{ color: 'var(--text-subtle)' }}>✕</button>
           </div>
         </div>
       )}
@@ -705,10 +715,10 @@ export default function ProjectsPage() {
       {/* Plan picker modal — shown when user has no plan */}
       {showPlanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(15,23,42,0.75)' }}>
-          <div className="bg-white rounded-2xl w-full shadow-2xl overflow-hidden" style={{ maxWidth: 900, maxHeight: '90vh', border: '1px solid #d0dce8', display: 'flex', flexDirection: 'column' }}>
+          <div className="bg-surface rounded-2xl w-full shadow-2xl overflow-hidden" style={{ maxWidth: 900, maxHeight: '90vh', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
 
             {/* Header */}
-            <div className="px-8 py-6 flex items-center justify-between flex-shrink-0" style={{ background: '#1d3557' }}>
+            <div className="px-8 py-6 flex items-center justify-between flex-shrink-0" style={{ background: 'var(--primary)' }}>
               <div>
                 <div className="font-black text-white text-xl">Choose a Plan to Get Started</div>
                 <div className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Select any plan — Free plan requires no payment</div>
@@ -720,7 +730,7 @@ export default function ProjectsPage() {
             {/* Success banner */}
             {planSuccess && (
               <div className="mx-6 mt-4 px-4 py-3 rounded-xl text-sm font-bold text-center flex-shrink-0"
-                style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1.5px solid var(--success-soft)' }}>
                 {planSuccess}
               </div>
             )}
@@ -732,11 +742,11 @@ export default function ProjectsPage() {
                 <div className="max-w-md mx-auto">
                   <div className="text-center mb-6">
                     <div className="text-5xl mb-3">🎉</div>
-                    <div className="font-black text-xl" style={{ color: '#1d3557' }}>Activate Free Plan</div>
-                    <div className="text-sm mt-1" style={{ color: '#6b7a8d' }}>No credit card required</div>
+                    <div className="font-black text-xl" style={{ color: 'var(--text)' }}>Activate Free Plan</div>
+                    <div className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>No credit card required</div>
                   </div>
-                  <div className="rounded-2xl p-5 mb-5" style={{ background: '#f8fafc', border: '1.5px solid #d0dce8' }}>
-                    <div className="font-black text-sm mb-3" style={{ color: '#1d3557' }}>You will get:</div>
+                  <div className="rounded-2xl p-5 mb-5" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}>
+                    <div className="font-black text-sm mb-3" style={{ color: 'var(--text)' }}>You will get:</div>
                     <ul className="space-y-2">
                       {[
                         `${confirmFreePlan.max_projects === -1 ? 'Unlimited' : confirmFreePlan.max_projects} projects`,
@@ -746,8 +756,8 @@ export default function ProjectsPage() {
                         `${confirmFreePlan.max_storage_gb}GB storage`,
                         ...confirmFreePlan.features,
                       ].map(f => (
-                        <li key={f} className="flex items-center gap-2 text-sm" style={{ color: '#1d3557' }}>
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style={{ background: '#2a9d8f' }}>✓</span>
+                        <li key={f} className="flex items-center gap-2 text-sm" style={{ color: 'var(--text)' }}>
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style={{ background: 'var(--success)' }}>✓</span>
                           {f}
                         </li>
                       ))}
@@ -756,12 +766,12 @@ export default function ProjectsPage() {
                   <div className="flex gap-3">
                     <button onClick={() => activateFreePlan(confirmFreePlan)} disabled={activatingPlan === confirmFreePlan.id}
                       className="flex-1 py-3 rounded-xl font-black text-sm text-white transition hover:opacity-90 disabled:opacity-60"
-                      style={{ background: '#2a9d8f' }}>
+                      style={{ background: 'var(--success)' }}>
                       {activatingPlan === confirmFreePlan.id ? 'Activating...' : '✓ Activate Free Plan'}
                     </button>
                     <button onClick={() => setConfirmFreePlan(null)}
                       className="flex-1 py-3 rounded-xl font-black text-sm transition hover:bg-gray-50"
-                      style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>
+                      style={{ color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>
                       ← Back
                     </button>
                   </div>
@@ -772,9 +782,9 @@ export default function ProjectsPage() {
                     const isFree = Number(plan.price) === 0;
                     const colors: Record<string, { bg: string; border: string; btn: string; text: string; muted: string }> = {
                       Free:       { bg: '#fff',     border: '#d0dce8', btn: '#1d3557', text: '#1d3557', muted: '#6b7a8d' },
-                      Pro:        { bg: '#1d3557',  border: '#1d3557', btn: '#e63946', text: '#fff',    muted: 'rgba(255,255,255,0.55)' },
-                      Business:   { bg: '#457b9d',  border: '#457b9d', btn: '#fff',    text: '#fff',    muted: 'rgba(255,255,255,0.55)' },
-                      Enterprise: { bg: '#152840',  border: '#152840', btn: '#e63946', text: '#fff',    muted: 'rgba(255,255,255,0.4)' },
+                      Pro:        { bg: '#1d3557',  border: '#1d3557', btn: '#f43f5e', text: '#fff',    muted: 'rgba(255,255,255,0.55)' },
+                      Business:   { bg: '#6366f1',  border: '#6366f1', btn: '#fff',    text: '#fff',    muted: 'rgba(255,255,255,0.55)' },
+                      Enterprise: { bg: '#152840',  border: '#152840', btn: '#f43f5e', text: '#fff',    muted: 'rgba(255,255,255,0.4)' },
                     };
                     const c = colors[plan.name] || colors.Free;
                     return (
@@ -806,7 +816,7 @@ export default function ProjectsPage() {
                             <button
                               onClick={() => setConfirmFreePlan(plan)}
                               className="w-full py-2.5 rounded-xl font-black text-sm transition hover:opacity-90"
-                              style={{ background: '#2a9d8f', color: '#fff' }}>
+                              style={{ background: 'var(--success)', color: '#fff' }}>
                               Get started free
                             </button>
                             <p className="text-xs text-center mt-1.5 font-medium" style={{ color: c.muted }}>No credit card needed</p>

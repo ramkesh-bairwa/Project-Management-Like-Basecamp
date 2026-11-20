@@ -7,8 +7,8 @@ interface ArchivedGroup    { id: number; name: string; description: string; colo
 interface ArchivedTask     { id: number; title: string; description: string; status: string; priority: string; deleted_at: string; project_name: string; project_id: number; group_name: string; group_color: string; }
 interface ArchivedComment  { id: number; content: string; entity_type: string; deleted_at: string; user_name: string; task_title: string; project_name: string; }
 
-const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
-const statusColors:   Record<string, string> = { todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946', planning: '#94a3b8', active: '#2a9d8f', on_hold: '#f4a261', completed: '#457b9d', archived: '#e63946' };
+const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#6366f1', high: '#f59e0b', critical: '#f43f5e' };
+const statusColors:   Record<string, string> = { todo: '#94a3b8', in_progress: '#6366f1', in_review: '#f59e0b', done: '#10b981', cancelled: '#f43f5e', planning: '#94a3b8', active: '#10b981', on_hold: '#f59e0b', completed: '#6366f1', archived: '#f43f5e' };
 
 function timeAgo(d: string) {
   const diff = Date.now() - new Date(d).getTime();
@@ -67,24 +67,24 @@ export default function ArchivePage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <span className="text-2xl">🗃</span>
-          <h1 className="text-2xl font-black" style={{ color: '#1d3557' }}>Archive</h1>
+          <h1 className="text-2xl font-black" style={{ color: 'var(--text)' }}>Archive</h1>
           {total > 0 && (
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white" style={{ background: '#e63946' }}>{total} items</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white" style={{ background: 'var(--accent)' }}>{total} items</span>
           )}
         </div>
-        <p className="text-sm" style={{ color: '#6b7a8d' }}>Deleted items are kept here. You can restore them anytime.</p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Deleted items are kept here. You can restore them anytime.</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl mb-6 w-fit" style={{ background: '#e8f0f7' }}>
+      <div className="flex gap-1 p-1 rounded-xl mb-6 w-fit" style={{ background: 'var(--surface-3)' }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition relative"
-            style={{ background: tab === t.key ? '#1d3557' : 'transparent', color: tab === t.key ? '#fff' : '#6b7a8d' }}>
+            style={{ background: tab === t.key ? 'var(--primary)' : 'transparent', color: tab === t.key ? '#fff' : 'var(--text-muted)' }}>
             {t.icon} {t.label}
             {counts[t.key] > 0 && (
               <span className="text-xs font-black px-1.5 py-0.5 rounded-full ml-0.5"
-                style={{ background: tab === t.key ? 'rgba(255,255,255,0.2)' : '#d0dce8', color: tab === t.key ? '#fff' : '#1d3557' }}>
+                style={{ background: tab === t.key ? 'rgba(255,255,255,0.2)' : '#d0dce8', color: tab === t.key ? '#fff' : 'var(--text)' }}>
                 {counts[t.key]}
               </span>
             )}
@@ -94,7 +94,7 @@ export default function ArchivePage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="text-sm" style={{ color: '#6b7a8d' }}>Loading archive...</div>
+          <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading archive...</div>
         </div>
       ) : (
         <>
@@ -126,7 +126,7 @@ export default function ArchivePage() {
                   subtitle={g.description}
                   deletedAt={g.deleted_at}
                   accent={g.color}
-                  badges={[{ label: `📋 ${g.project_name}`, color: '#457b9d' }]}
+                  badges={[{ label: `📋 ${g.project_name}`, color: '#6366f1' }]}
                   onRestore={() => restore('group', g.id)}
                   restoring={restoring === `group-${g.id}`}
                 />
@@ -145,7 +145,7 @@ export default function ArchivePage() {
                   badges={[
                     { label: t.status.replace('_', ' '), color: statusColors[t.status] },
                     { label: t.priority, color: priorityColors[t.priority] },
-                    ...(t.group_name ? [{ label: t.group_name, color: t.group_color || '#457b9d' }] : []),
+                    ...(t.group_name ? [{ label: t.group_name, color: t.group_color || '#6366f1' }] : []),
                     { label: `📋 ${t.project_name}`, color: '#6b7a8d' },
                   ]}
                   onRestore={() => restore('task', t.id)}
@@ -180,10 +180,10 @@ export default function ArchivePage() {
 
 function Section({ children, empty, label }: { children: React.ReactNode; empty: boolean; label: string }) {
   if (empty) return (
-    <div className="bg-white rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8' }}>
+    <div className="bg-surface rounded-2xl p-16 text-center" style={{ border: '2px dashed var(--border)' }}>
       <div className="text-4xl mb-3">🗃</div>
-      <div className="font-black text-base mb-1" style={{ color: '#1d3557' }}>No deleted {label}</div>
-      <div className="text-sm" style={{ color: '#6b7a8d' }}>Deleted {label} will appear here</div>
+      <div className="font-black text-base mb-1" style={{ color: 'var(--text)' }}>No deleted {label}</div>
+      <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Deleted {label} will appear here</div>
     </div>
   );
   return <div className="space-y-3">{children}</div>;
@@ -195,11 +195,11 @@ function Card({ title, subtitle, deletedAt, accent, badges, onRestore, restoring
   onRestore: () => void; restoring: boolean;
 }) {
   return (
-    <div className="bg-white rounded-2xl p-4 flex items-start gap-4"
-      style={{ border: '1px solid #d0dce8', borderLeft: accent ? `4px solid ${accent}` : '1px solid #d0dce8' }}>
+    <div className="bg-surface rounded-2xl p-4 flex items-start gap-4"
+      style={{ border: '1px solid var(--border)', borderLeft: accent ? `4px solid ${accent}` : '1px solid var(--border)' }}>
       <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm mb-1 truncate" style={{ color: '#1d3557' }}>{title}</div>
-        {subtitle && <div className="text-xs mb-2 truncate" style={{ color: '#6b7a8d' }}>{subtitle}</div>}
+        <div className="font-bold text-sm mb-1 truncate" style={{ color: 'var(--text)' }}>{title}</div>
+        {subtitle && <div className="text-xs mb-2 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</div>}
         <div className="flex items-center gap-1.5 flex-wrap">
           {badges.map((b, i) => (
             <span key={i} className="text-xs font-bold px-2 py-0.5 rounded-full capitalize text-white"
@@ -207,14 +207,14 @@ function Card({ title, subtitle, deletedAt, accent, badges, onRestore, restoring
               {b.label}
             </span>
           ))}
-          <span className="text-xs ml-auto flex-shrink-0" style={{ color: '#94a3b8' }}>
+          <span className="text-xs ml-auto flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>
             🗑 {timeAgo(deletedAt)}
           </span>
         </div>
       </div>
       <button onClick={onRestore} disabled={restoring}
         className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition hover:opacity-90 disabled:opacity-50"
-        style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+        style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1.5px solid var(--success-soft)' }}>
         {restoring ? '...' : '↩ Restore'}
       </button>
     </div>

@@ -71,19 +71,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               // eslint-disable-next-line @next/next/no-img-element
               <img src={settings.site_logo_url} alt="logo" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
             ) : (
-              <div style={{ borderRadius: 10, background: `linear-gradient(135deg, ${settings.accent_color || '#e63946'}, ${settings.primary_color || '#1d3557'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, height: 36, padding: '0 8px', fontSize: (settings.logo_letter?.length || 1) > 2 ? 11 : (settings.logo_letter?.length || 1) > 1 ? 13 : 16, fontWeight: 900, color: '#fff' }}>
+              <div style={{ borderRadius: 10, background: `linear-gradient(135deg, ${settings.accent_color || 'var(--accent)'}, ${settings.primary_color || 'var(--primary)'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, height: 36, padding: '0 8px', fontSize: (settings.logo_letter?.length || 1) > 2 ? 11 : (settings.logo_letter?.length || 1) > 1 ? 13 : 16, fontWeight: 900, color: '#fff' }}>
                 {settings.logo_letter || 'P'}
               </div>
             )}
             <div>
               <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>Admin Panel</div>
-              <div style={{ color: '#475569', fontSize: 11 }}>{settings.site_name || 'ProjectHub'}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{settings.site_name || 'ProjectHub'}</div>
             </div>
           </div>
         </div>
 
         <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', padding: '8px 10px 4px', textTransform: 'uppercase' }}>Overview</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', padding: '8px 10px 4px', textTransform: 'uppercase' }}>Overview</div>
 
           {NAV.map(item => {
             const active = pathname === item.path;
@@ -91,7 +91,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div key={item.path} className="nav-item" onClick={() => router.push(item.path)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, background: active ? 'rgba(99,102,241,0.15)' : 'transparent', transition: 'background 0.15s' }}>
                 <span style={{ fontSize: 14, opacity: active ? 1 : 0.6 }}>{item.icon}</span>
-                <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#a5b4fc' : '#94a3b8' }}>{item.label}</span>
+                <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#a5b4fc' : 'var(--text-subtle)' }}>{item.label}</span>
                 {active && <div style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />}
               </div>
             );
@@ -102,8 +102,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="nav-item" onClick={() => setSettingsOpen(o => !o)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, background: isSettingsActive ? 'rgba(99,102,241,0.15)' : 'transparent', transition: 'background 0.15s' }}>
               <span style={{ fontSize: 14, opacity: isSettingsActive ? 1 : 0.6 }}>🎛️</span>
-              <span style={{ fontSize: 13, fontWeight: isSettingsActive ? 700 : 500, color: isSettingsActive ? '#a5b4fc' : '#94a3b8' }}>Settings</span>
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#475569', transition: 'transform 0.2s', display: 'inline-block', transform: settingsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              <span style={{ fontSize: 13, fontWeight: isSettingsActive ? 700 : 500, color: isSettingsActive ? '#a5b4fc' : 'var(--text-subtle)' }}>Settings</span>
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: settingsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
             </div>
 
             {settingsOpen && (
@@ -114,7 +114,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div key={item.path} className="nav-item" onClick={() => router.push(item.path)}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 1, background: active ? 'rgba(99,102,241,0.15)' : 'transparent', transition: 'background 0.15s' }}>
                       <span style={{ fontSize: 13, opacity: active ? 1 : 0.6 }}>{item.icon}</span>
-                      <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#a5b4fc' : '#94a3b8' }}>{item.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#a5b4fc' : 'var(--text-subtle)' }}>{item.label}</span>
                       {active && <div style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: '#6366f1' }} />}
                     </div>
                   );
@@ -128,18 +128,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button onClick={() => router.push('/dashboard')} className="btn-ghost"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.15s', marginBottom: 4 }}>
             <span style={{ fontSize: 14, opacity: 0.6 }}>←</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#94a3b8' }}>Back to App</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-subtle)' }}>Back to App</span>
           </button>
           <button onClick={logout} className="btn-ghost"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
             <span style={{ fontSize: 14, opacity: 0.6 }}>⏻</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#94a3b8' }}>Logout</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-subtle)' }}>Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main content */}
-      <main style={{ flex: 1, overflowY: 'auto', background: '#ffffff' }}>
+      <main style={{ flex: 1, overflowY: 'auto', background: 'var(--surface)' }}>
         {children}
       </main>
     </div>

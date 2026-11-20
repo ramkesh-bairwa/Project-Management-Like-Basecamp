@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import PublicNav from '@/components/PublicNav';
+import PublicNav, { CtaBand, PublicFooter } from '@/components/PublicNav';
 
 type Blog = {
   id: number; title: string; slug: string; excerpt: string; content: string;
@@ -10,8 +10,8 @@ type Blog = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Product: '#e63946', Engineering: '#457b9d', 'Tips & Tricks': '#2a9d8f',
-  Growth: '#f4a261', 'Customer Stories': '#6d6875', General: '#a8dadc',
+  Product: '#f43f5e', Engineering: '#6366f1', 'Tips & Tricks': '#10b981',
+  Growth: '#f59e0b', 'Customer Stories': '#8b5cf6', General: '#818cf8',
 };
 
 function initials(name: string) {
@@ -21,6 +21,15 @@ function initials(name: string) {
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
+
+function readingTime(html: string) {
+  const words = html.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 220));
+}
+
+const ArrowLeft = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:-translate-x-1"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+);
 
 export default function BlogDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -43,93 +52,124 @@ export default function BlogDetailPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const catColor = (cat: string) => CATEGORY_COLORS[cat] || '#457b9d';
+  const catColor = (cat: string) => CATEGORY_COLORS[cat] || '#6366f1';
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: '#f8fafc' }}>
+    <div className="min-h-screen bg-bg text-fg">
       <PublicNav />
-      <div style={{ textAlign: 'center', padding: '120px 24px', color: '#94a3b8', fontSize: 15 }}>Loading…</div>
+      <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+        <div className="skeleton h-4 w-28" />
+        <div className="skeleton mt-6 h-10 w-full" />
+        <div className="skeleton mt-3 h-10 w-2/3" />
+        <div className="skeleton mt-8 h-4 w-full" />
+        <div className="skeleton mt-2 h-4 w-11/12" />
+        <div className="skeleton mt-2 h-4 w-4/5" />
+        <div className="skeleton mt-10 h-64 w-full rounded-3xl" />
+      </div>
     </div>
   );
 
   if (notFound || !blog) return (
-    <div style={{ minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: '#f8fafc' }}>
+    <div className="min-h-screen bg-bg text-fg">
       <PublicNav />
-      <div style={{ textAlign: 'center', padding: '120px 24px' }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>📭</div>
-        <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1d3557', margin: '0 0 12px' }}>Blog post not found</h1>
-        <Link href="/blog" style={{ color: '#e63946', fontWeight: 700, textDecoration: 'none' }}>← Back to Blog</Link>
+      <div className="relative overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0 aurora" />
+        <div className="relative px-4 py-32 text-center sm:px-6">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-surface text-4xl shadow-[var(--shadow-md)]">📭</div>
+          <h1 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-fg">Blog post not found</h1>
+          <p className="mt-2 text-muted">It may have been moved or unpublished.</p>
+          <Link href="/blog" className="group btn btn-secondary mt-7"><ArrowLeft /> Back to Blog</Link>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: '#f8fafc', color: '#1d3557' }}>
+    <div className="min-h-screen overflow-x-clip bg-bg text-fg">
       <PublicNav />
 
       {/* Hero banner */}
-      <div style={{ background: `linear-gradient(135deg,${blog.cover_color},${blog.cover_color}cc)`, padding: '64px 24px 56px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', top: -120, right: -80, pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 760, margin: '0 auto', position: 'relative' }}>
-          <Link href="/blog" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginBottom: 20 }}>← Back to Blog</Link>
-          <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, background: `${catColor(blog.category)}33`, border: `1px solid ${catColor(blog.category)}66`, color: '#fff', fontSize: 12, fontWeight: 700, marginBottom: 20 }}>{blog.category}</div>
-          <h1 style={{ fontSize: 40, fontWeight: 900, color: '#fff', margin: '0 0 20px', lineHeight: 1.2, letterSpacing: '-1px' }}>{blog.title}</h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', margin: '0 0 28px', lineHeight: 1.7 }}>{blog.excerpt}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: blog.author_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15 }}>{initials(blog.author)}</div>
+      <header className="relative overflow-hidden text-white" style={{ background: `linear-gradient(135deg, ${blog.cover_color}, ${blog.cover_color}cc 55%, #00000066)` }}>
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(160deg,#000,transparent_70%)]" />
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/15 blur-3xl" />
+        <div className="relative mx-auto max-w-3xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 animate-fade-up">
+          <Link href="/blog" className="group inline-flex items-center gap-1.5 text-sm font-medium text-white/75 transition-colors hover:text-white">
+            <ArrowLeft /> Back to Blog
+          </Link>
+          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <span className="rounded-full border border-white/30 px-3 py-1" style={{ background: `${catColor(blog.category)}55` }}>{blog.category}</span>
+            <span className="rounded-full bg-white/15 px-3 py-1 backdrop-blur">{readingTime(blog.content || '')} min read</span>
+          </div>
+          <h1 className="mt-5 font-display text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl text-balance">{blog.title}</h1>
+          <p className="mt-5 text-base leading-relaxed text-white/80 sm:text-lg">{blog.excerpt}</p>
+          <div className="mt-8 flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-full text-[15px] font-bold ring-2 ring-white/40" style={{ background: blog.author_color }}>{initials(blog.author)}</div>
             <div>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{blog.author}</div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>{formatDate(blog.created_at)}</div>
+              <div className="text-[15px] font-semibold">{blog.author}</div>
+              <div className="text-sm text-white/70">{formatDate(blog.created_at)}</div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Content */}
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '56px 24px 80px', display: 'grid', gridTemplateColumns: '1fr', gap: 48 }}>
+      <div className="mx-auto max-w-3xl px-4 pb-8 pt-14 sm:px-6">
         <article>
           <style>{`
-            .blog-content h2 { font-size: 24px; font-weight: 800; color: #1d3557; margin: 36px 0 12px; letter-spacing: -0.5px; }
-            .blog-content h3 { font-size: 18px; font-weight: 700; color: #1d3557; margin: 28px 0 10px; }
-            .blog-content p  { font-size: 16px; color: #475569; line-height: 1.85; margin: 0 0 18px; }
-            .blog-content blockquote { border-left: 4px solid #e63946; margin: 28px 0; padding: 16px 24px; background: rgba(230,57,70,0.04); border-radius: 0 12px 12px 0; }
-            .blog-content blockquote p { color: #1d3557; font-style: italic; font-size: 17px; margin: 0; }
-            .blog-content strong { color: #1d3557; }
-            .blog-content kbd { background: #f1f5f9; border: 1px solid #d0dce8; border-radius: 4px; padding: 2px 6px; font-size: 13px; font-family: monospace; }
+            .blog-content { color: var(--text-muted); }
+            .blog-content h2 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 2.4rem 0 .8rem; letter-spacing: -0.02em; line-height: 1.25; }
+            .blog-content h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--text); margin: 1.8rem 0 .6rem; }
+            .blog-content p  { font-size: 1.0625rem; line-height: 1.85; margin: 0 0 1.15rem; }
+            .blog-content a  { color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+            .blog-content ul, .blog-content ol { margin: 0 0 1.2rem; padding-left: 1.4rem; line-height: 1.8; }
+            .blog-content ul { list-style: disc; } .blog-content ol { list-style: decimal; }
+            .blog-content li::marker { color: var(--primary); }
+            .blog-content blockquote { border-left: 3px solid var(--primary); margin: 2rem 0; padding: 1rem 1.5rem; background: var(--primary-soft); border-radius: 0 14px 14px 0; }
+            .blog-content blockquote p { color: var(--text); font-style: italic; font-size: 1.1rem; margin: 0; }
+            .blog-content strong { color: var(--text); }
+            .blog-content img { max-width: 100%; height: auto; border-radius: 16px; margin: 1.5rem 0; }
+            .blog-content pre { overflow-x: auto; background: var(--surface-3); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; font-size: .875rem; }
+            .blog-content code { background: var(--surface-3); border-radius: 6px; padding: .1rem .35rem; font-size: .9em; }
+            .blog-content kbd { background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 2px 6px; font-size: 13px; font-family: ui-monospace, monospace; color: var(--text); }
           `}</style>
           <div className="blog-content" dangerouslySetInnerHTML={{ __html: blog.content || '<p>Full article coming soon.</p>' }} />
         </article>
 
+        {/* Author card */}
+        <div className="card mt-14 flex items-center gap-4 p-5">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full font-bold text-white" style={{ background: blog.author_color }}>{initials(blog.author)}</div>
+          <div className="min-w-0">
+            <div className="text-xs font-medium uppercase tracking-wider text-subtle">Written by</div>
+            <div className="font-display text-base font-bold text-fg">{blog.author}</div>
+          </div>
+          <Link href="/blog" className="group btn btn-secondary btn-sm ml-auto"><ArrowLeft /> All posts</Link>
+        </div>
+
         {/* Related posts */}
         {related.length > 0 && (
-          <div>
-            <h2 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 24px', letterSpacing: '-0.5px' }}>More in {blog.category}</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+          <div className="mt-16">
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">More in {blog.category}</h2>
+            <div className="stagger mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {related.map(r => (
-                <Link key={r.slug} href={`/blog/${r.slug}`} style={{ textDecoration: 'none', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: 5, background: catColor(r.category) }} />
-                  <div style={{ padding: '18px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: catColor(r.category), marginBottom: 8 }}>{r.category}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1d3557', lineHeight: 1.4, marginBottom: 10 }}>{r.title}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{formatDate(r.created_at)}</div>
+                <Link key={r.slug} href={`/blog/${r.slug}`} className="group card card-hover flex flex-col overflow-hidden">
+                  <div className="h-1.5" style={{ background: catColor(r.category) }} />
+                  <div className="p-5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: catColor(r.category) }}>{r.category}</div>
+                    <div className="mt-2 text-[15px] font-bold leading-snug text-fg transition-colors group-hover:text-primary-text">{r.title}</div>
+                    <div className="mt-3 text-xs text-subtle">{formatDate(r.created_at)}</div>
                   </div>
                 </Link>
               ))}
             </div>
           </div>
         )}
-
-        {/* CTA */}
-        <div style={{ background: 'linear-gradient(135deg,#1d3557,#2a4a73)', borderRadius: 20, padding: '36px', textAlign: 'center' }}>
-          <h3 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: '0 0 10px' }}>Ready to try ProjectHub?</h3>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: '0 0 24px' }}>Join thousands of teams already shipping faster.</p>
-          <Link href="/register" style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 12, background: '#e63946', color: '#fff', fontWeight: 800, fontSize: 15, textDecoration: 'none' }}>Start for Free →</Link>
-        </div>
       </div>
 
-      <footer style={{ background: '#0f1f35', padding: '24px', textAlign: 'center' }}>
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>© 2025 ProjectHub · <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Home</Link></span>
-      </footer>
+      <CtaBand title="Ready to try ProjectHub?" subtitle="Join thousands of teams already shipping faster.">
+        <Link href="/register" className="btn btn-lg bg-white text-[#2a1f7a] shadow-[var(--shadow-lg)] hover:bg-white/90">Start for Free →</Link>
+      </CtaBand>
+
+      <PublicFooter />
     </div>
   );
 }

@@ -16,21 +16,21 @@ export default function ConfirmModal({ title, message, confirmLabel, onConfirm, 
       icon: '🗑️',
       defaultLabel: 'Delete',
       loadingLabel: 'Deleting...',
-      buttonColor: '#e63946',
+      buttonColor: '#f43f5e',
       borderColor: '#fecaca'
     },
     add: {
       icon: '➕',
       defaultLabel: 'Add',
       loadingLabel: 'Adding...',
-      buttonColor: '#2a9d8f',
+      buttonColor: '#10b981',
       borderColor: '#99f6e4'
     },
     confirm: {
       icon: '✓',
       defaultLabel: 'Confirm',
       loadingLabel: 'Processing...',
-      buttonColor: '#457b9d',
+      buttonColor: '#6366f1',
       borderColor: '#bfdbfe'
     }
   };
@@ -42,13 +42,13 @@ export default function ConfirmModal({ title, message, confirmLabel, onConfirm, 
     <div className="fixed inset-0 z-[200] flex items-center justify-center px-4"
       style={{ background: 'rgba(15,23,42,0.6)' }}
       onClick={onCancel}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+      <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-2xl"
         style={{ border: `1.5px solid ${cfg.borderColor}` }}
         onClick={e => e.stopPropagation()}>
         <div className="text-center mb-5">
           <div className="text-5xl mb-3">{cfg.icon}</div>
-          <h3 className="font-black text-lg mb-2" style={{ color: '#1d3557' }}>{title}</h3>
-          <p className="text-sm" style={{ color: '#6b7a8d' }}>{message}</p>
+          <h3 className="font-black text-lg mb-2" style={{ color: 'var(--text)' }}>{title}</h3>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{message}</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -62,7 +62,7 @@ export default function ConfirmModal({ title, message, confirmLabel, onConfirm, 
             onClick={onCancel}
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition"
-            style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>
+            style={{ color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>
             Cancel
           </button>
         </div>

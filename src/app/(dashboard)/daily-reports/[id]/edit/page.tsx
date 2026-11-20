@@ -142,7 +142,7 @@ export default function EditReportPage() {
 
       <div className="space-y-6">
         {report.tasks.map(task => (
-          <div key={task.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div key={task.id} className="bg-surface rounded-xl shadow-sm border border-gray-200 p-6">
             {editingTask?.id === task.id ? (
               <TaskEditForm
                 task={editingTask}
@@ -160,7 +160,7 @@ export default function EditReportPage() {
         ))}
 
         {report.tasks.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="text-center py-12 bg-surface rounded-xl shadow-sm border border-gray-200">
             <div className="text-6xl mb-4">📝</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Tasks Found</h3>
             <p className="text-gray-600">This report doesn't have any tasks yet.</p>

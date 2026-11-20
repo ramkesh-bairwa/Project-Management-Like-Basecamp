@@ -10,10 +10,10 @@ interface Plan {
 interface Gateway { provider: string; display_name: string; config: Record<string, string> }
 
 const planColors: Record<string, { bg: string; border: string; btn: string; text: string; muted: string; badge?: string }> = {
-  Free:       { bg: '#ffffff', border: '#d0dce8', btn: '#2a9d8f', text: '#1d3557', muted: '#6b7a8d' },
-  Pro:        { bg: '#1d3557', border: '#1d3557', btn: '#e63946', text: '#ffffff', muted: 'rgba(255,255,255,0.55)', badge: 'Most Popular' },
-  Business:   { bg: '#457b9d', border: '#457b9d', btn: '#ffffff', text: '#ffffff', muted: 'rgba(255,255,255,0.55)' },
-  Enterprise: { bg: '#152840', border: '#152840', btn: '#e63946', text: '#ffffff', muted: 'rgba(255,255,255,0.4)' },
+  Free:       { bg: '#ffffff', border: '#d0dce8', btn: '#10b981', text: '#1d3557', muted: '#6b7a8d' },
+  Pro:        { bg: '#1d3557', border: '#1d3557', btn: '#f43f5e', text: '#ffffff', muted: 'rgba(255,255,255,0.55)', badge: 'Most Popular' },
+  Business:   { bg: '#6366f1', border: '#6366f1', btn: '#ffffff', text: '#ffffff', muted: 'rgba(255,255,255,0.55)' },
+  Enterprise: { bg: '#152840', border: '#152840', btn: '#f43f5e', text: '#ffffff', muted: 'rgba(255,255,255,0.4)' },
 };
 
 const gatewayIcon: Record<string, string> = { stripe: '💳', razorpay: '🔷', paytm: '🔵', sandbox: '🧪' };
@@ -110,7 +110,7 @@ export default function PlansPage() {
   return (
     <div>
       <div className="text-center mb-8">
-        <p className="text-[#6b7a8d]">Choose a plan — Free plan requires no payment or credit card.</p>
+        <p className="text-[var(--text-muted)]">Choose a plan — Free plan requires no payment or credit card.</p>
       </div>
 
       {/* Gateway badge — only for paid plans */}
@@ -118,7 +118,7 @@ export default function PlansPage() {
         <div className="flex justify-center mb-6">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: gateway.provider === 'sandbox' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)', border: `1px solid ${gateway.provider === 'sandbox' ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}` }}>
             <span>{gatewayIcon[gateway.provider]}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: gateway.provider === 'sandbox' ? '#92400e' : '#065f46' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: gateway.provider === 'sandbox' ? 'var(--warning-text)' : 'var(--success-text)' }}>
               Paid plans via {gateway.display_name}
             </span>
             {gateway.provider === 'sandbox' && (
@@ -129,7 +129,7 @@ export default function PlansPage() {
       )}
 
       {success && (
-        <div className="rounded-2xl px-6 py-4 mb-8 text-center font-bold" style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+        <div className="rounded-2xl px-6 py-4 mb-8 text-center font-bold" style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1.5px solid var(--success-soft)' }}>
           {success}
         </div>
       )}
@@ -149,11 +149,11 @@ export default function PlansPage() {
           ];
           return (
             <div key={plan.id} className="rounded-2xl p-6 flex flex-col relative overflow-hidden"
-              style={{ background: c.bg, border: `2px solid ${isCurrent ? '#2a9d8f' : c.border}`, boxShadow: isCurrent ? '0 0 0 3px rgba(42,157,143,0.35)' : '0 4px 16px rgba(29,53,87,0.08)' }}>
+              style={{ background: c.bg, border: `2px solid ${isCurrent ? 'var(--success)' : c.border}`, boxShadow: isCurrent ? '0 0 0 3px rgba(16,185,129,0.35)' : '0 4px 16px rgba(15,18,34,0.08)' }}>
               {isCurrent ? (
-                <div className="absolute top-4 right-4 text-xs font-black px-2.5 py-1 rounded-full" style={{ background: '#2a9d8f', color: '#fff' }}>✓ Active</div>
+                <div className="absolute top-4 right-4 text-xs font-black px-2.5 py-1 rounded-full" style={{ background: 'var(--success)', color: '#fff' }}>✓ Active</div>
               ) : c.badge && (
-                <div className="absolute top-4 right-4 text-xs font-black px-2.5 py-1 rounded-full" style={{ background: '#e63946', color: '#fff' }}>{c.badge}</div>
+                <div className="absolute top-4 right-4 text-xs font-black px-2.5 py-1 rounded-full" style={{ background: 'var(--accent)', color: '#fff' }}>{c.badge}</div>
               )}
 
               {/* Price */}
@@ -180,7 +180,7 @@ export default function PlansPage() {
               {isCurrent ? (
                 <>
                   <div className="w-full py-3 rounded-xl font-black text-sm text-center"
-                    style={{ background: 'rgba(42,157,143,0.15)', color: c.text, border: '1.5px solid #2a9d8f' }}>
+                    style={{ background: 'rgba(16,185,129,0.15)', color: c.text, border: '1.5px solid var(--success)' }}>
                     ✓ Your current plan
                   </div>
                   <p className="text-xs text-center mt-2 font-medium" style={{ color: c.muted }}>
@@ -194,7 +194,7 @@ export default function PlansPage() {
                   <button
                     onClick={() => setConfirmPlan(plan)}
                     className="w-full py-3 rounded-xl font-black text-sm text-white transition hover:opacity-90"
-                    style={{ background: '#2a9d8f' }}>
+                    style={{ background: 'var(--success)' }}>
                     Get started free
                   </button>
                   <p className="text-xs text-center mt-2 font-medium" style={{ color: c.muted }}>No credit card required</p>
@@ -204,7 +204,7 @@ export default function PlansPage() {
                   onClick={() => subscribePaid(plan)}
                   disabled={loading === plan.id}
                   className="w-full py-3 rounded-xl font-black text-sm transition hover:opacity-90 disabled:opacity-50"
-                  style={{ background: c.btn, color: plan.name === 'Business' ? '#457b9d' : '#fff' }}>
+                  style={{ background: c.btn, color: plan.name === 'Business' ? 'var(--link)' : '#fff' }}>
                   {loading === plan.id ? 'Processing...' : (
                     <span className="flex items-center justify-center gap-2">
                       {gateway && <span>{gatewayIcon[gateway.provider]}</span>}
@@ -218,11 +218,11 @@ export default function PlansPage() {
         })}
       </div>
 
-      <div className="rounded-2xl p-6 flex items-start gap-5" style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+      <div className="rounded-2xl p-6 flex items-start gap-5" style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: '#e8f4f8' }}>🏢</div>
         <div>
-          <div className="font-black text-[#1d3557] mb-1">Become an Organization</div>
-          <div className="text-[#6b7a8d] text-sm leading-relaxed">
+          <div className="font-black text-[var(--text)] mb-1">Become an Organization</div>
+          <div className="text-[var(--text-muted)] text-sm leading-relaxed">
             Any paid plan (Pro, Business, or Enterprise) unlocks organization features — create team workspaces, invite members with custom roles, and manage org-wide projects.
           </div>
         </div>
@@ -231,16 +231,16 @@ export default function PlansPage() {
       {/* Free plan confirmation modal */}
       {confirmPlan && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,23,42,0.7)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+          <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             {/* Header */}
-            <div className="px-6 py-5" style={{ background: '#1d3557' }}>
+            <div className="px-6 py-5" style={{ background: 'var(--primary)' }}>
               <div className="text-3xl mb-2">🎉</div>
               <div className="font-black text-white text-xl">Activate Free Plan</div>
               <div className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>No payment or credit card required</div>
             </div>
             {/* Body */}
             <div className="px-6 py-5">
-              <p className="text-sm mb-4 font-medium" style={{ color: '#1d3557' }}>
+              <p className="text-sm mb-4 font-medium" style={{ color: 'var(--text)' }}>
                 You're activating the <strong>Free plan</strong>. Here's what you get:
               </p>
               <ul className="space-y-2 mb-6">
@@ -252,14 +252,14 @@ export default function PlansPage() {
                   `${confirmPlan.max_storage_gb}GB storage`,
                   ...confirmPlan.features,
                 ].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm" style={{ color: '#1d3557' }}>
+                  <li key={f} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text)' }}>
                     <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0"
-                      style={{ background: '#2a9d8f' }}>✓</span>
+                      style={{ background: 'var(--success)' }}>✓</span>
                     {f}
                   </li>
                 ))}
               </ul>
-              <p className="text-xs mb-5" style={{ color: '#6b7a8d' }}>
+              <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
                 You can upgrade to a paid plan anytime to unlock higher limits.
               </p>
               <div className="flex gap-3">
@@ -267,14 +267,14 @@ export default function PlansPage() {
                   onClick={() => activateFreePlan(confirmPlan)}
                   disabled={confirming}
                   className="flex-1 py-3 rounded-xl font-black text-sm text-white transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: '#2a9d8f' }}>
+                  style={{ background: 'var(--success)' }}>
                   {confirming ? 'Activating...' : '✓ Activate Free Plan'}
                 </button>
                 <button
                   onClick={() => setConfirmPlan(null)}
                   disabled={confirming}
                   className="flex-1 py-3 rounded-xl font-black text-sm transition hover:bg-gray-50"
-                  style={{ color: '#6b7a8d', border: '1.5px solid #d0dce8' }}>
+                  style={{ color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>
                   Cancel
                 </button>
               </div>

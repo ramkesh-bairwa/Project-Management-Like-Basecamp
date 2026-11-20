@@ -13,7 +13,7 @@ interface Props {
   onCommentPosted?: () => void;
 }
 
-const avatarColors = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
+const avatarColors = ['#f43f5e', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#eab308'];
 
 export default function TaskCommentAccordion({ taskId, token, myId, myRole, commentCount, open, onToggle, onCommentPosted }: Props) {
   const [comments, setComments] = useState<CommentNode[]>([]);
@@ -70,12 +70,12 @@ export default function TaskCommentAccordion({ taskId, token, myId, myRole, comm
   const count = loaded ? comments.length : commentCount;
 
   return (
-    <div className="overflow-hidden" style={{ borderTop: open ? '1px solid #e8f0f7' : 'none' }}>
+    <div className="overflow-hidden" style={{ borderTop: open ? '1px solid var(--border-soft)' : 'none' }}>
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition hover:bg-[#f8fafc]"
-        style={{ color: open ? '#457b9d' : '#94a3b8', background: open ? '#f0f7ff' : 'transparent' }}
+        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition hover:bg-[var(--surface-2)]"
+        style={{ color: open ? 'var(--link)' : 'var(--text-subtle)', background: open ? '#f0f7ff' : 'transparent' }}
       >
         <span className="flex items-center gap-1.5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -97,7 +97,7 @@ export default function TaskCommentAccordion({ taskId, token, myId, myRole, comm
         className="transition-all duration-300 ease-in-out overflow-hidden"
         style={{ maxHeight: open ? '600px' : '0px', opacity: open ? 1 : 0 }}
       >
-        <div className="px-4 pb-4 pt-3" style={{ background: '#f8fbff' }}>
+        <div className="px-4 pb-4 pt-3" style={{ background: 'var(--surface-2)' }}>
 
           {/* Comment input */}
           <form onSubmit={postComment} className="flex items-center gap-2 mb-3">
@@ -111,13 +111,13 @@ export default function TaskCommentAccordion({ taskId, token, myId, myRole, comm
               onChange={e => setNewComment(e.target.value)}
               placeholder="Write a comment..."
               className="flex-1 rounded-xl px-3 py-2 text-xs focus:outline-none transition"
-              style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}
+              style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
             />
             <button
               type="submit"
               disabled={posting || !newComment.trim()}
               className="px-3 py-2 rounded-xl text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-40 flex-shrink-0"
-              style={{ background: '#457b9d' }}
+              style={{ background: 'var(--link)' }}
             >
               {posting ? '...' : 'Post'}
             </button>
@@ -125,9 +125,9 @@ export default function TaskCommentAccordion({ taskId, token, myId, myRole, comm
 
           {/* Comments list */}
           {!loaded ? (
-            <div className="text-xs text-center py-4" style={{ color: '#94a3b8' }}>Loading comments...</div>
+            <div className="text-xs text-center py-4" style={{ color: 'var(--text-subtle)' }}>Loading comments...</div>
           ) : tree.length === 0 ? (
-            <div className="text-xs text-center py-4 rounded-xl" style={{ color: '#94a3b8', border: '1.5px dashed #e2e8f0' }}>
+            <div className="text-xs text-center py-4 rounded-xl" style={{ color: 'var(--text-subtle)', border: '1.5px dashed var(--border)' }}>
               No comments yet — be the first!
             </div>
           ) : (

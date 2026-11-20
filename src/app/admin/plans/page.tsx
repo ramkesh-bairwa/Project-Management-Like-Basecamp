@@ -29,8 +29,8 @@ function parseFeatures(f: string | string[]): string[] {
 }
 
 const planColors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'];
-const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, color: '#0f172a', background: '#fff', outline: 'none' } as React.CSSProperties;
-const labelStyle = { display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '0.06em' };
+const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', background: 'var(--surface)', outline: 'none' } as React.CSSProperties;
+const labelStyle = { display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '0.06em' };
 
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -139,7 +139,7 @@ export default function AdminPlansPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, background: '#0f172a', borderRadius: 14, padding: '16px 24px', border: '1px solid #1e293b' }}>
         <div>
           <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Plans</h1>
-          <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>Manage subscription plans</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0' }}>Manage subscription plans</p>
         </div>
         <button onClick={openCreate} style={{ padding: '9px 18px', borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
           + New Plan
@@ -148,7 +148,7 @@ export default function AdminPlansPage() {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-          <div style={{ width: 32, height: 32, border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
@@ -156,17 +156,17 @@ export default function AdminPlansPage() {
             const c = planColors[i % planColors.length];
             const feats = parseFeatures(p.features);
             return (
-              <div key={p.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', opacity: p.is_active ? 1 : 0.6 }}>
+              <div key={p.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', opacity: p.is_active ? 1 : 0.6 }}>
                 <div style={{ height: 4, background: c }} />
                 <div style={{ padding: '20px 20px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div>
-                      <div style={{ color: '#0f172a', fontWeight: 800, fontSize: 16 }}>{p.name}</div>
-                      <div style={{ color: c, fontWeight: 700, fontSize: 22, marginTop: 2 }}>${p.price}<span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>/mo</span></div>
+                      <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 16 }}>{p.name}</div>
+                      <div style={{ color: c, fontWeight: 700, fontSize: 22, marginTop: 2 }}>${p.price}<span style={{ fontSize: 12, color: 'var(--text-subtle)', fontWeight: 500 }}>/mo</span></div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ color: c, fontWeight: 800, fontSize: 20 }}>{p.subscribers}</div>
-                      <div style={{ color: '#94a3b8', fontSize: 11 }}>subscribers</div>
+                      <div style={{ color: 'var(--text-subtle)', fontSize: 11 }}>subscribers</div>
                     </div>
                   </div>
 
@@ -178,9 +178,9 @@ export default function AdminPlansPage() {
                       { label: 'Groups',   value: p.max_groups   === -1 ? '∞' : p.max_groups   },
                       { label: 'Storage',  value: `${p.max_storage_gb}GB` },
                     ].map(item => (
-                      <div key={item.label} style={{ background: '#f8fafc', borderRadius: 8, padding: '7px 8px' }}>
-                        <div style={{ color: '#94a3b8', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
-                        <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 13 }}>{item.value}</div>
+                      <div key={item.label} style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '7px 8px' }}>
+                        <div style={{ color: 'var(--text-subtle)', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
+                        <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 13 }}>{item.value}</div>
                       </div>
                     ))}
                   </div>
@@ -212,11 +212,11 @@ export default function AdminPlansPage() {
       {/* Modal */}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ color: '#0f172a', fontWeight: 800, fontSize: 18 }}>{modal === 'create' ? 'New Plan' : 'Edit Plan'}</div>
-              <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+              <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 18 }}>{modal === 'create' ? 'New Plan' : 'Edit Plan'}</div>
+              <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-subtle)', lineHeight: 1 }}>×</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -279,12 +279,12 @@ export default function AdminPlansPage() {
                 {form.features.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                     {form.features.map((f, i) => (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, background: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, background: 'var(--surface-3)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
                         {f}
                         <button
                           type="button"
                           onClick={() => removeFeature(i)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#e2e8f0', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 10, fontWeight: 900, lineHeight: 1, padding: 0, flexShrink: 0 }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 10, fontWeight: 900, lineHeight: 1, padding: 0, flexShrink: 0 }}
                         >
                           ✕
                         </button>
@@ -307,28 +307,28 @@ export default function AdminPlansPage() {
                     type="button"
                     onClick={addFeature}
                     disabled={!featInput.trim()}
-                    style={{ padding: '9px 16px', borderRadius: 8, background: featInput.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#e2e8f0', color: featInput.trim() ? '#fff' : '#94a3b8', fontWeight: 700, fontSize: 12, border: 'none', cursor: featInput.trim() ? 'pointer' : 'default', whiteSpace: 'nowrap', flexShrink: 0 }}
+                    style={{ padding: '9px 16px', borderRadius: 8, background: featInput.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'var(--surface-3)', color: featInput.trim() ? '#fff' : 'var(--text-subtle)', fontWeight: 700, fontSize: 12, border: 'none', cursor: featInput.trim() ? 'pointer' : 'default', whiteSpace: 'nowrap', flexShrink: 0 }}
                   >
                     + Add
                   </button>
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-subtle)', marginTop: 5 }}>
                   Press <strong>Enter</strong> or click <strong>+ Add</strong> to append a feature. Click <strong>✕</strong> on a tag to remove it.
                 </div>
               </div>
 
               {/* Active toggle */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                 <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Active</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>Visible to users on the plans page</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Active</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-subtle)' }}>Visible to users on the plans page</div>
                 </div>
               </label>
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-              <button onClick={() => setModal(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setModal(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
               <button onClick={save} disabled={saving || !form.name} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving || !form.name ? 0.6 : 1 }}>
                 {saving ? 'Saving...' : modal === 'create' ? 'Create Plan' : 'Save Changes'}
               </button>

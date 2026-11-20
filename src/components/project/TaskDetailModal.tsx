@@ -22,29 +22,29 @@ interface Props {
 const statusOptions = ['todo','in_progress','in_review','done','cancelled'];
 const priorityOptions = ['low','medium','high','critical'];
 const statusColors: Record<string, string> = {
-  todo: '#94a3b8', in_progress: '#457b9d', in_review: '#f4a261', done: '#2a9d8f', cancelled: '#e63946'
+  todo: '#94a3b8', in_progress: '#6366f1', in_review: '#f59e0b', done: '#10b981', cancelled: '#f43f5e'
 };
 const priorityColors: Record<string, string> = {
-  low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946'
+  low: '#94a3b8', medium: '#6366f1', high: '#f59e0b', critical: '#f43f5e'
 };
 const actionConfig: Record<string, { icon: string; color: string; label: string }> = {
-  created:             { icon: '✦', color: '#2a9d8f', label: 'created this task' },
-  status_changed:      { icon: '⇄', color: '#457b9d', label: 'changed status' },
+  created:             { icon: '✦', color: '#10b981', label: 'created this task' },
+  status_changed:      { icon: '⇄', color: '#6366f1', label: 'changed status' },
   closed:              { icon: '✓', color: '#0f766e', label: 'closed the task' },
   reopened:            { icon: '↺', color: '#c2410c', label: 'reopened the task' },
-  assigned:            { icon: '→', color: '#6d6875', label: 'assigned task' },
+  assigned:            { icon: '→', color: '#8b5cf6', label: 'assigned task' },
   unassigned:          { icon: '←', color: '#94a3b8', label: 'unassigned task' },
-  priority_changed:    { icon: '!', color: '#f4a261', label: 'changed priority' },
-  title_changed:       { icon: '✎', color: '#457b9d', label: 'changed title' },
-  description_changed: { icon: '✎', color: '#457b9d', label: 'changed description' },
-  due_date_changed:    { icon: '📅', color: '#6d6875', label: 'changed due date' },
-  moved_group:         { icon: '⇢', color: '#e9c46a', label: 'moved to group' },
-  subtask_added:       { icon: '+', color: '#2a9d8f', label: 'added subtask' },
-  comment_added:       { icon: '💬', color: '#457b9d', label: 'commented' },
+  priority_changed:    { icon: '!', color: '#f59e0b', label: 'changed priority' },
+  title_changed:       { icon: '✎', color: '#6366f1', label: 'changed title' },
+  description_changed: { icon: '✎', color: '#6366f1', label: 'changed description' },
+  due_date_changed:    { icon: '📅', color: '#8b5cf6', label: 'changed due date' },
+  moved_group:         { icon: '⇢', color: '#eab308', label: 'moved to group' },
+  subtask_added:       { icon: '+', color: '#10b981', label: 'added subtask' },
+  comment_added:       { icon: '💬', color: '#6366f1', label: 'commented' },
   comment_deleted:     { icon: '🗑', color: '#dc2626', label: 'deleted a comment' },
   comment_updated:     { icon: '✎', color: '#9333ea', label: 'edited a comment' },
-  document_attached:   { icon: '📎', color: '#6d6875', label: 'attached document' },
-  attachment_added:    { icon: '🖼️', color: '#2a9d8f', label: 'uploaded attachment' },
+  document_attached:   { icon: '📎', color: '#8b5cf6', label: 'attached document' },
+  attachment_added:    { icon: '🖼️', color: '#10b981', label: 'uploaded attachment' },
   attachment_deleted:  { icon: '🗑', color: '#dc2626', label: 'removed attachment' },
 };
 
@@ -181,30 +181,30 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 pb-4" style={{ background: 'rgba(29,53,87,0.6)' }}>
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 pb-4" style={{ background: 'rgba(15,18,34,0.6)' }}>
+      <div className="bg-surface rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl" style={{ border: '1px solid var(--border)' }}>
 
         {/* Header */}
-        <div className="px-6 py-5 flex items-start justify-between gap-4" style={{ borderBottom: '1px solid #d0dce8' }}>
+        <div className="px-6 py-5 flex items-start justify-between gap-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               {task.group_name && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || 'var(--link)' }}>
                   {task.group_name}
                 </span>
               )}
-              <span className="text-xs" style={{ color: '#6b7a8d' }}>Task #{task.id}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Task #{task.id}</span>
             </div>
-            <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>{task.title}</h2>
-            {task.description && <p className="text-sm mt-1" style={{ color: '#6b7a8d' }}>{task.description}</p>}
+            <h2 className="text-xl font-black" style={{ color: 'var(--text)' }}>{task.title}</h2>
+            {task.description && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{task.description}</p>}
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition hover:bg-gray-100" style={{ color: '#6b7a8d' }}>✕</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition hover:bg-gray-100" style={{ color: 'var(--text-muted)' }}>✕</button>
         </div>
 
         {/* Meta bar */}
-        <div className="px-6 py-3 flex items-center gap-4 flex-wrap" style={{ background: '#f8fafc', borderBottom: '1px solid #d0dce8' }}>
+        <div className="px-6 py-3 flex items-center gap-4 flex-wrap" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Status</span>
             <select
               value={editStatus}
               onChange={e => {
@@ -224,7 +224,7 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Priority</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Priority</span>
             <select
               value={editPriority}
               onChange={e => { setEditPriority(e.target.value); updateTask({ priority: e.target.value, title: task.title, status: editStatus }); }}
@@ -236,12 +236,12 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Assignee</span>
             <select
               value={editAssignee}
               onChange={e => { setEditAssignee(e.target.value); updateTask({ assignee_id: e.target.value ? Number(e.target.value) : null, title: task.title, status: editStatus, priority: editPriority }); }}
               className="text-xs px-2 py-1 rounded-lg focus:outline-none"
-              style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}
+              style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
             >
               <option value="">{task.assignee_name || 'Unassigned'}</option>
               {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -249,23 +249,23 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
           </div>
 
           {task.due_date && (
-            <div className="flex items-center gap-1 text-xs" style={{ color: '#6b7a8d' }}>
+            <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
               <span>📅</span><span>{fmtD(task.due_date)}</span>
             </div>
           )}
-          {saving && <span className="text-xs" style={{ color: '#457b9d' }}>Saving...</span>}
-          {error && <span className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {error}</span>}
+          {saving && <span className="text-xs" style={{ color: 'var(--link)' }}>Saving...</span>}
+          {error && <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>⚠ {error}</span>}
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pt-4 flex gap-1" style={{ borderBottom: '1px solid #d0dce8' }}>
+        <div className="px-6 pt-4 flex gap-1" style={{ borderBottom: '1px solid var(--border)' }}>
           {tabs.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className="px-4 py-2 text-sm font-bold rounded-t-lg transition -mb-px"
               style={{
-                background: activeTab === tab.key ? '#fff' : 'transparent',
-                color: activeTab === tab.key ? '#1d3557' : '#6b7a8d',
-                border: activeTab === tab.key ? '1.5px solid #d0dce8' : '1.5px solid transparent',
+                background: activeTab === tab.key ? 'var(--surface)' : 'transparent',
+                color: activeTab === tab.key ? 'var(--text)' : 'var(--text-muted)',
+                border: activeTab === tab.key ? '1.5px solid var(--border)' : '1.5px solid transparent',
                 borderBottom: activeTab === tab.key ? '1.5px solid #fff' : '1.5px solid transparent',
               }}>
               {tab.label}
@@ -282,25 +282,25 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
               <form onSubmit={addSubtask} className="flex gap-2 mb-5">
                 <input value={newSubtask} onChange={e => setNewSubtask(e.target.value)} placeholder="Add a subtask..."
                   className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-                <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-black text-white hover:opacity-90 transition" style={{ background: '#2a9d8f' }}>
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+                <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-black text-white hover:opacity-90 transition" style={{ background: 'var(--success)' }}>
                   + Add
                 </button>
               </form>
               {subtasks.length === 0 ? (
-                <div className="text-center py-10 rounded-2xl" style={{ border: '2px dashed #d0dce8' }}>
+                <div className="text-center py-10 rounded-2xl" style={{ border: '2px dashed var(--border)' }}>
                   <div className="text-3xl mb-2">✅</div>
-                  <div className="text-sm" style={{ color: '#6b7a8d' }}>No subtasks yet</div>
+                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>No subtasks yet</div>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {subtasks.map(sub => (
-                    <div key={sub.id} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3" style={{ border: '1px solid #d0dce8' }}>
+                    <div key={sub.id} className="flex items-center gap-3 bg-surface rounded-xl px-4 py-3" style={{ border: '1px solid var(--border)' }}>
                       <input type="checkbox" checked={sub.status === 'done'}
                         onChange={e => moveSubtask(sub.id, e.target.checked ? 'done' : 'todo')}
                         className="w-4 h-4 rounded accent-teal-600 flex-shrink-0" />
                       <span className={`flex-1 text-sm font-medium ${sub.status === 'done' ? 'line-through' : ''}`}
-                        style={{ color: sub.status === 'done' ? '#94a3b8' : '#1d3557' }}>
+                        style={{ color: sub.status === 'done' ? 'var(--text-subtle)' : 'var(--text)' }}>
                         {sub.title}
                       </span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -310,12 +310,12 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
                       <span className="text-xs font-bold" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
                       <select value={sub.status} onChange={e => moveSubtask(sub.id, e.target.value)}
                         className="text-xs px-2 py-1 rounded-lg focus:outline-none"
-                        style={{ background: '#f1faee', border: '1px solid #d0dce8', color: '#1d3557' }}>
+                        style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)' }}>
                         {statusOptions.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                       </select>
                     </div>
                   ))}
-                  <div className="text-xs pt-1" style={{ color: '#6b7a8d' }}>
+                  <div className="text-xs pt-1" style={{ color: 'var(--text-muted)' }}>
                     {subtasks.filter(s => s.status === 'done').length}/{subtasks.length} completed
                   </div>
                 </div>
@@ -330,21 +330,21 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
               <form onSubmit={postComment} className="flex gap-2 mb-6">
                 <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Write a comment..."
                   className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-                <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-black text-white hover:opacity-90 transition" style={{ background: '#457b9d' }}>
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+                <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-black text-white hover:opacity-90 transition" style={{ background: 'var(--link)' }}>
                   Post
                 </button>
               </form>
 
               {activityFeed.length === 0 ? (
-                <div className="text-center py-10 rounded-2xl" style={{ border: '2px dashed #d0dce8' }}>
+                <div className="text-center py-10 rounded-2xl" style={{ border: '2px dashed var(--border)' }}>
                   <div className="text-3xl mb-2">📋</div>
-                  <div className="text-sm" style={{ color: '#6b7a8d' }}>No activity yet</div>
+                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>No activity yet</div>
                 </div>
               ) : (
                 <div className="relative">
                   {/* Vertical timeline line */}
-                  <div className="absolute left-3.5 top-0 bottom-0 w-0.5" style={{ background: '#e2e8f0' }} />
+                  <div className="absolute left-3.5 top-0 bottom-0 w-0.5" style={{ background: 'var(--surface-3)' }} />
                   <div className="space-y-4">
                     {activityFeed.map((item, idx) => {
                       if (item.kind === 'history') {
@@ -357,20 +357,20 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
                             </div>
                             <div className="flex-1 pb-1 pt-0.5">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-bold" style={{ color: '#1d3557' }}>{item.entry.changed_by_name}</span>
-                                <span className="text-sm" style={{ color: '#6b7a8d' }}>{cfg.label}</span>
+                                <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{item.entry.changed_by_name}</span>
+                                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{cfg.label}</span>
                                 {item.entry.old_value && item.entry.new_value && (
                                   <span className="text-xs">
-                                    <span className="px-1.5 py-0.5 rounded line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{item.entry.old_value}</span>
-                                    <span className="mx-1" style={{ color: '#94a3b8' }}>→</span>
-                                    <span className="px-1.5 py-0.5 rounded" style={{ background: '#f0fdf9', color: '#0f766e' }}>{item.entry.new_value}</span>
+                                    <span className="px-1.5 py-0.5 rounded line-through" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>{item.entry.old_value}</span>
+                                    <span className="mx-1" style={{ color: 'var(--text-subtle)' }}>→</span>
+                                    <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>{item.entry.new_value}</span>
                                   </span>
                                 )}
                                 {!item.entry.old_value && item.entry.new_value && item.entry.action !== 'created' && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f0fdf9', color: '#0f766e' }}>{item.entry.new_value}</span>
+                                  <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>{item.entry.new_value}</span>
                                 )}
                               </div>
-                              <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{fmtDT(item.time)}</div>
+                              <div className="text-xs mt-0.5" style={{ color: 'var(--text-subtle)' }}>{fmtDT(item.time)}</div>
                             </div>
                           </div>
                         );
@@ -380,18 +380,18 @@ export default function TaskDetailModal({ task, projectId, userRole, currentUser
                       return (
                         <div key={`c-${item.comment.id}`} className="flex gap-4 relative">
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 z-10"
-                            style={{ background: '#457b9d' }}>
+                            style={{ background: 'var(--link)' }}>
                             💬
                           </div>
                           <div className="flex-1">
                             {/* Task context header */}
                             <div className="flex items-center gap-2 flex-wrap mb-1 px-1">
                               {task.group_name && (
-                                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || 'var(--link)' }}>
                                   {task.group_name}
                                 </span>
                               )}
-                              <span className="text-xs font-semibold" style={{ color: '#1d3557' }}>#{task.id} {task.title}</span>
+                              <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>#{task.id} {task.title}</span>
                               <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: statusColors[task.status] + '20', color: statusColors[task.status] }}>
                                 {task.status.replace('_', ' ')}
                               </span>

@@ -9,8 +9,8 @@ interface UserResult { id: number; name: string; email: string; avatar?: string 
 
 const DEFAULT_ROLES = ['owner','admin','manager','hr','project_admin','sales','developer','designer','viewer','member'];
 const roleColors: Record<string, string> = {
-  owner: '#e63946', admin: '#457b9d', manager: '#2a9d8f', hr: '#f4a261',
-  project_admin: '#6d6875', sales: '#e9c46a', developer: '#1d3557', designer: '#a8dadc',
+  owner: '#f43f5e', admin: '#6366f1', manager: '#10b981', hr: '#f59e0b',
+  project_admin: '#8b5cf6', sales: '#eab308', developer: '#1d3557', designer: '#a5b4fc',
   viewer: '#94a3b8', member: '#64748b',
 };
 function roleColor(r: string) { return roleColors[r] || '#94a3b8'; }
@@ -195,17 +195,17 @@ export default function OrgSettingsPage() {
     setTimeout(() => setSuccess(''), 3000);
   }
 
-  if (!org) return <div className="p-8 text-center text-[#6b7a8d]">Loading…</div>;
+  if (!org) return <div className="p-8 text-center text-[var(--text-muted)]">Loading…</div>;
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-black text-[#1d3557]">⚙️ {org.name} — Settings</h2>
-        <p className="text-sm text-[#6b7a8d] mt-1">Manage members, roles and permissions</p>
+        <h2 className="text-2xl font-black text-[var(--text)]">⚙️ {org.name} — Settings</h2>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Manage members, roles and permissions</p>
       </div>
 
-      {error && <div className="rounded-xl px-4 py-3 mb-4 text-sm font-medium" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>⚠️ {error}</div>}
-      {success && <div className="rounded-xl px-4 py-3 mb-4 text-sm font-medium" style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}>✅ {success}</div>}
+      {error && <div className="rounded-xl px-4 py-3 mb-4 text-sm font-medium" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-soft)' }}>⚠️ {error}</div>}
+      {success && <div className="rounded-xl px-4 py-3 mb-4 text-sm font-medium" style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-soft)' }}>✅ {success}</div>}
 
       {/* Tabs */}
       <div className="flex items-center justify-between mb-6">
@@ -213,7 +213,7 @@ export default function OrgSettingsPage() {
           {(['members', 'roles'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className="px-5 py-2 rounded-xl font-bold text-sm capitalize transition"
-              style={{ background: tab === t ? '#1d3557' : '#fff', color: tab === t ? '#fff' : '#6b7a8d', border: '1.5px solid', borderColor: tab === t ? '#1d3557' : '#d0dce8' }}>
+              style={{ background: tab === t ? 'var(--primary)' : 'var(--surface)', color: tab === t ? '#fff' : 'var(--text-muted)', border: '1.5px solid', borderColor: tab === t ? 'var(--primary)' : 'var(--border)' }}>
               {t === 'members' ? `👥 Members (${members.length})` : '🏷️ Roles'}
             </button>
           ))}
@@ -221,7 +221,7 @@ export default function OrgSettingsPage() {
         {tab === 'members' && canManage && (
           <button onClick={() => setShowAddMember(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
-            style={{ background: '#e63946' }}>
+            style={{ background: 'var(--accent)' }}>
             + Add Member
           </button>
         )}
@@ -229,10 +229,10 @@ export default function OrgSettingsPage() {
 
       {/* Members tab */}
       {tab === 'members' && (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {members.map((m, i) => (
             <div key={m.id} className="flex items-center gap-4 px-5 py-4"
-              style={{ borderBottom: i < members.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+              style={{ borderBottom: i < members.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0 overflow-hidden"
                 style={{ background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                 {m.avatar
@@ -241,8 +241,8 @@ export default function OrgSettingsPage() {
                   : m.name[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm text-[#1d3557] truncate">{m.name}</div>
-                <div className="text-xs text-[#6b7a8d] truncate">{m.email}</div>
+                <div className="font-bold text-sm text-[var(--text)] truncate">{m.name}</div>
+                <div className="text-xs text-[var(--text-muted)] truncate">{m.email}</div>
               </div>
               {canManage ? (
                 <select value={m.role} onChange={e => updateMemberRole(m.id, e.target.value)}
@@ -258,13 +258,13 @@ export default function OrgSettingsPage() {
               )}
               {canManage && m.role !== 'owner' && (
                 removedMembers.has(m.id) ? (
-                  <span className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#fef2f2', color: '#e63946', border: '1px solid #fecaca' }}>
+                  <span className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--danger-soft)', color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>
                     Removed
                   </span>
                 ) : (
                   <button onClick={() => setRemoveTarget(m)}
                     className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
-                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                    style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>✕</button>
                 )
               )}
             </div>
@@ -272,11 +272,11 @@ export default function OrgSettingsPage() {
           {members.length === 0 && (
             <div className="p-12 text-center">
               <div className="text-4xl mb-3">👥</div>
-              <div className="font-bold text-[#1d3557] mb-1">No members yet</div>
+              <div className="font-bold text-[var(--text)] mb-1">No members yet</div>
               {canManage && (
                 <button onClick={() => setShowAddMember(true)}
                   className="mt-2 px-4 py-2 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
-                  style={{ background: '#e63946' }}>+ Add First Member</button>
+                  style={{ background: 'var(--accent)' }}>+ Add First Member</button>
               )}
             </div>
           )}
@@ -291,33 +291,33 @@ export default function OrgSettingsPage() {
               <div className="flex-1">
                 <input value={newRole} onChange={e => setNewRole(e.target.value)}
                   placeholder="Role name e.g. qa_engineer, intern, support"
-                  className="w-full rounded-xl px-4 py-3 text-sm text-[#1d3557] focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
-                <p className="text-xs text-[#94a3b8] mt-1 px-1">Use underscores for spaces. This creates a role label, not a member.</p>
+                  className="w-full rounded-xl px-4 py-3 text-sm text-[var(--text)] focus:outline-none"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }} />
+                <p className="text-xs text-[var(--text-subtle)] mt-1 px-1">Use underscores for spaces. This creates a role label, not a member.</p>
               </div>
               <button type="submit" disabled={addingRole}
                 className="px-5 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition disabled:opacity-60 self-start"
-                style={{ background: '#2a9d8f' }}>
+                style={{ background: 'var(--success)' }}>
                 {addingRole ? '…' : '+ Add Role'}
               </button>
             </form>
           )}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+          <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             {allRoles.map((r, i) => {
               const isDefault = DEFAULT_ROLES.includes(r);
               return (
                 <div key={r} className="flex items-center gap-4 px-5 py-3.5"
-                  style={{ borderBottom: i < allRoles.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                  style={{ borderBottom: i < allRoles.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: roleColor(r) }} />
-                  <span className="flex-1 text-sm font-bold text-[#1d3557] capitalize">{r.replace(/_/g, ' ')}</span>
+                  <span className="flex-1 text-sm font-bold text-[var(--text)] capitalize">{r.replace(/_/g, ' ')}</span>
                   {isDefault ? (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: '#f1f5f9', color: '#94a3b8' }}>default</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--surface-3)', color: 'var(--text-subtle)' }}>default</span>
                   ) : canManage ? (
                     <button onClick={() => deleteRole(r)}
                       className="text-xs px-3 py-1 rounded-lg font-bold hover:bg-red-50 transition"
-                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>Delete</button>
+                      style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>Delete</button>
                   ) : (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: '#f0fdf9', color: '#2a9d8f' }}>custom</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>custom</span>
                   )}
                 </div>
               );
@@ -328,9 +328,9 @@ export default function OrgSettingsPage() {
 
       {/* Add Member Modal */}
       {showAddMember && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
-            <div className="flex items-center justify-between px-6 py-5" style={{ background: '#1d3557' }}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,18,34,0.5)' }}>
+          <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between px-6 py-5" style={{ background: 'var(--primary)' }}>
               <div className="font-black text-white text-lg">Add Member</div>
               <button onClick={closeAddMember}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition">✕</button>
@@ -340,57 +340,57 @@ export default function OrgSettingsPage() {
 
               {/* Option 1: Invite by email */}
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">📧 Invite by Email</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">📧 Invite by Email</label>
                 <div className="flex gap-2">
                   <input
                     value={inviteEmail}
                     onChange={e => { setInviteEmail(e.target.value); setSelectedUser(null); setSearchQuery(''); setSearchResults([]); }}
                     placeholder="Enter email address..."
                     type="email"
-                    className="flex-1 rounded-xl px-4 py-3 text-sm text-[#1d3557] focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}
+                    className="flex-1 rounded-xl px-4 py-3 text-sm text-[var(--text)] focus:outline-none"
+                    style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}
                   />
                 </div>
-                <p className="text-xs text-[#94a3b8] mt-1">An invitation email will be sent regardless of whether they have an account.</p>
+                <p className="text-xs text-[var(--text-subtle)] mt-1">An invitation email will be sent regardless of whether they have an account.</p>
               </div>
 
               {/* Divider */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
-                <span className="text-xs font-bold text-[#94a3b8]">OR</span>
-                <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
+                <span className="text-xs font-bold text-[var(--text-subtle)]">OR</span>
+                <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
               </div>
 
               {/* Option 2: Search existing users */}
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">🔍 Search Existing Users</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">🔍 Search Existing Users</label>
                 <div className="relative">
                   <input
                     value={searchQuery}
                     onChange={e => { setSearchQuery(e.target.value); setSelectedUser(null); setInviteEmail(''); }}
                     placeholder="Type name or email..."
-                    className="w-full rounded-xl px-4 py-3 text-sm text-[#1d3557] focus:outline-none"
-                    style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}
+                    className="w-full rounded-xl px-4 py-3 text-sm text-[var(--text)] focus:outline-none"
+                    style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}
                   />
                   {searching && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-[var(--link)] border-t-transparent animate-spin" />
                   )}
                 </div>
 
                 {searchResults.length > 0 && !selectedUser && (
-                  <div className="mt-1 rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+                  <div className="mt-1 rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
                     {searchResults.map(u => (
                       <button key={u.id} type="button"
                         onClick={() => { setSelectedUser(u); setSearchQuery(u.name); setSearchResults([]); setInviteEmail(''); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f1faee] transition text-left"
-                        style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition text-left"
+                        style={{ borderBottom: '1px solid var(--border-soft)' }}>
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                           style={{ background: `hsl(${(u.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                           {u.name[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-[#1d3557] truncate">{u.name}</div>
-                          <div className="text-xs text-[#6b7a8d] truncate">{u.email}</div>
+                          <div className="text-sm font-bold text-[var(--text)] truncate">{u.name}</div>
+                          <div className="text-xs text-[var(--text-muted)] truncate">{u.email}</div>
                         </div>
                       </button>
                     ))}
@@ -398,27 +398,27 @@ export default function OrgSettingsPage() {
                 )}
 
                 {selectedUser && (
-                  <div className="flex items-center gap-3 px-4 py-3 mt-1 rounded-xl" style={{ background: '#f0fdf9', border: '1.5px solid #99f6e4' }}>
+                  <div className="flex items-center gap-3 px-4 py-3 mt-1 rounded-xl" style={{ background: 'var(--success-soft)', border: '1.5px solid var(--success-soft)' }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                       style={{ background: `hsl(${(selectedUser.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                       {selectedUser.name[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-[#1d3557]">{selectedUser.name}</div>
-                      <div className="text-xs text-[#6b7a8d]">{selectedUser.email}</div>
+                      <div className="text-sm font-bold text-[var(--text)]">{selectedUser.name}</div>
+                      <div className="text-xs text-[var(--text-muted)]">{selectedUser.email}</div>
                     </div>
                     <button onClick={() => { setSelectedUser(null); setSearchQuery(''); }}
-                      className="text-xs text-[#6b7a8d] hover:text-[#e63946] transition">✕</button>
+                      className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition">✕</button>
                   </div>
                 )}
               </div>
 
               {/* Role selector */}
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Assign Role</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Assign Role</label>
                 <select value={selectedRole} onChange={e => setSelectedRole(e.target.value)}
-                  className="w-full rounded-xl px-4 py-3 text-sm text-[#1d3557] focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                  className="w-full rounded-xl px-4 py-3 text-sm text-[var(--text)] focus:outline-none"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
                   {allRoles.filter(r => r !== 'owner').map(r => (
                     <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
                   ))}
@@ -428,12 +428,12 @@ export default function OrgSettingsPage() {
               <div className="flex gap-3 pt-2">
                 <button onClick={addMember} disabled={(!selectedUser && !inviteEmail.trim()) || addingMember}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition disabled:opacity-50"
-                  style={{ background: '#e63946' }}>
+                  style={{ background: 'var(--accent)' }}>
                   {addingMember ? 'Processing…' : inviteEmail.trim() ? '📧 Send Invitation' : '+ Add Member'}
                 </button>
                 <button onClick={closeAddMember}
-                  className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] hover:bg-[#f1faee] transition"
-                  style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-[var(--text)] hover:bg-[var(--bg)] transition"
+                  style={{ border: '1.5px solid var(--border)' }}>Cancel</button>
               </div>
             </div>
           </div>

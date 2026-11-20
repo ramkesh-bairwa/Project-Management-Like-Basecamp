@@ -6,8 +6,8 @@ const BRAND_FIELDS = [
   { key: 'logo_letter', label: 'Logo Letter (fallback)', type: 'text', placeholder: 'P', maxLength: 3 },
   { key: 'site_logo_url', label: 'Logo Image URL', type: 'url', placeholder: 'https://…/logo.png' },
   { key: 'primary_color', label: 'Primary Color (navbar/header)', type: 'color', placeholder: '#1d3557' },
-  { key: 'accent_color', label: 'Accent Color (buttons/badges)', type: 'color', placeholder: '#e63946' },
-  { key: 'secondary_color', label: 'Secondary Color', type: 'color', placeholder: '#457b9d' },
+  { key: 'accent_color', label: 'Accent Color (buttons/badges)', type: 'color', placeholder: '#f43f5e' },
+  { key: 'secondary_color', label: 'Secondary Color', type: 'color', placeholder: '#6366f1' },
 ];
 
 export default function SiteSettingsPage() {
@@ -36,25 +36,25 @@ export default function SiteSettingsPage() {
   }
 
   const primary = form.primary_color || '#1d3557';
-  const accent = form.accent_color || '#e63946';
+  const accent = form.accent_color || '#f43f5e';
 
   return (
     <div className="fade-in" style={{ padding: '32px 32px 48px' }}>
       <div style={{ background: '#0f172a', borderRadius: 14, padding: '16px 24px', marginBottom: 28, border: '1px solid #1e293b' }}>
         <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Site Settings</h1>
-        <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>Manage branding — logo, site name, and colors</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0' }}>Manage branding — logo, site name, and colors</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-        <form onSubmit={save} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-          <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>Branding Fields</div>
-            <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Changes apply site-wide on save</div>
+        <form onSubmit={save} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+          <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Branding Fields</div>
+            <div style={{ color: 'var(--text-subtle)', fontSize: 11, marginTop: 2 }}>Changes apply site-wide on save</div>
           </div>
           <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
             {BRAND_FIELDS.map(f => (
               <div key={f.key}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {f.type === 'color' && (
                     <input type="color" value={form[f.key] || f.placeholder}
@@ -67,14 +67,14 @@ export default function SiteSettingsPage() {
                     maxLength={(f as { maxLength?: number }).maxLength}
                     onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#0f172a', outline: 'none' }}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--text)', outline: 'none' }}
                   />
                 </div>
               </div>
             ))}
 
             {msg && (
-              <div style={{ padding: '10px 14px', borderRadius: 8, background: msg.includes('aved') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: msg.includes('aved') ? '#065f46' : '#991b1b', fontSize: 13, fontWeight: 600 }}>
+              <div style={{ padding: '10px 14px', borderRadius: 8, background: msg.includes('aved') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: msg.includes('aved') ? 'var(--success-text)' : 'var(--danger-text)', fontSize: 13, fontWeight: 600 }}>
                 {msg}
               </div>
             )}
@@ -86,14 +86,14 @@ export default function SiteSettingsPage() {
         </form>
 
         {/* Live preview */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }}>
-          <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>Live Preview</div>
-            <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Updates as you type</div>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }}>
+          <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Live Preview</div>
+            <div style={{ color: 'var(--text-subtle)', fontSize: 11, marginTop: 2 }}>Updates as you type</div>
           </div>
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Navbar</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Navbar</div>
               <div style={{ background: primary, borderRadius: 10, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 {form.site_logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -112,21 +112,21 @@ export default function SiteSettingsPage() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Buttons</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Buttons</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ background: accent, color: '#fff', borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 700 }}>Accent</span>
                 <span style={{ background: primary, color: '#fff', borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 700 }}>Primary</span>
-                <span style={{ background: form.secondary_color || '#457b9d', color: '#fff', borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 700 }}>Secondary</span>
+                <span style={{ background: form.secondary_color || 'var(--link)', color: '#fff', borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 700 }}>Secondary</span>
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Color Palette</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Color Palette</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                {[['Primary', primary], ['Accent', accent], ['Secondary', form.secondary_color || '#457b9d']].map(([label, color]) => (
+                {[['Primary', primary], ['Accent', accent], ['Secondary', form.secondary_color || '#6366f1']].map(([label, color]) => (
                   <div key={label} style={{ flex: 1, textAlign: 'center' }}>
                     <div style={{ height: 36, borderRadius: 8, background: color, marginBottom: 4 }} />
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#64748b' }}>{label}</div>
-                    <div style={{ fontSize: 10, color: '#94a3b8' }}>{color}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>{label}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-subtle)' }}>{color}</div>
                   </div>
                 ))}
               </div>

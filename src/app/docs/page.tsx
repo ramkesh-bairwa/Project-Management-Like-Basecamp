@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import PublicNav from '@/components/PublicNav';
+import PublicNav, { PageHero, PublicFooter } from '@/components/PublicNav';
 import { usePageContent } from '@/lib/hooks/usePageContent';
 
 export default function DocsPage() {
@@ -26,31 +26,37 @@ export default function DocsPage() {
   }).filter(s => s.title);
 
   return (
-    <div style={{ minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background:'#f8fafc', color:'#1d3557' }}>
+    <div className="min-h-screen overflow-x-clip bg-bg text-fg">
       <PublicNav />
 
-      {/* Hero */}
-      <section style={{ background:'linear-gradient(135deg,#1d3557,#2a4a73)', padding:'72px 24px', textAlign:'center' }}>
-        <div style={{ maxWidth:600, margin:'0 auto' }}>
-          <div style={{ display:'inline-block', padding:'5px 16px', borderRadius:20, background:'rgba(168,218,220,0.15)', border:'1px solid rgba(168,218,220,0.3)', color:'#a8dadc', fontSize:13, fontWeight:700, marginBottom:20 }}>Documentation</div>
-          <h1 style={{ fontSize:48, fontWeight:900, color:'#fff', margin:'0 0 16px', letterSpacing:'-1.5px' }}>{get('hero','title','How can we help?')}</h1>
-          <p style={{ fontSize:16, color:'rgba(255,255,255,0.5)', margin:'0 0 28px' }}>{get('hero','subtitle','Search our docs or browse by category below.')}</p>
-          <div style={{ position:'relative', maxWidth:480, margin:'0 auto' }}>
-            <span style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', fontSize:16 }}>🔍</span>
-            <input placeholder="Search documentation…" style={{ width:'100%', padding:'14px 16px 14px 44px', borderRadius:14, border:'none', fontSize:15, color:'#1d3557', background:'#fff', boxSizing:'border-box', outline:'none', boxShadow:'0 4px 20px rgba(0,0,0,0.15)' }} />
+      <PageHero
+        eyebrow="Documentation"
+        title={get('hero','title','How can we help?')}
+        subtitle={get('hero','subtitle','Search our docs or browse by category below.')}
+      >
+        <div className="relative mx-auto max-w-xl">
+          <div aria-hidden className="absolute -inset-1 rounded-[18px] opacity-50 blur-lg" style={{ background: 'var(--grad-brand)' }} />
+          <div className="relative flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 shadow-[var(--shadow-lg)] transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary-ring)]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-subtle"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+            <input
+              placeholder="Search documentation…"
+              aria-label="Search documentation"
+              className="h-14 w-full min-w-0 bg-transparent text-[15px] text-fg !border-0 !shadow-none outline-none"
+            />
+            <span className="kbd hidden shrink-0 sm:inline-flex">⌘K</span>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Quick links */}
       {quicklinks.length > 0 && (
-        <section style={{ maxWidth:900, margin:'0 auto', padding:'48px 24px 0' }}>
-          <div style={{ display:'grid', gridTemplateColumns:`repeat(${quicklinks.length},1fr)`, gap:16 }}>
+        <section className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className={`stagger grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 ${quicklinks.length >= 4 ? 'lg:grid-cols-4' : quicklinks.length === 3 ? 'lg:grid-cols-3' : ''}`}>
             {quicklinks.map(q => (
-              <div key={q.label} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:'20px', textAlign:'center', cursor:'pointer' }}>
-                <div style={{ fontSize:28, marginBottom:8 }}>{q.icon}</div>
-                <div style={{ fontWeight:800, fontSize:14, color:'#1d3557', marginBottom:4 }}>{q.label}</div>
-                <div style={{ fontSize:12, color:'#94a3b8' }}>{q.desc}</div>
+              <div key={q.label} className="group card card-hover cursor-pointer p-5">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary-soft text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{q.icon}</div>
+                <div className="mt-4 font-display text-[15px] font-bold text-fg">{q.label}</div>
+                <div className="mt-1 text-sm text-muted">{q.desc}</div>
               </div>
             ))}
           </div>
@@ -59,19 +65,22 @@ export default function DocsPage() {
 
       {/* Doc sections */}
       {sections.length > 0 && (
-        <section style={{ maxWidth:900, margin:'0 auto', padding:'48px 24px 80px' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:24 }}>
+        <section className="mx-auto max-w-6xl px-4 pb-24 pt-12 sm:px-6">
+          <div className="stagger grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {sections.map(s => (
-              <div key={s.title} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:20, padding:'28px 24px' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
-                  <span style={{ fontSize:24 }}>{s.icon}</span>
-                  <h3 style={{ fontSize:16, fontWeight:800, margin:0, color:'#1d3557' }}>{s.title}</h3>
+              <div key={s.title} className="card p-6">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-xl">{s.icon}</span>
+                  <h3 className="font-display text-base font-bold text-fg">{s.title}</h3>
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                <div className="mt-4 flex flex-col">
                   {s.articles.map(a => (
-                    <a key={a.title} href="#" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid #f1f5f9', textDecoration:'none', color:'#475569', fontSize:13 }}>
-                      <span style={{ fontWeight:500 }}>{a.title}</span>
-                      <span style={{ fontSize:11, color:'#94a3b8', flexShrink:0, marginLeft:8 }}>{a.time}</span>
+                    <a key={a.title} href="#" className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-sm text-muted transition-colors hover:bg-[var(--surface-hover)] hover:text-fg">
+                      <span className="flex min-w-0 items-center gap-2 font-medium">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-subtle transition-colors group-hover:text-primary-text"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5" /></svg>
+                        <span className="truncate">{a.title}</span>
+                      </span>
+                      {a.time && <span className="shrink-0 text-xs text-subtle">{a.time}</span>}
                     </a>
                   ))}
                 </div>
@@ -82,17 +91,21 @@ export default function DocsPage() {
       )}
 
       {/* Support */}
-      <section style={{ background:'#fff', borderTop:'1px solid #e2e8f0', padding:'64px 24px', textAlign:'center' }}>
-        <div style={{ fontSize:40, marginBottom:16 }}>🤝</div>
-        <h2 style={{ fontSize:28, fontWeight:900, margin:'0 0 12px' }}>{get('support','title','Still need help?')}</h2>
-        <p style={{ color:'#6b7a8d', fontSize:15, margin:'0 0 28px' }}>{get('support','subtitle','Our support team is available Monday–Friday, 9am–6pm EST.')}</p>
-        <Link href="/contact" style={{ display:'inline-block', padding:'13px 28px', borderRadius:12, background:'#1d3557', color:'#fff', fontWeight:800, fontSize:15, textDecoration:'none' }}>
-          {get('support','button','Contact Support →')}
-        </Link>
+      <section className="px-4 py-20 sm:px-6">
+        <div className="card relative mx-auto max-w-3xl overflow-hidden px-6 py-12 text-center sm:px-12">
+          <div aria-hidden className="pointer-events-none absolute inset-0 aurora" />
+          <div className="relative">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-surface text-3xl shadow-[var(--shadow-md)]">🤝</div>
+            <h2 className="mt-5 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{get('support','title','Still need help?')}</h2>
+            <p className="mx-auto mt-3 max-w-md text-muted">{get('support','subtitle','Our support team is available Monday–Friday, 9am–6pm EST.')}</p>
+            <Link href="/contact" className="btn btn-primary btn-lg mt-7">
+              {get('support','button','Contact Support →')}
+            </Link>
+          </div>
+        </div>
       </section>
-      <footer style={{ background:'#0f1f35', padding:'24px', textAlign:'center' }}>
-        <span style={{ color:'rgba(255,255,255,0.3)', fontSize:13 }}>© 2025 ProjectHub · <Link href="/" style={{ color:'rgba(255,255,255,0.4)', textDecoration:'none' }}>Home</Link></span>
-      </footer>
+
+      <PublicFooter />
     </div>
   );
 }

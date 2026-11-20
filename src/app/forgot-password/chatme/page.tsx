@@ -51,7 +51,7 @@ export default function ForgotPasswordChatMe() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      <div className="flex-1 flex items-center justify-center p-8 bg-surface">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-black text-gray-900 mb-2">Forgot Password</h2>

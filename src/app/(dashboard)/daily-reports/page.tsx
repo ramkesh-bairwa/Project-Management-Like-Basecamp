@@ -65,7 +65,7 @@ const CreateSlidePanel = ({
   return (
     <>
       <div className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={handleClose} />
-      <div className={`fixed right-0 top-0 h-full w-1/2 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      <div className={`fixed right-0 top-0 h-full w-1/2 bg-surface shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ borderRadius: '16px 0 0 16px', boxShadow: '-8px 0 40px rgba(0,0,0,0.18)' }}>
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between px-6 py-5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex-shrink-0">
@@ -164,7 +164,7 @@ const DeleteConfirmModal = ({ task, onConfirm, onCancel, deleting }: { task: Tas
   if (!task) return null;
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+      <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </div>
@@ -208,7 +208,7 @@ const EditSlidePanel = ({
         onClick={onClose}
       />
       <div
-        className={`fixed right-0 top-0 h-full w-1/2 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 h-full w-1/2 bg-surface shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ borderRadius: '16px 0 0 16px', boxShadow: '-8px 0 40px rgba(0,0,0,0.18)' }}
@@ -358,7 +358,7 @@ const CommentSlidePanel = ({
 
       {/* Slide Panel - half screen from right */}
       <div
-        className={`fixed right-0 top-0 h-full w-1/2 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 h-full w-1/2 bg-surface shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ borderRadius: '16px 0 0 16px', boxShadow: '-8px 0 40px rgba(0,0,0,0.18)' }}
@@ -1012,29 +1012,29 @@ export default function DailyReportsPage() {
         const todo = todayTasks.filter(t => t.status === 'todo').length;
         if (todayTasks.length === 0) return null;
         return (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+          <div className="bg-surface rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">📋</span>
               <h3 className="font-bold text-gray-900 text-sm">Today&apos;s Tasks</h3>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 ml-auto">{todayTasks.length} total</span>
             </div>
             <div className="flex gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: '#f0fdf9' }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'var(--success-soft)' }}>
                 <span className="w-2 h-2 rounded-full bg-green-500"></span>
                 <span className="text-xs font-semibold text-green-700">Done</span>
                 <span className="text-xs font-black text-green-800">{done}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: '#eff6ff' }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'var(--info-soft)' }}>
                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                 <span className="text-xs font-semibold text-blue-700">In Progress</span>
                 <span className="text-xs font-black text-blue-800">{inProgress}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: '#fef2f2' }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'var(--danger-soft)' }}>
                 <span className="w-2 h-2 rounded-full bg-red-500"></span>
                 <span className="text-xs font-semibold text-red-700">Blocked</span>
                 <span className="text-xs font-black text-red-800">{blocked}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: '#f8fafc' }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface-2)' }}>
                 <span className="w-2 h-2 rounded-full bg-gray-400"></span>
                 <span className="text-xs font-semibold text-gray-600">Todo</span>
                 <span className="text-xs font-black text-gray-700">{todo}</span>
@@ -1045,7 +1045,7 @@ export default function DailyReportsPage() {
       })()}
 
       {/* Search and Filter Bar */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="bg-surface rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">Search Tasks</label>
@@ -1191,7 +1191,7 @@ export default function DailyReportsPage() {
 
       {/* Admin Section */}
       {isAdmin && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="bg-surface rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Controls</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -1254,7 +1254,7 @@ export default function DailyReportsPage() {
       )}
 
       {/* Tasks Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-surface rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -1296,7 +1296,7 @@ export default function DailyReportsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-surface divide-y divide-gray-200">
                 {displayTasks.map((task) => {
                   const taskKey = `${task.report_id}-${task.id}`;
                   const isExpanded = expandedTasks.has(taskKey);
@@ -1436,7 +1436,7 @@ export default function DailyReportsPage() {
                     <button
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-sm bg-surface border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -1461,7 +1461,7 @@ export default function DailyReportsPage() {
                           className={`px-3 py-1 text-sm border rounded-md ${
                             currentPage === pageNum
                               ? 'bg-blue-500 text-white border-blue-500'
-                              : 'bg-white border-gray-300 hover:bg-gray-50'
+                              : 'bg-surface border-gray-300 hover:bg-gray-50'
                           }`}
                         >
                           {pageNum}
@@ -1472,7 +1472,7 @@ export default function DailyReportsPage() {
                     <button
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-sm bg-surface border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
@@ -1509,15 +1509,15 @@ export default function DailyReportsPage() {
           const fmtTime = (d: string) => new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
           const actCfg: Record<string, { icon: string; bg: string }> = {
-            created:          { icon: '✦', bg: '#2a9d8f' },
-            status_changed:   { icon: '⇄', bg: '#457b9d' },
-            commented:        { icon: '💬', bg: '#457b9d' },
-            comment_added:    { icon: '💬', bg: '#457b9d' },
-            priority_changed: { icon: '!',  bg: '#f4a261' },
-            assigned:         { icon: '→',  bg: '#6d6875' },
+            created:          { icon: '✦', bg: '#10b981' },
+            status_changed:   { icon: '⇄', bg: '#6366f1' },
+            commented:        { icon: '💬', bg: '#6366f1' },
+            comment_added:    { icon: '💬', bg: '#6366f1' },
+            priority_changed: { icon: '!',  bg: '#f59e0b' },
+            assigned:         { icon: '→',  bg: '#8b5cf6' },
             progress_updated: { icon: '↑',  bg: '#7c3aed' },
-            blocker_added:    { icon: '✕',  bg: '#e63946' },
-            blocker_resolved: { icon: '✓',  bg: '#2a9d8f' },
+            blocker_added:    { icon: '✕',  bg: '#f43f5e' },
+            blocker_resolved: { icon: '✓',  bg: '#10b981' },
             title_changed:    { icon: '✎',  bg: '#0ea5e9' },
             hours_updated:    { icon: '⏱',  bg: '#8b5cf6' },
             deleted:          { icon: '🗑',  bg: '#dc2626' },
@@ -1561,9 +1561,9 @@ export default function DailyReportsPage() {
           return (
             <div className="mt-8 rounded-2xl p-6" style={{ background: '#f1f8f1' }}>
               <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <h3 className="font-black text-base" style={{ color: '#1d3557' }}>⚡ Recent Activity</h3>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8f4ff', color: '#457b9d' }}>{filtered.length}</span>
-                <div className="ml-auto flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5">
+                <h3 className="font-black text-base" style={{ color: 'var(--text)' }}>⚡ Recent Activity</h3>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8f4ff', color: 'var(--link)' }}>{filtered.length}</span>
+                <div className="ml-auto flex items-center gap-2 bg-surface border border-gray-200 rounded-xl px-3 py-1.5">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input
                     type="text"
@@ -1587,30 +1587,30 @@ export default function DailyReportsPage() {
                     <div key={group.label}>
                       <div className="flex items-center gap-3 my-4">
                         <div className="flex-1 h-px bg-gray-200" />
-                        <span className="text-xs font-black px-3 py-1 rounded-full flex-shrink-0" style={{ background: '#f1f5f9', color: '#64748b' }}>{group.label}</span>
+                        <span className="text-xs font-black px-3 py-1 rounded-full flex-shrink-0" style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>{group.label}</span>
                         <div className="flex-1 h-px bg-gray-200" />
                       </div>
                       <div className="space-y-2">
                         {group.items.map((item) => {
-                          const cfg = item.kind === 'comment' ? { icon: '💬', bg: '#457b9d' } : (actCfg[item.action_type || ''] || { icon: '•', bg: '#94a3b8' });
+                          const cfg = item.kind === 'comment' ? { icon: '💬', bg: '#6366f1' } : (actCfg[item.action_type || ''] || { icon: '•', bg: '#94a3b8' });
                           const msg = item.kind === 'comment' ? `${item.user_name} commented on "${item.taskTitle}"` : buildMsg(item);
                           const isExp = expandedActivity === item._idx;
                           return (
-                            <div key={item._idx} className="bg-white rounded-2xl overflow-hidden cursor-pointer" style={{ border: `1px solid ${isExp ? '#bfdbfe' : '#d0dce8'}` }}
+                            <div key={item._idx} className="bg-surface rounded-2xl overflow-hidden cursor-pointer" style={{ border: `1px solid ${isExp ? 'var(--info-soft)' : 'var(--border)'}` }}
                               onClick={() => setExpandedActivity(isExp ? null : item._idx)}>
                               <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
                                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: cfg.bg }}>{cfg.icon}</div>
                                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: `hsl(${(item.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                                   {item.user_name[0].toUpperCase()}
                                 </div>
-                                <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#e8f4ff', color: '#457b9d' }}>{item.taskToken}</span>
-                                <span className="flex-1 text-sm" style={{ color: '#1d3557' }}>
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#e8f4ff', color: 'var(--link)' }}>{item.taskToken}</span>
+                                <span className="flex-1 text-sm" style={{ color: 'var(--text)' }}>
                                   {msg}
                                   {!isExp && item.kind === 'comment' && item.content && (
-                                    <span style={{ color: '#6b7a8d' }}> — {item.content.length > 60 ? item.content.substring(0, 60) + '…' : item.content}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}> — {item.content.length > 60 ? item.content.substring(0, 60) + '…' : item.content}</span>
                                   )}
                                 </span>
-                                <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>{fmtTime(item.created_at)}</span>
+                                <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>{fmtTime(item.created_at)}</span>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
                                   className="flex-shrink-0 transition-transform duration-200"
                                   style={{ transform: isExp ? 'rotate(180deg)' : 'rotate(0deg)' }}>
@@ -1618,7 +1618,7 @@ export default function DailyReportsPage() {
                                 </svg>
                               </div>
                               {isExp && (
-                                <div className="px-4 pb-4 pt-3 space-y-2" style={{ borderTop: '1px solid #e2e8f0', background: '#f8fbff' }}>
+                                <div className="px-4 pb-4 pt-3 space-y-2" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-xs font-bold text-gray-500">Task:</span>
                                     <span className="text-xs font-semibold text-gray-800">[{item.taskToken}] {item.taskTitle}</span>
@@ -1630,15 +1630,15 @@ export default function DailyReportsPage() {
                                     <span className="text-xs text-gray-400">{fmtTime(item.created_at)}</span>
                                   </div>
                                   {item.kind === 'comment' && item.content && (
-                                    <div className="rounded-xl p-3 text-sm text-gray-700 leading-relaxed" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                                    <div className="rounded-xl p-3 text-sm text-gray-700 leading-relaxed" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                                       {item.content}
                                     </div>
                                   )}
                                   {item.kind === 'activity' && (item.old_value || item.new_value) && (
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      {item.old_value && <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{item.old_value}</span>}
+                                      {item.old_value && <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>{item.old_value}</span>}
                                       {item.old_value && item.new_value && <span className="text-xs text-gray-400">→</span>}
-                                      {item.new_value && <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: '#f0fdf9', color: '#0f766e' }}>{item.new_value}</span>}
+                                      {item.new_value && <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>{item.new_value}</span>}
                                     </div>
                                   )}
                                   {item.kind === 'activity' && item.details && (

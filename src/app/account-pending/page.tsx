@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AuthCard, AuthCenter, Icon, Spinner, StatusIcon } from '@/components/auth/AuthShell';
 
 type Status = {
   signedIn: boolean;
@@ -59,60 +60,64 @@ export default function AccountPendingPage() {
   const byEmail = status?.emailVerificationEnabled;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#f1faee' }}>
-      <div className="bg-white rounded-2xl p-10 w-full max-w-md text-center shadow-sm" style={{ border: '1px solid #d0dce8' }}>
+    <AuthCenter>
+      <AuthCard className="text-center">
         {!status ? (
-          <>
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: '#f1faee' }}>
-              <div className="w-8 h-8 rounded-full animate-spin" style={{ border: '3px solid #d0dce8', borderTopColor: '#1d3557' }} />
-            </div>
-            <div className="font-black text-xl" style={{ color: '#1d3557' }}>Checking your account…</div>
-          </>
+          <div key="loading" className="animate-fade-in">
+            <StatusIcon tone="primary"><Spinner size={26} /></StatusIcon>
+            <h1 className="font-display text-[1.45rem] font-extrabold text-fg">Checking your account…</h1>
+          </div>
         ) : !status.signedIn ? (
-          <>
-            <div className="font-black text-xl mb-2" style={{ color: '#1d3557' }}>You&apos;re signed out</div>
-            <p className="text-sm mb-6" style={{ color: '#6b7a8d' }}>Log in to see the status of your account.</p>
-            <Link href="/login" className="inline-block px-6 py-3 rounded-xl font-black text-sm text-white hover:opacity-90 transition" style={{ background: '#e63946' }}>
-              Go to Login
+          <div key="signed-out" className="animate-fade-in">
+            <StatusIcon tone="primary"><Icon.User size={28} /></StatusIcon>
+            <h1 className="font-display text-[1.45rem] font-extrabold text-fg">You&apos;re signed out</h1>
+            <p className="mt-2 mb-6 text-[14px] text-muted">Log in to see the status of your account.</p>
+            <Link href="/login" className="btn btn-gradient btn-lg w-full">
+              Go to Login<Icon.ArrowRight size={17} />
             </Link>
-          </>
+          </div>
         ) : (
-          <>
-            <div className="text-5xl mb-4">{byEmail ? '✉️' : '⏳'}</div>
-            <div className="font-black text-xl mb-2" style={{ color: '#1d3557' }}>
+          <div key="pending" className="animate-fade-in">
+            <StatusIcon tone={byEmail ? 'primary' : 'warning'}>
+              {byEmail ? <Icon.Inbox size={28} /> : <Icon.Clock size={28} />}
+            </StatusIcon>
+            <h1 className="font-display text-[1.45rem] font-extrabold text-fg">
               {byEmail ? 'Verify your email to continue' : 'Waiting for admin approval'}
-            </div>
-            <p className="text-sm mb-1" style={{ color: '#6b7a8d' }}>
+            </h1>
+            <p className="mt-2 text-[14px] text-muted leading-relaxed">
               {byEmail
-                ? <>We sent a verification link to <strong style={{ color: '#1d3557' }}>{status.email}</strong>. Click it to start using your account.</>
-                : <>Your account <strong style={{ color: '#1d3557' }}>{status.email}</strong> has been created. An admin needs to approve it before you can use the app.</>}
+                ? <>We sent a verification link to <strong className="text-fg">{status.email}</strong>. Click it to start using your account.</>
+                : <>Your account <strong className="text-fg">{status.email}</strong> has been created. An admin needs to approve it before you can use the app.</>}
             </p>
-            <p className="text-xs mb-6" style={{ color: '#94a3b8' }}>This page moves on by itself once your account is approved.</p>
+            <p className="mt-3 mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-[var(--surface-2)] px-3 py-1 text-[12px] text-subtle">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inset-0 rounded-full animate-ping opacity-60" style={{ background: 'var(--warning)' }} />
+                <span className="relative w-2 h-2 rounded-full" style={{ background: 'var(--warning)' }} />
+              </span>
+              This page moves on by itself once your account is approved.
+            </p>
 
             {note && (
-              <div role="status" className="text-sm font-semibold rounded-lg px-3 py-2 mb-4" style={{ background: '#f8fafc', color: '#475569' }}>{note}</div>
+              <div role="status" className="mb-4 rounded-xl border border-line bg-[var(--surface-2)] px-3.5 py-2.5 text-[13px] font-medium text-muted animate-scale-in">{note}</div>
             )}
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5">
               {byEmail && (
-                <button onClick={resend} disabled={resending}
-                  className="px-6 py-3 rounded-xl font-black text-sm text-white hover:opacity-90 transition disabled:opacity-60"
-                  style={{ background: '#e63946' }}>
-                  {resending ? 'Sending…' : 'Resend verification email'}
+                <button onClick={resend} disabled={resending} className="btn btn-gradient btn-lg w-full">
+                  {resending ? <><Spinner />Sending…</> : <><Icon.Mail size={17} />Resend verification email</>}
                 </button>
               )}
               <button onClick={() => check(true)} disabled={checking}
-                className="px-6 py-3 rounded-xl font-bold text-sm transition disabled:opacity-60"
-                style={{ background: byEmail ? '#fff' : '#1d3557', color: byEmail ? '#1d3557' : '#fff', border: '1px solid #d0dce8' }}>
-                {checking ? 'Checking…' : 'Check again'}
+                className={`btn btn-lg w-full ${byEmail ? 'btn-secondary' : 'btn-primary'}`}>
+                {checking ? <><Spinner />Checking…</> : <><Icon.Refresh size={16} />Check again</>}
               </button>
-              <button onClick={logout} className="text-sm font-bold hover:underline" style={{ color: '#6b7a8d' }}>
-                Log out
+              <button onClick={logout} className="btn btn-ghost w-full">
+                <Icon.LogOut size={15} />Log out
               </button>
             </div>
-          </>
+          </div>
         )}
-      </div>
-    </div>
+      </AuthCard>
+    </AuthCenter>
   );
 }

@@ -15,7 +15,7 @@ export interface CommentNode {
   children?: CommentNode[];
 }
 
-const avatarColors = ['#e63946','#457b9d','#2a9d8f','#f4a261','#6d6875','#e9c46a'];
+const avatarColors = ['#f43f5e','#6366f1','#10b981','#f59e0b','#8b5cf6','#eab308'];
 
 interface Props {
   comment: CommentNode;
@@ -86,8 +86,8 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
       <div
         className="rounded-2xl p-4"
         style={{
-          background: comment.is_resolved ? '#f8fafc' : depth === 0 ? '#fff' : '#f1faee',
-          border: `1.5px solid ${comment.is_resolved ? '#e2e8f0' : depth === 0 ? '#d0dce8' : '#a8dadc'}`,
+          background: comment.is_resolved ? 'var(--surface-2)' : depth === 0 ? 'var(--surface)' : 'var(--bg)',
+          border: `1.5px solid ${comment.is_resolved ? 'var(--border)' : depth === 0 ? 'var(--border)' : '#a5b4fc'}`,
           opacity: comment.is_resolved ? 0.75 : 1,
         }}
       >
@@ -101,12 +101,12 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               {comment.user_name[0]}
             </div>
             <div>
-              <span className="text-sm font-bold" style={{ color: '#1d3557' }}>{comment.user_name}</span>
-              <span className="text-xs ml-2" style={{ color: '#6b7a8d' }}>
+              <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{comment.user_name}</span>
+              <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
                 {fmtDT(comment.created_at)}
               </span>
               {depth > 0 && (
-                <span className="text-xs ml-2 px-1.5 py-0.5 rounded" style={{ background: '#e8f4f8', color: '#457b9d' }}>
+                <span className="text-xs ml-2 px-1.5 py-0.5 rounded" style={{ background: '#e8f4f8', color: 'var(--link)' }}>
                   reply
                 </span>
               )}
@@ -114,7 +114,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {comment.is_resolved && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf9', color: '#0f766e' }}>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>
                 ✓ Resolved by {comment.resolved_by_name}
               </span>
             )}
@@ -122,7 +122,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               <button
                 onClick={() => onResolve(comment.id, true)}
                 className="text-xs font-bold px-2 py-1 rounded-lg transition hover:opacity-80"
-                style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}
+                style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-soft)' }}
                 title="Mark as resolved"
               >
                 ✓ Resolve
@@ -132,7 +132,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               <button
                 onClick={() => onResolve(comment.id, false)}
                 className="text-xs font-bold px-2 py-1 rounded-lg transition hover:opacity-80"
-                style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa' }}
+                style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1px solid var(--warning-soft)' }}
               >
                 Reopen
               </button>
@@ -141,7 +141,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               <button
                 onClick={() => { setEditing(e => !e); setEditText(comment.content); }}
                 className="text-xs font-bold px-2 py-1 rounded-lg transition hover:opacity-80"
-                style={{ background: '#eff6ff', color: '#457b9d', border: '1px solid #bfdbfe' }}
+                style={{ background: 'var(--info-soft)', color: 'var(--link)', border: '1px solid var(--info-soft)' }}
                 title="Edit"
               >
                 ✎ Edit
@@ -167,32 +167,32 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               onChange={e => setEditText(e.target.value)}
               rows={3}
               className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none resize-none"
-              style={{ background: '#f1faee', border: '1.5px solid #457b9d', color: '#1d3557' }}
+              style={{ background: 'var(--bg)', border: '1.5px solid var(--link)', color: 'var(--text)' }}
             />
             <div className="flex gap-2">
               <button type="submit" disabled={saving}
                 className="px-4 py-1.5 rounded-lg text-xs font-black text-white hover:opacity-90 disabled:opacity-50"
-                style={{ background: '#457b9d' }}>{saving ? 'Saving…' : 'Save'}</button>
+                style={{ background: 'var(--link)' }}>{saving ? 'Saving…' : 'Save'}</button>
               <button type="button" onClick={() => setEditing(false)}
                 className="px-4 py-1.5 rounded-lg text-xs font-bold hover:opacity-80"
-                style={{ color: '#6b7a8d', border: '1px solid #d0dce8' }}>Cancel</button>
+                style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}>Cancel</button>
             </div>
           </form>
         ) : (
-        <div className="text-sm leading-relaxed pl-9" style={{ color: '#1d3557' }}>
+        <div className="text-sm leading-relaxed pl-9" style={{ color: 'var(--text)' }}>
           {comment.content.split('\n').map((line, i) => {
             const imgMatch = line.match(/^!\[.*?\]\((.+?)\)$/);
             const videoMatch = line.match(/^🎥 \[video\]\((.+?)\)$/);
             const linkMatch = line.match(/^🔗 (.+)$/);
-            if (imgMatch) return <img key={i} src={imgMatch[1]} alt="attachment" className="mt-2 rounded-xl max-w-full max-h-64 object-contain" style={{ border: '1px solid #e2e8f0' }} />;
+            if (imgMatch) return <img key={i} src={imgMatch[1]} alt="attachment" className="mt-2 rounded-xl max-w-full max-h-64 object-contain" style={{ border: '1px solid var(--border)' }} />;
             if (videoMatch) return (
               <div key={i} className="mt-2">
                 {/youtube|youtu\.be|vimeo/i.test(videoMatch[1])
-                  ? <a href={videoMatch[1]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold hover:opacity-80" style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>🎥 Watch Video</a>
-                  : <video src={videoMatch[1]} controls className="mt-1 rounded-xl max-w-full max-h-48" style={{ border: '1px solid #e2e8f0' }} />}
+                  ? <a href={videoMatch[1]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold hover:opacity-80" style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1.5px solid var(--warning-soft)' }}>🎥 Watch Video</a>
+                  : <video src={videoMatch[1]} controls className="mt-1 rounded-xl max-w-full max-h-48" style={{ border: '1px solid var(--border)' }} />}
               </div>
             );
-            if (linkMatch) return <a key={i} href={linkMatch[1]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-1 text-xs hover:underline" style={{ color: '#457b9d' }}>🔗 {linkMatch[1].length > 50 ? linkMatch[1].substring(0,50)+'...' : linkMatch[1]}</a>;
+            if (linkMatch) return <a key={i} href={linkMatch[1]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-1 text-xs hover:underline" style={{ color: 'var(--link)' }}>🔗 {linkMatch[1].length > 50 ? linkMatch[1].substring(0,50)+'...' : linkMatch[1]}</a>;
             return line ? <p key={i}>{line}</p> : <br key={i} />;
           })}
         </div>
@@ -204,7 +204,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
             <button
               onClick={() => setReplying(r => !r)}
               className="text-xs font-bold transition hover:opacity-80"
-              style={{ color: '#457b9d' }}
+              style={{ color: 'var(--link)' }}
             >
               {replying ? 'Cancel' : '↩ Reply'}
             </button>
@@ -220,13 +220,13 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
               placeholder={`Reply to ${comment.user_name}...`}
               required
               className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-              style={{ background: '#f1faee', border: '1.5px solid #a8dadc', color: '#1d3557' }}
+              style={{ background: 'var(--bg)', border: '1.5px solid #a5b4fc', color: 'var(--text)' }}
             />
             <button
               type="submit"
               disabled={submitting}
               className="px-4 py-2 rounded-xl text-xs font-black text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#457b9d' }}
+              style={{ background: 'var(--link)' }}
             >
               Post
             </button>
@@ -246,7 +246,7 @@ export default function CommentThread({ comment, currentUserId, userRole, depth 
 
       {/* Nested children */}
       {comment.children && comment.children.length > 0 && (
-        <div className="border-l-2 pl-2" style={{ borderColor: '#a8dadc' }}>
+        <div className="border-l-2 pl-2" style={{ borderColor: '#a5b4fc' }}>
           {comment.children.map(child => (
             <CommentThread
               key={child.id}

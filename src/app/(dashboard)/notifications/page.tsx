@@ -16,7 +16,7 @@ const typeCfg: Record<string, { icon: string; label: string; color: string; bg: 
   message:          { icon: '💬', label: 'Message',      color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd', accent: '#0ea5e9' },
   group_invitation: { icon: '✉️', label: 'Invitation',   color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', accent: '#a855f7' },
   organization:     { icon: '🏢', label: 'Organization', color: '#be185d', bg: '#fdf2f8', border: '#fbcfe8', accent: '#ec4899' },
-  default:          { icon: '🔔', label: 'General',      color: '#1d3557', bg: '#f1faee', border: '#d0dce8', accent: '#457b9d' },
+  default:          { icon: '🔔', label: 'General',      color: '#1d3557', bg: '#f1faee', border: '#d0dce8', accent: '#6366f1' },
 };
 
 const FILTER_TYPES = ['all', 'task', 'project', 'message', 'connection', 'group_invitation', 'organization'];
@@ -136,8 +136,8 @@ export default function NotificationsPage() {
       {/* Live banner */}
       {newBanner > 0 && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-2.5 rounded-2xl shadow-xl text-white text-sm font-bold animate-bounce"
-          style={{ background: '#1d3557', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#2a9d8f' }} />
+          style={{ background: 'var(--primary)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--success)' }} />
           {newBanner} new notification{newBanner > 1 ? 's' : ''} arrived
         </div>
       )}
@@ -146,15 +146,15 @@ export default function NotificationsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total', value: notifications.length, icon: '🔔', color: '#1d3557', bg: '#e8f0f7' },
-          { label: 'Unread', value: unread, icon: '🔴', color: '#e63946', bg: '#fef2f2' },
+          { label: 'Unread', value: unread, icon: '🔴', color: '#f43f5e', bg: '#fef2f2' },
           { label: 'Read', value: read, icon: '✅', color: '#0f766e', bg: '#f0fdf9' },
           { label: 'Types', value: new Set(notifications.map(n => n.type)).size, icon: '🏷️', color: '#7c3aed', bg: '#faf5ff' },
         ].map(s => (
-          <div key={s.label} className="rounded-2xl px-5 py-4 flex items-center gap-3" style={{ background: s.bg, border: `1.5px solid ${s.bg === '#e8f0f7' ? '#d0dce8' : s.bg}` }}>
+          <div key={s.label} className="rounded-2xl px-5 py-4 flex items-center gap-3" style={{ background: s.bg, border: `1.5px solid ${s.bg === 'var(--border-soft)' ? 'var(--border)' : s.bg}` }}>
             <span className="text-2xl">{s.icon}</span>
             <div>
               <div className="text-2xl font-black" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-xs font-bold" style={{ color: '#6b7a8d' }}>{s.label}</div>
+              <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -164,25 +164,25 @@ export default function NotificationsPage() {
 
         {/* Left sidebar — filters */}
         <div className="w-56 flex-shrink-0 sticky top-24">
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
-            <div className="px-4 py-3" style={{ background: '#1d3557' }}>
+          <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
+            <div className="px-4 py-3" style={{ background: 'var(--primary)' }}>
               <div className="font-black text-white text-sm">Filters</div>
             </div>
 
             {/* Unread toggle */}
-            <div className="px-4 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border-soft)' }}>
               <button onClick={() => setShowUnreadOnly(v => !v)}
                 className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-bold transition"
                 style={{
-                  background: showUnreadOnly ? '#fef2f2' : '#f8fafc',
-                  color: showUnreadOnly ? '#e63946' : '#6b7a8d',
-                  border: `1.5px solid ${showUnreadOnly ? '#fecaca' : '#e2e8f0'}`,
+                  background: showUnreadOnly ? 'var(--danger-soft)' : 'var(--surface-2)',
+                  color: showUnreadOnly ? 'var(--accent)' : 'var(--text-muted)',
+                  border: `1.5px solid ${showUnreadOnly ? 'var(--danger-soft)' : 'var(--border)'}`,
                 }}>
                 <span className="flex items-center gap-2">
                   <span>🔴</span> Unread only
                 </span>
                 {unread > 0 && (
-                  <span className="text-xs font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: '#e63946' }}>{unread}</span>
+                  <span className="text-xs font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: 'var(--accent)' }}>{unread}</span>
                 )}
               </button>
             </div>
@@ -199,18 +199,18 @@ export default function NotificationsPage() {
                   <button key={t} onClick={() => setFilter(t)}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-bold transition mb-0.5"
                     style={{
-                      background: active ? '#1d3557' : 'transparent',
-                      color: active ? '#fff' : '#475569',
+                      background: active ? 'var(--primary)' : 'transparent',
+                      color: active ? '#fff' : 'var(--text-muted)',
                     }}>
                     <span className="text-base">{t === 'all' ? '🔔' : cfg.icon}</span>
                     <span className="flex-1 text-left capitalize">{t === 'all' ? 'All' : cfg.label}</span>
                     <span className="text-xs font-black px-1.5 py-0.5 rounded-full"
                       style={{
-                        background: active ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
-                        color: active ? '#fff' : '#94a3b8',
+                        background: active ? 'rgba(255,255,255,0.2)' : 'var(--surface-3)',
+                        color: active ? '#fff' : 'var(--text-subtle)',
                       }}>{count}</span>
                     {unreadCount > 0 && !active && (
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#e63946' }} />
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
                     )}
                   </button>
                 );
@@ -222,7 +222,7 @@ export default function NotificationsPage() {
               <div className="p-3 pt-0">
                 <button onClick={markAll}
                   className="w-full py-2.5 rounded-xl text-xs font-black transition hover:opacity-90 text-white"
-                  style={{ background: '#2a9d8f' }}>
+                  style={{ background: 'var(--success)' }}>
                   ✓ Mark all as read
                 </button>
               </div>
@@ -236,40 +236,40 @@ export default function NotificationsPage() {
           {/* Toolbar */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="font-black text-sm" style={{ color: '#1d3557' }}>
+              <span className="font-black text-sm" style={{ color: 'var(--text)' }}>
                 {filter === 'all' ? 'All Notifications' : (typeCfg[filter]?.label || filter)}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: '#e8f0f7', color: '#6b7a8d' }}>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>
                 {filtered.length}
               </span>
               {showUnreadOnly && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: '#fef2f2', color: '#e63946', border: '1px solid #fecaca' }}>
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'var(--danger-soft)', color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>
                   Unread only
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xs" style={{ color: '#94a3b8' }}>
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#2a9d8f' }} />
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-subtle)' }}>
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--success)' }} />
               Live
             </div>
           </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
-              <span className="text-sm" style={{ color: '#6b7a8d' }}>Loading notifications…</span>
+              <div className="w-8 h-8 rounded-full border-2 border-[var(--link)] border-t-transparent animate-spin" />
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading notifications…</span>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 text-center bg-white rounded-2xl" style={{ border: '2px dashed #d0dce8' }}>
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-surface rounded-2xl" style={{ border: '2px dashed var(--border)' }}>
               <div className="text-6xl mb-4">{showUnreadOnly ? '🎉' : '🔔'}</div>
-              <div className="font-black text-xl text-[#1d3557] mb-2">
+              <div className="font-black text-xl text-[var(--text)] mb-2">
                 {showUnreadOnly ? 'All caught up!' : 'No notifications'}
               </div>
-              <div className="text-sm" style={{ color: '#6b7a8d' }}>
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {showUnreadOnly ? 'No unread notifications' : filter === 'all' ? 'Nothing here yet' : `No ${typeCfg[filter]?.label || filter} notifications`}
               </div>
               {showUnreadOnly && (
-                <button onClick={() => setShowUnreadOnly(false)} className="mt-4 text-sm font-bold hover:underline" style={{ color: '#457b9d' }}>
+                <button onClick={() => setShowUnreadOnly(false)} className="mt-4 text-sm font-bold hover:underline" style={{ color: 'var(--link)' }}>
                   Show all notifications
                 </button>
               )}
@@ -280,12 +280,12 @@ export default function NotificationsPage() {
                 <div key={label}>
                   {/* Date divider */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                    <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                     <span className="text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider"
-                      style={{ background: label === 'Today' ? '#1d3557' : '#f1f5f9', color: label === 'Today' ? '#fff' : '#94a3b8' }}>
+                      style={{ background: label === 'Today' ? 'var(--primary)' : 'var(--surface-3)', color: label === 'Today' ? '#fff' : 'var(--text-subtle)' }}>
                       {label}
                     </span>
-                    <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                    <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                   </div>
 
                   <div className="space-y-2">
@@ -296,14 +296,14 @@ export default function NotificationsPage() {
                           onClick={() => handleClick(n)}
                           className="group relative flex items-start gap-4 rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md hover:-translate-y-px"
                           style={{
-                            background: n.is_read ? '#fff' : cfg.bg,
-                            border: `1.5px solid ${n.is_read ? '#e2e8f0' : cfg.border}`,
-                            borderLeft: `4px solid ${n.is_read ? '#e2e8f0' : cfg.accent}`,
+                            background: n.is_read ? 'var(--surface)' : cfg.bg,
+                            border: `1.5px solid ${n.is_read ? 'var(--border)' : cfg.border}`,
+                            borderLeft: `4px solid ${n.is_read ? 'var(--border)' : cfg.accent}`,
                           }}>
 
                           {/* Icon */}
                           <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm"
-                            style={{ background: n.is_read ? '#f8fafc' : cfg.bg, border: `1.5px solid ${n.is_read ? '#e2e8f0' : cfg.border}` }}>
+                            style={{ background: n.is_read ? 'var(--surface-2)' : cfg.bg, border: `1.5px solid ${n.is_read ? 'var(--border)' : cfg.border}` }}>
                             {cfg.icon}
                           </div>
 
@@ -312,25 +312,25 @@ export default function NotificationsPage() {
                             <div className="flex items-start justify-between gap-3 mb-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-black px-2 py-0.5 rounded-full"
-                                  style={{ background: n.is_read ? '#f1f5f9' : cfg.bg, color: n.is_read ? '#94a3b8' : cfg.color, border: `1px solid ${n.is_read ? '#e2e8f0' : cfg.border}` }}>
+                                  style={{ background: n.is_read ? 'var(--surface-3)' : cfg.bg, color: n.is_read ? 'var(--text-subtle)' : cfg.color, border: `1px solid ${n.is_read ? 'var(--border)' : cfg.border}` }}>
                                   {cfg.label}
                                 </span>
                                 {!n.is_read && (
-                                  <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{ background: '#e63946' }}>
+                                  <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--accent)' }}>
                                     New
                                   </span>
                                 )}
                               </div>
-                              <span className="text-xs flex-shrink-0 font-medium" style={{ color: '#94a3b8' }}>
+                              <span className="text-xs flex-shrink-0 font-medium" style={{ color: 'var(--text-subtle)' }}>
                                 {timeAgo(n.created_at)}
                               </span>
                             </div>
 
-                            <div className="font-bold text-sm mb-0.5" style={{ color: n.is_read ? '#475569' : '#1d3557' }}>
+                            <div className="font-bold text-sm mb-0.5" style={{ color: n.is_read ? 'var(--text-muted)' : 'var(--text)' }}>
                               {n.title}
                             </div>
                             {n.body && (
-                              <div className="text-xs leading-relaxed" style={{ color: '#6b7a8d' }}>{n.body}</div>
+                              <div className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{n.body}</div>
                             )}
 
                             {n.link && (
@@ -350,14 +350,14 @@ export default function NotificationsPage() {
                               <button onClick={e => { e.stopPropagation(); markRead(n.id); }}
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition hover:opacity-90"
                                 title="Mark as read"
-                                style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}>
+                                style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-soft)' }}>
                                 ✓
                               </button>
                             )}
                             <button onClick={e => deleteNotif(e, n.id)}
                               className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50"
                               title="Delete"
-                              style={{ color: '#e63946', border: '1px solid #fecaca' }}>
+                              style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>
                               🗑
                             </button>
                           </div>

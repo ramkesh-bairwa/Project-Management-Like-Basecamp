@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { AuthCard, AuthCenter, Icon, Spinner, StatusIcon } from '@/components/auth/AuthShell';
 
 function VerifyContent() {
   const params = useSearchParams();
@@ -40,71 +41,65 @@ function VerifyContent() {
   }, [status, countdown]);
 
   return (
-    <div className="bg-white rounded-2xl p-10 w-full max-w-md text-center shadow-sm" style={{ border: '1px solid #d0dce8' }}>
+    <AuthCard className="text-center">
       {status === 'loading' && (
-        <>
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: '#f1faee' }}>
-            <div className="w-8 h-8 rounded-full border-3 border-t-transparent animate-spin" style={{ border: '3px solid #d0dce8', borderTopColor: '#1d3557' }} />
-          </div>
-          <div className="font-black text-xl mb-2" style={{ color: '#1d3557' }}>Verifying your email…</div>
-          <p className="text-sm" style={{ color: '#6b7a8d' }}>Please wait a moment.</p>
-        </>
+        <div key="loading" className="animate-fade-in">
+          <StatusIcon tone="primary"><Spinner size={26} /></StatusIcon>
+          <h1 className="font-display text-[1.45rem] font-extrabold text-fg">Verifying your email…</h1>
+          <p className="mt-2 text-[14px] text-muted">Please wait a moment.</p>
+        </div>
       )}
 
       {status === 'success' && (
-        <>
-          <div className="text-5xl mb-4">🎉</div>
-          <div className="font-black text-xl mb-1" style={{ color: '#1d3557' }}>
+        <div key="success" className="animate-fade-in">
+          <StatusIcon tone="success"><Icon.CheckCircle size={30} /></StatusIcon>
+          <h1 className="font-display text-[1.45rem] font-extrabold text-fg">
             Email Verified{message ? `, ${message}!` : '!'}
-          </div>
-          <p className="text-sm mb-6" style={{ color: '#6b7a8d' }}>
-            You're all set. Redirecting to your dashboard in <strong style={{ color: '#1d3557' }}>{countdown}s</strong>…
+          </h1>
+          <p className="mt-2 mb-6 text-[14px] text-muted">
+            You&apos;re all set. Redirecting to your dashboard in <strong className="text-fg tabular-nums">{countdown}s</strong>…
           </p>
 
           {/* Progress bar */}
-          <div className="w-full rounded-full overflow-hidden mb-6" style={{ height: 4, background: '#f1f5f9' }}>
+          <div className="w-full rounded-full overflow-hidden mb-6 h-1.5 bg-[var(--surface-3)]">
             <div className="h-full rounded-full transition-all duration-1000"
-              style={{ background: '#2a9d8f', width: `${((3 - countdown) / 3) * 100}%` }} />
+              style={{ background: 'var(--grad-brand)', width: `${((3 - countdown) / 3) * 100}%` }} />
           </div>
 
-          <button onClick={() => window.location.href = '/dashboard'}
-            className="inline-block px-6 py-3 rounded-xl font-black text-sm text-white hover:opacity-90 transition"
-            style={{ background: '#e63946' }}>
-            Go to Dashboard →
+          <button onClick={() => window.location.href = '/dashboard'} className="btn btn-gradient btn-lg w-full group">
+            Go to Dashboard<Icon.ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
           </button>
-        </>
+        </div>
       )}
 
       {status === 'error' && (
-        <>
-          <div className="text-5xl mb-4">❌</div>
-          <div className="font-black text-xl mb-2" style={{ color: '#1d3557' }}>Verification Failed</div>
-          <p className="text-sm mb-6" style={{ color: '#6b7a8d' }}>{message}</p>
+        <div key="error" className="animate-fade-in">
+          <StatusIcon tone="danger"><Icon.XCircle size={30} /></StatusIcon>
+          <h1 className="font-display text-[1.45rem] font-extrabold text-fg">Verification Failed</h1>
+          <p className="mt-2 mb-6 text-[14px] text-muted">{message}</p>
           <div className="flex flex-col gap-3">
-            <Link href="/register" className="inline-block px-6 py-3 rounded-xl font-black text-sm text-white hover:opacity-90 transition" style={{ background: '#e63946' }}>
-              Register Again
-            </Link>
-            <Link href="/login" className="text-sm font-bold hover:underline" style={{ color: '#6b7a8d' }}>
-              Back to Login
+            <Link href="/register" className="btn btn-gradient btn-lg w-full">Register Again</Link>
+            <Link href="/login" className="btn btn-ghost w-full">
+              <Icon.ArrowLeft size={15} />Back to Login
             </Link>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </AuthCard>
   );
 }
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#f1faee' }}>
+    <AuthCenter>
       <Suspense fallback={
-        <div className="bg-white rounded-2xl p-10 w-full max-w-md text-center shadow-sm" style={{ border: '1px solid #d0dce8' }}>
-          <div className="text-4xl mb-4">⏳</div>
-          <div className="font-black text-xl" style={{ color: '#1d3557' }}>Loading…</div>
-        </div>
+        <AuthCard className="text-center">
+          <StatusIcon tone="primary"><Icon.Clock size={28} /></StatusIcon>
+          <h1 className="font-display text-[1.45rem] font-extrabold text-fg">Loading…</h1>
+        </AuthCard>
       }>
         <VerifyContent />
       </Suspense>
-    </div>
+    </AuthCenter>
   );
 }

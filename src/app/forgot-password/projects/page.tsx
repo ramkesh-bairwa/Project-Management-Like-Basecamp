@@ -31,7 +31,7 @@ export default function ForgotPasswordProjects() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)' }}>
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%)' }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20px 20px, white 2px, transparent 0)', backgroundSize: '40px 40px' }} />
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           <div className="mb-8">
@@ -51,7 +51,7 @@ export default function ForgotPasswordProjects() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      <div className="flex-1 flex items-center justify-center p-8 bg-surface">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-black text-gray-900 mb-2">Forgot Password</h2>
@@ -91,7 +91,7 @@ export default function ForgotPasswordProjects() {
                 type="submit"
                 disabled={loading}
                 className="w-full py-3 rounded-xl font-bold text-white transition disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)' }}
+                style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%)' }}
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </button>

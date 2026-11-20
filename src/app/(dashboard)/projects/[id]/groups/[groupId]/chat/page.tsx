@@ -8,7 +8,7 @@ import { useWebSocket, sendWS } from '@/lib/ws-client';
 interface Message { id: number; content: string; sender_name: string; sender_id?: number; created_at: string }
 interface Group { id: number; name: string; project_id: number; chat_id?: number }
 
-const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
+const avatarBgs = ['#f43f5e', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#eab308'];
 function getAvatarBg(name: string) { return avatarBgs[name.charCodeAt(0) % avatarBgs.length]; }
 
 
@@ -142,11 +142,11 @@ export default function GroupChatPage() {
   if (accessDenied) return (
     <div className="flex flex-col items-center justify-center py-32 text-center">
       <div className="text-5xl mb-4">🔒</div>
-      <div className="font-black text-xl text-[#1d3557] mb-2">Access Denied</div>
-      <div className="text-sm text-[#6b7a8d] mb-6">You are not a member of this group.</div>
+      <div className="font-black text-xl text-[var(--text)] mb-2">Access Denied</div>
+      <div className="text-sm text-[var(--text-muted)] mb-6">You are not a member of this group.</div>
       <button onClick={() => router.push('/projects')}
         className="px-5 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90"
-        style={{ background: '#1d3557' }}>← Back to Projects</button>
+        style={{ background: 'var(--primary)' }}>← Back to Projects</button>
     </div>
   );
 
@@ -154,53 +154,53 @@ export default function GroupChatPage() {
     <div style={{ height: 'calc(100vh - 10rem)', display: 'flex', flexDirection: 'column' }}>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-4 flex-shrink-0" style={{ color: '#6b7a8d' }}>
-        <Link href="/projects" className="hover:text-[#1d3557]">Projects</Link>
+      <div className="flex items-center gap-2 text-sm mb-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/projects" className="hover:text-[var(--text)]">Projects</Link>
         <span>/</span>
-        <Link href={`/projects/${id}`} className="hover:text-[#1d3557]">Overview</Link>
+        <Link href={`/projects/${id}`} className="hover:text-[var(--text)]">Overview</Link>
         <span>/</span>
-        <Link href={`/projects/${id}/groups`} className="hover:text-[#1d3557]">Groups</Link>
+        <Link href={`/projects/${id}/groups`} className="hover:text-[var(--text)]">Groups</Link>
         <span>/</span>
-        <Link href={`/projects/${id}/groups/${groupId}`} className="hover:text-[#1d3557]">{group?.name || '...'}</Link>
+        <Link href={`/projects/${id}/groups/${groupId}`} className="hover:text-[var(--text)]">{group?.name || '...'}</Link>
         <span>/</span>
-        <span className="font-bold" style={{ color: '#1d3557' }}>Chat</span>
+        <span className="font-bold" style={{ color: 'var(--text)' }}>Chat</span>
       </div>
 
       {/* Chat box */}
-      <div className="flex-1 flex flex-col rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8', minHeight: 0 }}>
+      <div className="flex-1 flex flex-col rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', minHeight: 0 }}>
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #d0dce8' }}>
+        <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0 bg-surface" style={{ borderBottom: '1px solid var(--border)' }}>
           <button onClick={() => router.push(`/projects/${id}/groups/${groupId}`)}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1f5f9] transition">←</button>
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-3)] transition">←</button>
           <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm font-black"
-            style={{ background: '#457b9d' }}>💬</div>
+            style={{ background: 'var(--link)' }}>💬</div>
           <div className="flex-1">
-            <div className="font-black text-[#1d3557] text-sm">{group?.name || 'Group Chat'}</div>
-            <div className="text-xs" style={{ color: '#6b7a8d' }}>
+            <div className="font-black text-[var(--text)] text-sm">{group?.name || 'Group Chat'}</div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {typingUsers.length > 0
-                ? <span className="text-[#2a9d8f] font-semibold animate-pulse">{typingUsers.join(', ')} typing…</span>
+                ? <span className="text-[var(--success)] font-semibold animate-pulse">{typingUsers.join(', ')} typing…</span>
                 : `${messages.length} messages`}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#2a9d8f' }}>
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#2a9d8f' }} />
+          <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--success)' }}>
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--success)' }} />
             Live
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: '#f8fafc' }}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--surface-2)' }}>
           {loading && (
             <div className="flex items-center justify-center py-16">
-              <div className="w-6 h-6 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
+              <div className="w-6 h-6 rounded-full border-2 border-[var(--link)] border-t-transparent animate-spin" />
             </div>
           )}
           {!loading && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4" style={{ background: '#eff6ff' }}>💬</div>
-              <div className="font-black text-[#1d3557] mb-1">No messages yet</div>
-              <div className="text-sm text-[#6b7a8d]">Be the first to say something!</div>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4" style={{ background: 'var(--info-soft)' }}>💬</div>
+              <div className="font-black text-[var(--text)] mb-1">No messages yet</div>
+              <div className="text-sm text-[var(--text-muted)]">Be the first to say something!</div>
             </div>
           )}
           {messages.map((m) => {
@@ -210,20 +210,20 @@ export default function GroupChatPage() {
 
             if (isMeeting) return (
               <div key={m.id} className="mx-auto w-full max-w-sm">
-                <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: '1.5px solid #fed7aa' }}>
+                <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: '1.5px solid var(--warning-soft)' }}>
                   <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: '#c2410c' }}>
                     <span className="text-white text-xs font-black">📹 MEETING SCHEDULED</span>
                   </div>
-                  <div className="p-4 bg-white space-y-2">
+                  <div className="p-4 bg-surface space-y-2">
                     {m.content.split('\n').slice(1).filter(l => l && !l.startsWith('━') && !l.startsWith('🔗')).map((line, li) => (
-                      <div key={li} className="text-xs text-[#1d3557]">{line}</div>
+                      <div key={li} className="text-xs text-[var(--text)]">{line}</div>
                     ))}
                     {meetingLinkMatch && (
                       <a href={meetingLinkMatch[0]} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full mt-3 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
-                        style={{ background: '#2a9d8f' }}>🚀 Join Meeting</a>
+                        style={{ background: 'var(--success)' }}>🚀 Join Meeting</a>
                     )}
-                    <div className="text-xs text-[#6b7a8d] text-right">
+                    <div className="text-xs text-[var(--text-muted)] text-right">
                       {fmtT(m.created_at)}
                     </div>
                   </div>
@@ -239,15 +239,15 @@ export default function GroupChatPage() {
                 </div>
                 <div className={`flex flex-col max-w-sm ${isMe ? 'items-end' : 'items-start'}`}>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-xs font-bold text-[#1d3557]">{isMe ? 'You' : m.sender_name}</span>
-                    <span className="text-xs text-[#6b7a8d]">
+                    <span className="text-xs font-bold text-[var(--text)]">{isMe ? 'You' : m.sender_name}</span>
+                    <span className="text-xs text-[var(--text-muted)]">
                       {fmtT(m.created_at)}
                     </span>
                   </div>
                   <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                     style={isMe
-                      ? { background: '#1d3557', color: '#fff', borderBottomRightRadius: 4 }
-                      : { background: '#fff', color: '#1d3557', border: '1px solid #e2e8f0', borderBottomLeftRadius: 4 }}>
+                      ? { background: 'var(--primary)', color: '#fff', borderBottomRightRadius: 4 }
+                      : { background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderBottomLeftRadius: 4 }}>
                     {m.content}
                   </div>
                 </div>
@@ -258,18 +258,18 @@ export default function GroupChatPage() {
         </div>
 
         {/* Input */}
-        <form onSubmit={sendMessage} className="flex gap-3 p-3 flex-shrink-0 bg-white" style={{ borderTop: '1px solid #d0dce8' }}>
+        <form onSubmit={sendMessage} className="flex gap-3 p-3 flex-shrink-0 bg-surface" style={{ borderTop: '1px solid var(--border)' }}>
           <input
             value={newMsg}
             onChange={e => { setNewMsg(e.target.value); handleTyping(); }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }}
             placeholder={`Message ${group?.name || 'group'}…`}
-            className="flex-1 rounded-xl px-4 py-2.5 text-[#1d3557] text-sm focus:outline-none"
-            style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}
+            className="flex-1 rounded-xl px-4 py-2.5 text-[var(--text)] text-sm focus:outline-none"
+            style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}
           />
           <button type="submit" disabled={sending || !newMsg.trim()}
             className="px-5 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 disabled:opacity-40 transition"
-            style={{ background: '#1d3557' }}>
+            style={{ background: 'var(--primary)' }}>
             {sending ? '…' : 'Send'}
           </button>
         </form>

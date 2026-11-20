@@ -139,7 +139,7 @@ export default function CreateTaskPage() {
         <p className="text-gray-600">Add a new task to your daily report</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-surface rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
         {/* Project Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

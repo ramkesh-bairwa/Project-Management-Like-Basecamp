@@ -130,7 +130,7 @@ export default function AdminGatewaysPage() {
 
   const activeGateway = gateways.find(g => g.is_active);
 
-  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, color: '#0f172a', background: '#f8fafc', outline: 'none', fontFamily: 'monospace' };
+  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', background: 'var(--surface-2)', outline: 'none', fontFamily: 'monospace' };
 
   return (
     <div className="fade-in" style={{ padding: '32px 32px 48px' }}>
@@ -146,7 +146,7 @@ export default function AdminGatewaysPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, background: '#0f172a', borderRadius: 14, padding: '16px 24px', border: '1px solid #1e293b' }}>
         <div>
           <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Payment Gateways</h1>
-          <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0' }}>
             Active: <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{activeGateway?.display_name || 'None'}</span>
           </p>
         </div>
@@ -167,14 +167,14 @@ export default function AdminGatewaysPage() {
       {/* Info banner */}
       <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 18, flexShrink: 0 }}>ℹ️</span>
-        <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>
-          Only <strong style={{ color: '#0f172a' }}>one gateway</strong> can be active at a time. The active gateway is shown to users on the checkout page. Save your API keys before setting a gateway as active.
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          Only <strong style={{ color: 'var(--text)' }}>one gateway</strong> can be active at a time. The active gateway is shown to users on the checkout page. Save your API keys before setting a gateway as active.
         </div>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-          <div style={{ width: 32, height: 32, border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -185,7 +185,7 @@ export default function AdminGatewaysPage() {
             const cfg = configs[gw.provider] || {};
 
             return (
-              <div key={gw.provider} style={{ background: '#fff', border: `1px solid ${gw.is_active ? meta.border : '#e2e8f0'}`, borderRadius: 16, overflow: 'hidden', boxShadow: gw.is_active ? `0 0 0 2px ${meta.color}30` : '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.2s' }}>
+              <div key={gw.provider} style={{ background: 'var(--surface)', border: `1px solid ${gw.is_active ? meta.border : 'var(--border)'}`, borderRadius: 16, overflow: 'hidden', boxShadow: gw.is_active ? `0 0 0 2px ${meta.color}30` : '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.2s' }}>
 
                 {/* Gateway header row */}
                 <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -197,19 +197,19 @@ export default function AdminGatewaysPage() {
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                      <span style={{ color: '#0f172a', fontWeight: 800, fontSize: 16 }}>{gw.display_name}</span>
+                      <span style={{ color: 'var(--text)', fontWeight: 800, fontSize: 16 }}>{gw.display_name}</span>
                       {gw.is_active && (
                         <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: meta.bg, color: meta.color, border: `1px solid ${meta.border}` }}>
                           ● ACTIVE
                         </span>
                       )}
                       {!gw.is_enabled && (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: 'rgba(148,163,184,0.1)', color: '#94a3b8' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: 'rgba(148,163,184,0.1)', color: 'var(--text-subtle)' }}>
                           DISABLED
                         </span>
                       )}
                     </div>
-                    <div style={{ color: '#64748b', fontSize: 13 }}>{meta.description}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{meta.description}</div>
                   </div>
 
                   {/* Actions */}
@@ -222,7 +222,7 @@ export default function AdminGatewaysPage() {
                     )}
                     {meta.fields.length > 0 && (
                       <button onClick={() => setExpanded(isExpanded ? null : gw.provider)}
-                        style={{ padding: '8px 16px', borderRadius: 10, background: '#f1f5f9', color: '#475569', fontWeight: 600, fontSize: 12, border: '1px solid #e2e8f0', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        style={{ padding: '8px 16px', borderRadius: 10, background: 'var(--surface-3)', color: 'var(--text-muted)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {isExpanded ? 'Hide Config ↑' : 'Configure ↓'}
                       </button>
                     )}
@@ -235,15 +235,15 @@ export default function AdminGatewaysPage() {
 
                 {/* Config form */}
                 {isExpanded && meta.fields.length > 0 && (
-                  <div style={{ padding: '0 24px 24px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ padding: '0 24px 24px', borderTop: '1px solid var(--border-soft)' }}>
                     <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>API Configuration</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>API Configuration</div>
 
                       {meta.fields.map(field => (
                         <div key={field.key}>
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
                             {field.label}
-                            {field.secret && <span style={{ marginLeft: 6, fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>🔒 encrypted</span>}
+                            {field.secret && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-subtle)', fontWeight: 500 }}>🔒 encrypted</span>}
                           </label>
                           <div style={{ position: 'relative' }}>
                             <input
@@ -256,7 +256,7 @@ export default function AdminGatewaysPage() {
                             {field.secret && (
                               <button type="button"
                                 onClick={() => setShowSecret(p => ({ ...p, [`${gw.provider}_${field.key}`]: !p[`${gw.provider}_${field.key}`] }))}
-                                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14 }}>
+                                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)', fontSize: 14 }}>
                                 {showSecret[`${gw.provider}_${field.key}`] ? '🙈' : '👁'}
                               </button>
                             )}
@@ -266,9 +266,9 @@ export default function AdminGatewaysPage() {
 
                       {/* Webhook URL hint */}
                       {(gw.provider === 'stripe' || gw.provider === 'razorpay') && (
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Webhook URL</div>
-                          <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#475569', wordBreak: 'break-all' }}>
+                        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Webhook URL</div>
+                          <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
                             {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/payment/webhook/{gw.provider}
                           </div>
                         </div>
@@ -292,8 +292,8 @@ export default function AdminGatewaysPage() {
 
                 {/* Sandbox — no config needed */}
                 {isExpanded && gw.provider === 'sandbox' && (
-                  <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', background: 'rgba(245,158,11,0.04)' }}>
-                    <div style={{ fontSize: 13, color: '#92400e' }}>
+                  <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-soft)', background: 'rgba(245,158,11,0.04)' }}>
+                    <div style={{ fontSize: 13, color: 'var(--warning-text)' }}>
                       🧪 Sandbox mode requires no configuration. Test cards are provided on the checkout page.
                     </div>
                   </div>

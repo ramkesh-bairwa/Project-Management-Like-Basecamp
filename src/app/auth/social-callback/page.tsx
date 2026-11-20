@@ -31,7 +31,7 @@ function SocialCallbackInner() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', background: '#f5f7fa' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
-        <p style={{ color: '#6b7280', fontSize: 15 }}>Signing you in…</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Signing you in…</p>
       </div>
     </div>
   );

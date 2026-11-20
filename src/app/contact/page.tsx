@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import PublicNav from '@/components/PublicNav';
+import PublicNav, { PageHero, PublicFooter } from '@/components/PublicNav';
 import { usePageContent } from '@/lib/hooks/usePageContent';
 import { OWNER } from '@/lib/owner';
 
@@ -15,87 +15,110 @@ export default function ContactPage() {
   ];
 
   const contactOptions = [
-    { icon: '💬', title: 'Live Chat',     desc: 'Chat with our team in real-time',          badge: 'Online',  color: '#2a9d8f' },
-    { icon: '📧', title: 'Email Support', desc: OWNER.email,  badge: '< 24h',  color: '#457b9d' },
-    { icon: '📞', title: 'Phone',         desc: OWNER.phone,  badge: 'Mon–Fri', color: '#e63946' },
-    { icon: '🐦', title: 'Twitter / X',   desc: get('info','twitter','@projecthub'),          badge: 'DM us',   color: '#6d6875' },
+    { icon: '💬', title: 'Live Chat',     desc: 'Chat with our team in real-time',  badge: 'Online',  fg: 'var(--success-text)', bg: 'var(--success-soft)', href: undefined },
+    { icon: '📧', title: 'Email Support', desc: OWNER.email,                        badge: '< 24h',   fg: 'var(--primary-text)', bg: 'var(--primary-soft)', href: `mailto:${OWNER.email}` },
+    { icon: '📞', title: 'Phone',         desc: OWNER.phone,                        badge: 'Mon–Fri', fg: 'var(--accent)',       bg: 'var(--accent-soft)',  href: `tel:${OWNER.phone}` },
+    { icon: '🐦', title: 'Twitter / X',   desc: get('info','twitter','@projecthub'), badge: 'DM us',  fg: 'var(--info-text)',    bg: 'var(--info-soft)',    href: undefined },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: '#f8fafc', color: '#1d3557' }}>
+    <div className="min-h-screen overflow-x-clip bg-bg text-fg">
       <PublicNav />
-      <section style={{ background: 'linear-gradient(135deg,#1d3557,#2a4a73)', padding: '72px 24px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <div style={{ display: 'inline-block', padding: '5px 16px', borderRadius: 20, background: 'rgba(168,218,220,0.15)', border: '1px solid rgba(168,218,220,0.3)', color: '#a8dadc', fontSize: 13, fontWeight: 700, marginBottom: 20 }}>Contact Us</div>
-          <h1 style={{ fontSize: 48, fontWeight: 900, color: '#fff', margin: '0 0 16px', letterSpacing: '-1.5px' }}>{get('hero','title',"We'd love to hear from you")}</h1>
-          <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.5)', margin: 0 }}>{get('hero','subtitle',"Whether you have a question, feedback or just want to say hi — we're here.")}</p>
-        </div>
-      </section>
 
-      <section style={{ maxWidth: 900, margin: '0 auto', padding: '56px 24px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-          {contactOptions.map(o => (
-            <div key={o.title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 18, padding: '24px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{o.icon}</div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: '#1d3557', marginBottom: 4 }}>{o.title}</div>
-              <div style={{ fontSize: 13, color: '#6b7a8d', marginBottom: 10 }}>{o.desc}</div>
-              <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, background: `${o.color}15`, color: o.color, fontSize: 11, fontWeight: 700 }}>{o.badge}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Contact us"
+        title={get('hero','title',"We'd love to hear from you")}
+        subtitle={get('hero','subtitle',"Whether you have a question, feedback or just want to say hi — we're here.")}
+      />
 
-      <section style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 32 }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 24, padding: '40px 36px' }}>
-            {sent ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-                <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1d3557', margin: '0 0 8px' }}>Message sent!</h2>
-                <p style={{ color: '#6b7a8d', fontSize: 14, margin: '0 0 24px' }}>We'll get back to you within 24 hours.</p>
-                <button onClick={() => { setSent(false); setForm({ name:'',email:'',subject:'',message:'' }); }}
-                  style={{ padding: '10px 24px', borderRadius: 10, background: '#1d3557', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}>Send another</button>
-              </div>
-            ) : (
+      {/* Contact options */}
+      <section className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="stagger grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-4">
+          {contactOptions.map(o => {
+            const inner = (
               <>
-                <h2 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 4px' }}>Send us a message</h2>
-                <p style={{ color: '#6b7a8d', fontSize: 14, margin: '0 0 28px' }}>We typically respond within 24 hours.</p>
-                <form onSubmit={e => { e.preventDefault(); setSent(true); }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1d3557', marginBottom: 6 }}>Full name</label>
-                      <input value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} placeholder="Jane Smith" required style={{ width:'100%',padding:'11px 14px',borderRadius:10,border:'1.5px solid #d0dce8',fontSize:14,color:'#1d3557',outline:'none',boxSizing:'border-box' }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1d3557', marginBottom: 6 }}>Email</label>
-                      <input type="email" value={form.email} onChange={e => setForm(p=>({...p,email:e.target.value}))} placeholder="you@example.com" required style={{ width:'100%',padding:'11px 14px',borderRadius:10,border:'1.5px solid #d0dce8',fontSize:14,color:'#1d3557',outline:'none',boxSizing:'border-box' }} />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1d3557', marginBottom: 6 }}>Subject</label>
-                    <input value={form.subject} onChange={e => setForm(p=>({...p,subject:e.target.value}))} placeholder="How can we help?" required style={{ width:'100%',padding:'11px 14px',borderRadius:10,border:'1.5px solid #d0dce8',fontSize:14,color:'#1d3557',outline:'none',boxSizing:'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1d3557', marginBottom: 6 }}>Message</label>
-                    <textarea value={form.message} onChange={e => setForm(p=>({...p,message:e.target.value}))} placeholder="Tell us more…" required rows={5} style={{ width:'100%',padding:'11px 14px',borderRadius:10,border:'1.5px solid #d0dce8',fontSize:14,color:'#1d3557',outline:'none',boxSizing:'border-box',resize:'vertical',fontFamily:'inherit' }} />
-                  </div>
-                  <button type="submit" style={{ padding:'13px',borderRadius:12,background:'linear-gradient(135deg,#e63946,#c1121f)',color:'#fff',fontWeight:800,fontSize:15,border:'none',cursor:'pointer',boxShadow:'0 4px 14px rgba(230,57,70,0.3)' }}>Send Message →</button>
-                </form>
+                <div className="flex items-center justify-between">
+                  <span className="grid h-11 w-11 place-items-center rounded-xl text-2xl transition-transform duration-300 group-hover:scale-110" style={{ background: o.bg }}>{o.icon}</span>
+                  <span className="badge" style={{ background: o.bg, color: o.fg }}>{o.badge}</span>
+                </div>
+                <div className="mt-4 font-display text-[15px] font-bold text-fg">{o.title}</div>
+                <div className="mt-1 break-words text-sm text-muted">{o.desc}</div>
               </>
-            )}
+            );
+            return o.href ? (
+              <a key={o.title} href={o.href} className="group card card-hover block p-5">{inner}</a>
+            ) : (
+              <div key={o.title} className="group card card-hover p-5">{inner}</div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-24 pt-10 sm:px-6">
+        <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
+          {/* Form */}
+          <div className="card relative overflow-hidden p-6 sm:p-10">
+            <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full opacity-60 blur-3xl" style={{ background: 'var(--grad-brand-soft)' }} />
+            <div className="relative">
+              {sent ? (
+                <div className="animate-scale-in py-10 text-center">
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[var(--success-soft)] text-[var(--success-text)]">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  </div>
+                  <h2 className="mt-5 font-display text-2xl font-extrabold text-fg">Message sent!</h2>
+                  <p className="mt-2 text-sm text-muted">We&apos;ll get back to you within 24 hours.</p>
+                  <button
+                    onClick={() => { setSent(false); setForm({ name:'',email:'',subject:'',message:'' }); }}
+                    className="btn btn-primary mt-6"
+                  >
+                    Send another
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">Send us a message</h2>
+                  <p className="mt-1.5 text-sm text-muted">We typically respond within 24 hours.</p>
+                  <form onSubmit={e => { e.preventDefault(); setSent(true); }} className="mt-7 flex flex-col gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="c-name" className="label">Full name</label>
+                        <input id="c-name" className="input" value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} placeholder="Jane Smith" required />
+                      </div>
+                      <div>
+                        <label htmlFor="c-email" className="label">Email</label>
+                        <input id="c-email" className="input" type="email" value={form.email} onChange={e => setForm(p=>({...p,email:e.target.value}))} placeholder="you@example.com" required />
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="c-subject" className="label">Subject</label>
+                      <input id="c-subject" className="input" value={form.subject} onChange={e => setForm(p=>({...p,subject:e.target.value}))} placeholder="How can we help?" required />
+                    </div>
+                    <div>
+                      <label htmlFor="c-message" className="label">Message</label>
+                      <textarea id="c-message" className="input resize-y" value={form.message} onChange={e => setForm(p=>({...p,message:e.target.value}))} placeholder="Tell us more…" required rows={5} />
+                    </div>
+                    <button type="submit" className="group btn btn-gradient btn-lg mt-1 w-full sm:w-auto sm:self-start">
+                      Send message
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Side */}
+          <div className="flex flex-col gap-5">
             {offices.length > 0 && (
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, padding: '28px 24px' }}>
-                <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>🏢 Our Offices</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="card p-6">
+                <h3 className="font-display text-base font-bold text-fg">🏢 Our offices</h3>
+                <div className="mt-4 space-y-4">
                   {offices.map(o => (
-                    <div key={o.city} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 20 }}>{o.flag}</span>
+                    <div key={o.city} className="flex items-start gap-3">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-xl">{o.flag}</span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#1d3557' }}>{o.city}</div>
-                        <div style={{ fontSize: 13, color: '#6b7a8d', lineHeight: 1.5 }}>{o.address}</div>
+                        <div className="text-sm font-semibold text-fg">{o.city}</div>
+                        <div className="text-sm leading-relaxed text-muted">{o.address}</div>
                       </div>
                     </div>
                   ))}
@@ -103,41 +126,36 @@ export default function ContactPage() {
               </div>
             )}
 
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, padding: '28px 24px' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>⏰ Support Hours</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="card p-6">
+              <h3 className="font-display text-base font-bold text-fg">⏰ Support hours</h3>
+              <div className="mt-4 divide-y divide-[var(--border-soft)]">
                 {[
                   ['Monday – Friday', get('info','hours_weekday','9:00 AM – 6:00 PM IST')],
                   ['Saturday',        get('info','hours_saturday','10:00 AM – 2:00 PM IST')],
                   ['Sunday',          'Closed'],
                 ].map(([day, hours]) => (
-                  <div key={day} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: '#475569', fontWeight: 600 }}>{day}</span>
-                    <span style={{ color: '#6b7a8d' }}>{hours}</span>
+                  <div key={day} className="flex justify-between gap-3 py-2.5 text-sm">
+                    <span className="font-medium text-fg">{day}</span>
+                    <span className={hours === 'Closed' ? 'text-subtle' : 'text-muted'}>{hours}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{ background: 'linear-gradient(135deg,#1d3557,#2a4a73)', borderRadius: 20, padding: '28px 24px' }}>
-              <div style={{ fontSize: 28, marginBottom: 12 }}>📚</div>
-              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>Check our docs first</h3>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 0 16px', lineHeight: 1.6 }}>Most questions are answered in our documentation.</p>
-              <Link href="/docs" style={{ display: 'inline-block', padding: '9px 20px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Browse Docs →</Link>
+            <div className="relative overflow-hidden rounded-[var(--radius-lg)] p-6 text-white shadow-[var(--shadow-glow)]" style={{ background: 'var(--grad-brand)' }}>
+              <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
+              <div className="relative">
+                <div className="text-2xl">📚</div>
+                <h3 className="mt-3 font-display text-base font-bold">Check our docs first</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/80">Most questions are answered in our documentation.</p>
+                <Link href="/docs" className="btn btn-sm mt-4 border border-white/30 bg-white/15 text-white hover:bg-white/25">Browse Docs →</Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
-      <footer style={{ background: '#0f1f35', padding: '24px', textAlign: 'center' }}>
-        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, lineHeight: 2 }}>
-          <span>© 2025 ProjectHub · <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Home</Link></span><br />
-          <a href={`mailto:${OWNER.email}`} style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{OWNER.email}</a>
-          {' · '}
-          <a href={`tel:${OWNER.phone}`} style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{OWNER.phone}</a>
-          {' · '}
-          <span>{OWNER.address}</span>
-        </div>
-      </footer>
+
+      <PublicFooter />
     </div>
   );
 }

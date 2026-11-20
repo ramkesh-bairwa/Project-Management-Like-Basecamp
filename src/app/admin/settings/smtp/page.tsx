@@ -95,23 +95,23 @@ export default function SmtpSettingsPage() {
     <div className="fade-in" style={{ padding: '32px 32px 48px' }}>
       <div style={{ background: '#0f172a', borderRadius: 14, padding: '16px 24px', marginBottom: 28, border: '1px solid #1e293b' }}>
         <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>SMTP & Email</h1>
-        <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>Configure outgoing email and registration verification</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0' }}>Configure outgoing email and registration verification</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Email Verification Toggle — completely standalone */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>Email Verification</div>
-              <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Require users to verify email before logging in</div>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Email Verification</div>
+              <div style={{ color: 'var(--text-subtle)', fontSize: 11, marginTop: 2 }}>Require users to verify email before logging in</div>
             </div>
             <div style={{ padding: 20 }}>
               <div style={{
                 padding: '16px 18px', borderRadius: 12,
-                background: emailVerification ? '#f0fdf4' : '#f8fafc',
-                border: `2px solid ${emailVerification ? '#86efac' : '#e2e8f0'}`,
+                background: emailVerification ? 'var(--success-soft)' : 'var(--surface-2)',
+                border: `2px solid ${emailVerification ? '#86efac' : 'var(--border)'}`,
                 transition: 'all 0.2s',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -130,16 +130,16 @@ export default function SmtpSettingsPage() {
                       position: 'absolute', top: 4,
                       left: emailVerification ? 28 : 4,
                       width: 20, height: 20, borderRadius: '50%',
-                      background: '#fff', transition: 'left 0.25s',
+                      background: 'var(--surface)', transition: 'left 0.25s',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                       display: 'block',
                     }} />
                   </button>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
                       Require Email Verification
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                       {emailVerification
                         ? 'New users must verify their email before logging in'
                         : 'New users must be approved by an admin (Users → Verify) before logging in'}
@@ -147,8 +147,8 @@ export default function SmtpSettingsPage() {
                   </div>
                   <span style={{
                     fontSize: 12, fontWeight: 800, padding: '4px 12px', borderRadius: 20,
-                    background: emailVerification ? '#dcfce7' : '#f1f5f9',
-                    color: emailVerification ? '#15803d' : '#64748b',
+                    background: emailVerification ? '#dcfce7' : 'var(--surface-3)',
+                    color: emailVerification ? '#15803d' : 'var(--text-muted)',
                     minWidth: 36, textAlign: 'center',
                   }}>
                     {toggling ? '…' : emailVerification ? 'ON' : 'OFF'}
@@ -156,7 +156,7 @@ export default function SmtpSettingsPage() {
                 </div>
               </div>
               {unverifiedCount > 0 && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 12, background: 'rgba(245,158,11,0.1)', color: '#92400e' }}>
+                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 12, background: 'rgba(245,158,11,0.1)', color: 'var(--warning-text)' }}>
                   {emailVerification ? (
                     <><strong>{unverifiedCount} user{unverifiedCount === 1 ? ' has' : 's have'} not verified their email.</strong> They cannot log in until they do or an admin verifies them. </>
                   ) : (
@@ -169,7 +169,7 @@ export default function SmtpSettingsPage() {
                 <div style={{
                   marginTop: 10, padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600,
                   background: toggleMsg.startsWith('✓') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
-                  color: toggleMsg.startsWith('✓') ? '#065f46' : '#991b1b',
+                  color: toggleMsg.startsWith('✓') ? 'var(--success-text)' : 'var(--danger-text)',
                 }}>
                   {toggleMsg}
                 </div>
@@ -178,26 +178,26 @@ export default function SmtpSettingsPage() {
           </div>
 
           {/* SMTP Form */}
-          <form onSubmit={saveSmtp} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>SMTP Credentials</div>
-              <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Used for sending verification and notification emails</div>
+          <form onSubmit={saveSmtp} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>SMTP Credentials</div>
+              <div style={{ color: 'var(--text-subtle)', fontSize: 11, marginTop: 2 }}>Used for sending verification and notification emails</div>
             </div>
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
               {SMTP_FIELDS.map(f => (
                 <div key={f.key}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</label>
                   <input
                     type={f.type}
                     value={smtp[f.key] || ''}
                     onChange={e => setSmtp(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               ))}
               {msg && (
-                <div style={{ padding: '10px 14px', borderRadius: 8, background: msg.includes('saved') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: msg.includes('saved') ? '#065f46' : '#991b1b', fontSize: 13, fontWeight: 600 }}>
+                <div style={{ padding: '10px 14px', borderRadius: 8, background: msg.includes('saved') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: msg.includes('saved') ? 'var(--success-text)' : 'var(--danger-text)', fontSize: 13, fontWeight: 600 }}>
                   {msg}
                 </div>
               )}
@@ -211,19 +211,19 @@ export default function SmtpSettingsPage() {
 
         {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>🧪 Test SMTP Connection</div>
-              <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Send a test email to verify your SMTP settings work</div>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>🧪 Test SMTP Connection</div>
+              <div style={{ color: 'var(--text-subtle)', fontSize: 11, marginTop: 2 }}>Send a test email to verify your SMTP settings work</div>
             </div>
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Send Test To</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Send Test To</label>
                 <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="test@example.com"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               {testMsg && (
-                <div style={{ padding: '10px 14px', borderRadius: 8, background: testMsg.toLowerCase().includes('sent') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: testMsg.toLowerCase().includes('sent') ? '#065f46' : '#991b1b', fontSize: 13, fontWeight: 600 }}>
+                <div style={{ padding: '10px 14px', borderRadius: 8, background: testMsg.toLowerCase().includes('sent') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: testMsg.toLowerCase().includes('sent') ? 'var(--success-text)' : 'var(--danger-text)', fontSize: 13, fontWeight: 600 }}>
                   {testMsg}
                 </div>
               )}
@@ -234,12 +234,12 @@ export default function SmtpSettingsPage() {
             </div>
           </div>
 
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 12 }}>💡 SMTP Provider Setup</div>
-            <div style={{ marginBottom: 14, padding: 14, borderRadius: 10, background: '#fff', border: '1.5px solid #fde68a' }}>
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginBottom: 12 }}>💡 SMTP Provider Setup</div>
+            <div style={{ marginBottom: 14, padding: 14, borderRadius: 10, background: 'var(--surface)', border: '1.5px solid var(--warning-soft)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 <span style={{ fontSize: 15 }}>📧</span>
-                <span style={{ fontWeight: 700, fontSize: 13, color: '#92400e' }}>Gmail (requires App Password)</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--warning-text)' }}>Gmail (requires App Password)</span>
               </div>
               <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {[
@@ -250,10 +250,10 @@ export default function SmtpSettingsPage() {
                   'Copy the 16-character password (no spaces)',
                   'Paste it in SMTP Password field above',
                 ].map((step, i) => (
-                  <li key={i} style={{ fontSize: 11, color: '#475569' }}>{step}</li>
+                  <li key={i} style={{ fontSize: 11, color: 'var(--text-muted)' }}>{step}</li>
                 ))}
               </ol>
-              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: '#fef9c3', fontSize: 11, color: '#713f12' }}>
+              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--warning-soft)', fontSize: 11, color: '#713f12' }}>
                 <strong>Host:</strong> smtp.gmail.com &nbsp;|&nbsp; <strong>Port:</strong> 587 &nbsp;|&nbsp; <strong>User:</strong> your full Gmail address
               </div>
             </div>
@@ -262,10 +262,10 @@ export default function SmtpSettingsPage() {
               { name: 'Mailgun', host: 'smtp.mailgun.org', port: '587', note: 'Use SMTP credentials from Mailgun dashboard' },
               { name: 'SendGrid', host: 'smtp.sendgrid.net', port: '587', note: 'Username: apikey — Password: your SendGrid API key' },
             ].map(p => (
-              <div key={p.name} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
-                <div style={{ fontWeight: 700, fontSize: 12, color: '#1d3557' }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>{p.host} : {p.port}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{p.note}</div>
+              <div key={p.name} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--text)' }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.host} : {p.port}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-subtle)', marginTop: 2 }}>{p.note}</div>
               </div>
             ))}
           </div>

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import PublicNav from '@/components/PublicNav';
+import PublicNav, { CtaBand, PageHero, PublicFooter } from '@/components/PublicNav';
 
 type Blog = {
   id: number;
@@ -16,12 +16,12 @@ type Blog = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Product:           '#e63946',
-  Engineering:       '#457b9d',
-  'Tips & Tricks':   '#2a9d8f',
-  Growth:            '#f4a261',
-  'Customer Stories':'#6d6875',
-  General:           '#a8dadc',
+  Product:           '#f43f5e',
+  Engineering:       '#6366f1',
+  'Tips & Tricks':   '#10b981',
+  Growth:            '#f59e0b',
+  'Customer Stories':'#8b5cf6',
+  General:           '#818cf8',
 };
 
 function initials(name: string) {
@@ -52,78 +52,112 @@ export default function BlogPage() {
 
   const featured = blogs[0];
   const rest = blogs.slice(1);
-  const catColor = (cat: string) => CATEGORY_COLORS[cat] || '#457b9d';
+  const catColor = (cat: string) => CATEGORY_COLORS[cat] || '#6366f1';
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: '#f8fafc', color: '#1d3557' }}>
+    <div className="min-h-screen overflow-x-clip bg-bg text-fg">
       <PublicNav />
 
-      {/* Hero */}
-      <section style={{ padding: '64px 24px 40px', textAlign: 'center' }}>
-        <div style={{ display: 'inline-block', padding: '5px 16px', borderRadius: 20, background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontSize: 13, fontWeight: 700, marginBottom: 16 }}>Blog</div>
-        <h1 style={{ fontSize: 48, fontWeight: 900, margin: '0 0 12px', letterSpacing: '-1.5px' }}>Stories, tips &amp; updates</h1>
-        <p style={{ fontSize: 17, color: '#6b7a8d', margin: 0 }}>Product news, engineering deep-dives and team productivity tips.</p>
-      </section>
+      <PageHero eyebrow="Blog" title={<>Stories, tips <span className="text-gradient">&amp; updates</span></>} subtitle="Product news, engineering deep-dives and team productivity tips." />
 
-      {/* Category Filter */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 40px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {categories.map(c => (
-          <button key={c} onClick={() => setActive(c)} style={{
-            padding: '6px 16px', borderRadius: 20, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-            border: active === c ? 'none' : '1px solid #e2e8f0',
-            background: active === c ? (c === 'All' ? '#1d3557' : catColor(c)) : '#fff',
-            color: active === c ? '#fff' : '#6b7a8d',
-            transition: 'all 0.2s',
-          }}>{c}</button>
-        ))}
+      {/* Category filter */}
+      <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6">
+        <div className="flex flex-wrap justify-center gap-2">
+          {categories.map(c => {
+            const on = active === c;
+            return (
+              <button
+                key={c}
+                onClick={() => setActive(c)}
+                className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${on ? 'border-transparent text-white shadow-[var(--shadow-md)]' : 'border-line bg-surface text-muted hover:border-[var(--border-strong)] hover:text-fg'}`}
+                style={on ? { background: c === 'All' ? 'var(--grad-brand)' : catColor(c) } : undefined}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
+      <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#94a3b8', fontSize: 15 }}>Loading blogs…</div>
+          <div className="space-y-6">
+            <div className="skeleton h-72 w-full rounded-[28px]" />
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="card p-6">
+                  <div className="skeleton h-4 w-20" />
+                  <div className="skeleton mt-4 h-5 w-full" />
+                  <div className="skeleton mt-2 h-5 w-3/4" />
+                  <div className="skeleton mt-5 h-3 w-full" />
+                  <div className="skeleton mt-2 h-3 w-5/6" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : blogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#94a3b8', fontSize: 15 }}>No blogs found in this category.</div>
+          <div className="card mx-auto max-w-md p-12 text-center">
+            <div className="text-4xl">📭</div>
+            <p className="mt-3 text-muted">No blogs found in this category.</p>
+          </div>
         ) : (
           <>
             {/* Featured */}
             {featured && (
-              <div style={{ background: `linear-gradient(135deg,${featured.cover_color},${featured.cover_color}cc)`, borderRadius: 24, padding: '48px', marginBottom: 40, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', top: -80, right: -60, pointerEvents: 'none' }} />
-                <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, background: `${catColor(featured.category)}33`, border: `1px solid ${catColor(featured.category)}55`, color: '#fff', fontSize: 12, fontWeight: 700, marginBottom: 16 }}>{featured.category}</div>
-                <h2 style={{ fontSize: 32, fontWeight: 900, color: '#fff', margin: '0 0 16px', letterSpacing: '-0.5px', maxWidth: 620, lineHeight: 1.2 }}>{featured.title}</h2>
-                <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', margin: '0 0 28px', maxWidth: 560, lineHeight: 1.7 }}>{featured.excerpt}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: featured.author_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14 }}>{initials(featured.author)}</div>
-                  <div>
-                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{featured.author}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{formatDate(featured.created_at)}</div>
+              <Link
+                href={`/blog/${featured.slug}`}
+                className="group relative mb-10 block overflow-hidden rounded-[28px] p-7 text-white shadow-[var(--shadow-lg)] transition-transform duration-300 hover:-translate-y-1 sm:p-12"
+                style={{ background: `linear-gradient(135deg, ${featured.cover_color}, ${featured.cover_color}cc 60%, #00000055)` }}
+              >
+                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(120deg,transparent_30%,#000)]" />
+                <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-white/15 blur-3xl transition-transform duration-700 group-hover:scale-125" />
+                <div className="relative max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">Featured</span>
+                    <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ background: `${catColor(featured.category)}55` }}>{featured.category}</span>
                   </div>
-                  <Link href={`/blog/${featured.slug}`} style={{ marginLeft: 'auto', padding: '10px 22px', borderRadius: 10, background: '#e63946', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>Read More →</Link>
+                  <h2 className="mt-5 font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl text-balance">{featured.title}</h2>
+                  <p className="mt-4 text-[15px] leading-relaxed text-white/80">{featured.excerpt}</p>
+                  <div className="mt-8 flex flex-wrap items-center gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-full text-sm font-bold ring-2 ring-white/40" style={{ background: featured.author_color }}>{initials(featured.author)}</div>
+                    <div>
+                      <div className="text-sm font-semibold">{featured.author}</div>
+                      <div className="text-xs text-white/70">{formatDate(featured.created_at)}</div>
+                    </div>
+                    <span className="btn ml-auto bg-white text-[#2a1f7a] shadow-[var(--shadow-md)] group-hover:bg-white/90">
+                      Read more
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* Grid */}
             {rest.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
+              <div className="stagger grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {rest.map(post => (
-                  <div key={post.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    {/* Color bar */}
-                    <div style={{ height: 6, background: catColor(post.category) }} />
-                    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                      <div style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, background: `${catColor(post.category)}15`, color: catColor(post.category), fontSize: 11, fontWeight: 700, marginBottom: 14, alignSelf: 'flex-start' }}>{post.category}</div>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1d3557', margin: '0 0 10px', lineHeight: 1.4, flex: 1 }}>{post.title}</h3>
-                      <p style={{ fontSize: 13, color: '#6b7a8d', margin: '0 0 20px', lineHeight: 1.6 }}>{post.excerpt}</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 'auto' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: post.author_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>{initials(post.author)}</div>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1d3557' }}>{post.author}</div>
-                          <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(post.created_at)}</div>
+                  <Link key={post.id} href={`/blog/${post.slug}`} className="group card card-hover flex flex-col overflow-hidden">
+                    <div className="relative h-36 overflow-hidden" style={{ background: `linear-gradient(135deg, ${post.cover_color || catColor(post.category)}, ${catColor(post.category)})` }}>
+                      <div aria-hidden className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:16px_16px] transition-transform duration-700 group-hover:scale-110" />
+                      <span className="absolute left-4 top-4 rounded-full bg-black/25 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">{post.category}</span>
+                    </div>
+                    <div className="flex flex-1 flex-col p-6">
+                      <h3 className="font-display text-lg font-bold leading-snug text-fg transition-colors group-hover:text-primary-text">{post.title}</h3>
+                      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">{post.excerpt}</p>
+                      <div className="mt-auto flex items-center gap-2.5 pt-6">
+                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ background: post.author_color }}>{initials(post.author)}</div>
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-semibold text-fg">{post.author}</div>
+                          <div className="text-[11px] text-subtle">{formatDate(post.created_at)}</div>
                         </div>
-                        <Link href={`/blog/${post.slug}`} style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: '#e63946', textDecoration: 'none' }}>Read →</Link>
+                        <span className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-primary-text">
+                          Read
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -131,9 +165,11 @@ export default function BlogPage() {
         )}
       </div>
 
-      <footer style={{ background: '#0f1f35', padding: '24px', textAlign: 'center' }}>
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>© 2025 ProjectHub · <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Home</Link></span>
-      </footer>
+      <CtaBand title="Ready to ship faster?" subtitle="Join thousands of teams already using ProjectHub.">
+        <Link href="/register" className="btn btn-lg bg-white text-[#2a1f7a] shadow-[var(--shadow-lg)] hover:bg-white/90">Start for Free →</Link>
+      </CtaBand>
+
+      <PublicFooter />
     </div>
   );
 }

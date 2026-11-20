@@ -12,22 +12,22 @@ export interface HistoryEntry {
 }
 
 const actionConfig: Record<string, { icon: string; color: string; label: string }> = {
-  created:             { icon: '✦', color: '#2a9d8f', label: 'Task created' },
-  status_changed:      { icon: '⇄', color: '#457b9d', label: 'Status changed' },
+  created:             { icon: '✦', color: '#10b981', label: 'Task created' },
+  status_changed:      { icon: '⇄', color: '#6366f1', label: 'Status changed' },
   closed:              { icon: '✓', color: '#0f766e', label: 'Closed' },
   reopened:            { icon: '↺', color: '#c2410c', label: 'Reopened' },
-  assigned:            { icon: '→', color: '#6d6875', label: 'Assigned' },
+  assigned:            { icon: '→', color: '#8b5cf6', label: 'Assigned' },
   unassigned:          { icon: '←', color: '#94a3b8', label: 'Unassigned' },
-  priority_changed:    { icon: '!', color: '#f4a261', label: 'Priority changed' },
-  title_changed:       { icon: '✎', color: '#457b9d', label: 'Title changed' },
-  description_changed: { icon: '✎', color: '#457b9d', label: 'Description changed' },
-  due_date_changed:    { icon: '📅', color: '#6d6875', label: 'Due date changed' },
-  moved_group:         { icon: '⇢', color: '#e9c46a', label: 'Moved to group' },
-  subtask_added:       { icon: '+', color: '#2a9d8f', label: 'Subtask added' },
-  comment_added:       { icon: '💬', color: '#457b9d', label: 'Comment added' },
+  priority_changed:    { icon: '!', color: '#f59e0b', label: 'Priority changed' },
+  title_changed:       { icon: '✎', color: '#6366f1', label: 'Title changed' },
+  description_changed: { icon: '✎', color: '#6366f1', label: 'Description changed' },
+  due_date_changed:    { icon: '📅', color: '#8b5cf6', label: 'Due date changed' },
+  moved_group:         { icon: '⇢', color: '#eab308', label: 'Moved to group' },
+  subtask_added:       { icon: '+', color: '#10b981', label: 'Subtask added' },
+  comment_added:       { icon: '💬', color: '#6366f1', label: 'Comment added' },
   comment_deleted:     { icon: '🗑', color: '#dc2626', label: 'Comment deleted' },
   comment_updated:     { icon: '✎', color: '#9333ea', label: 'Comment edited' },
-  document_attached:   { icon: '📎', color: '#6d6875', label: 'Document attached' },
+  document_attached:   { icon: '📎', color: '#8b5cf6', label: 'Document attached' },
 };
 
 
@@ -56,7 +56,7 @@ export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
 
   if (!visibleEntries.length) {
     return (
-      <div className="text-center py-8 text-sm" style={{ color: '#6b7a8d' }}>
+      <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
         No history yet
       </div>
     );
@@ -80,40 +80,40 @@ export default function TaskHistory({ entries }: { entries: HistoryEntry[] }) {
               </div>
               <div className="flex-1 pb-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold" style={{ color: '#1d3557' }}>{entry.changed_by_name}</span>
-                  <span className="text-sm" style={{ color: '#6b7a8d' }}>{cfg.label}</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{entry.changed_by_name}</span>
+                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{cfg.label}</span>
                   {entry.old_value && entry.new_value && (
                     <span className="text-xs">
-                      <span className="px-1.5 py-0.5 rounded line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{entry.old_value}</span>
-                      <span className="mx-1" style={{ color: '#94a3b8' }}>→</span>
-                      <span className="px-1.5 py-0.5 rounded" style={{ background: '#f0fdf9', color: '#0f766e' }}>{entry.new_value}</span>
+                      <span className="px-1.5 py-0.5 rounded line-through" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>{entry.old_value}</span>
+                      <span className="mx-1" style={{ color: 'var(--text-subtle)' }}>→</span>
+                      <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>{entry.new_value}</span>
                     </span>
                   )}
                   {!entry.old_value && entry.new_value && entry.action !== 'created' && (
-                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#f0fdf9', color: '#0f766e' }}>{entry.new_value}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>{entry.new_value}</span>
                   )}
                   {entry.old_value && !entry.new_value && (
-                    <span className="text-xs px-1.5 py-0.5 rounded line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{entry.old_value}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded line-through" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>{entry.old_value}</span>
                   )}
                 </div>
                 {entry.note && (
-                  <p className="text-xs mt-1 italic" style={{ color: '#6b7a8d' }}>{entry.note}</p>
+                  <p className="text-xs mt-1 italic" style={{ color: 'var(--text-muted)' }}>{entry.note}</p>
                 )}
                 {(entry.action === 'comment_deleted' || entry.action === 'comment_updated') && (
                   <div className="mt-2 space-y-1">
                     {entry.old_value && (
-                      <div className="text-xs px-2 py-1.5 rounded-lg" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                      <div className="text-xs px-2 py-1.5 rounded-lg" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-soft)' }}>
                         <span className="font-bold mr-1">Before:</span>{entry.old_value}
                       </div>
                     )}
                     {entry.new_value && (
-                      <div className="text-xs px-2 py-1.5 rounded-lg" style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}>
+                      <div className="text-xs px-2 py-1.5 rounded-lg" style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-soft)' }}>
                         <span className="font-bold mr-1">After:</span>{entry.new_value}
                       </div>
                     )}
                   </div>
                 )}
-                <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-subtle)' }}>
                   {fmtDT(entry.created_at)}
                 </div>
               </div>

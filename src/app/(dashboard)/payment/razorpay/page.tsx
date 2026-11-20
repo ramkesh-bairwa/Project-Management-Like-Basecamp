@@ -107,60 +107,60 @@ function RazorpayCheckoutPageContent() {
   const amountINR = order ? (order.amount / 100).toFixed(2) : '0.00';
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-      <div style={{ width: 36, height: 36, border: '3px solid #e2e8f0', borderTopColor: '#3395ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
+      <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTopColor: '#3395ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (error) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ textAlign: 'center', padding: 32 }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', marginBottom: 8 }}>{error}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 8 }}>{error}</div>
         <button onClick={() => router.push('/plans')} style={{ padding: '10px 24px', borderRadius: 10, background: '#6366f1', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Back to Plans</button>
       </div>
     </div>
   );
 
   if (step === 'success') return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ textAlign: 'center', padding: 40, background: '#fff', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', maxWidth: 360, width: '100%' }}>
+      <div style={{ textAlign: 'center', padding: 40, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', maxWidth: 360, width: '100%' }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
-        <div style={{ fontWeight: 800, fontSize: 20, color: '#0f172a', marginBottom: 8 }}>Payment Successful!</div>
-        <div style={{ color: '#64748b', fontSize: 14, marginBottom: 4 }}>{order?.plan_name} plan activated</div>
-        <div style={{ color: '#94a3b8', fontSize: 12 }}>Redirecting to dashboard...</div>
+        <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)', marginBottom: 8 }}>Payment Successful!</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 4 }}>{order?.plan_name} plan activated</div>
+        <div style={{ color: 'var(--text-subtle)', fontSize: 12 }}>Redirecting to dashboard...</div>
       </div>
     </div>
   );
 
   if (step === 'failed') return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ textAlign: 'center', padding: 40, background: '#fff', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', maxWidth: 360, width: '100%' }}>
+      <div style={{ textAlign: 'center', padding: 40, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', maxWidth: 360, width: '100%' }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>❌</div>
-        <div style={{ fontWeight: 800, fontSize: 20, color: '#0f172a', marginBottom: 8 }}>Payment Failed</div>
-        <div style={{ color: '#64748b', fontSize: 14, marginBottom: 20 }}>The payment was declined or failed.</div>
+        <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)', marginBottom: 8 }}>Payment Failed</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>The payment was declined or failed.</div>
         <button onClick={() => setStep('details')} style={{ padding: '10px 24px', borderRadius: 10, background: '#6366f1', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Try Again</button>
       </div>
     </div>
   );
 
   if (step === 'processing') return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ textAlign: 'center', padding: 40 }}>
-        <div style={{ width: 48, height: 48, border: '4px solid #e2e8f0', borderTopColor: '#3395ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Processing Payment...</div>
-        <div style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>Please wait</div>
+        <div style={{ width: 48, height: 48, border: '4px solid var(--border)', borderTopColor: '#3395ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>Processing Payment...</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 6 }}>Please wait</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{box-sizing:border-box}`}</style>
 
       <div style={{ width: '100%', maxWidth: 480 }}>
@@ -169,14 +169,14 @@ function RazorpayCheckoutPageContent() {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: order?.test_mode ? 'rgba(245,158,11,0.1)' : 'rgba(51,149,255,0.1)', border: `1px solid ${order?.test_mode ? 'rgba(245,158,11,0.25)' : 'rgba(51,149,255,0.25)'}` }}>
             <span style={{ fontSize: 14 }}>🔷</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: order?.test_mode ? '#92400e' : '#1d6fa4' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: order?.test_mode ? 'var(--warning-text)' : '#1d6fa4' }}>
               Razorpay {order?.test_mode ? 'Test Mode' : 'Live'}
             </span>
             {order?.test_mode && <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', padding: '2px 8px', borderRadius: 10 }}>TEST</span>}
           </div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 20, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid var(--border)' }}>
 
           {/* Header */}
           <div style={{ background: 'linear-gradient(135deg,#3395ff,#6366f1)', padding: '20px 24px' }}>
@@ -191,14 +191,14 @@ function RazorpayCheckoutPageContent() {
 
           {/* Order summary */}
           {order && (
-            <div style={{ padding: '16px 24px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '16px 24px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{order.plan_name} Plan</div>
-                <div style={{ fontSize: 12, color: '#64748b', textTransform: 'capitalize', marginTop: 2 }}>{order.billing_cycle} billing</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{order.plan_name} Plan</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'capitalize', marginTop: 2 }}>{order.billing_cycle} billing</div>
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: '#0f172a' }}>₹{amountINR}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'right' }}>INR</div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)' }}>₹{amountINR}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-subtle)', textAlign: 'right' }}>INR</div>
               </div>
             </div>
           )}
@@ -210,14 +210,14 @@ function RazorpayCheckoutPageContent() {
               <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <span>🧪</span>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: '#92400e' }}>Test Mode — Use test credentials</span>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--warning-text)' }}>Test Mode — Use test credentials</span>
                 </div>
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                   {(['card', 'upi', 'netbanking'] as const).map(t => (
                     <button key={t} onClick={() => setTab(t)}
-                      style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', textTransform: 'capitalize', background: tab === t ? '#f59e0b' : 'rgba(245,158,11,0.1)', color: tab === t ? '#fff' : '#92400e' }}>
+                      style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', textTransform: 'capitalize', background: tab === t ? '#f59e0b' : 'rgba(245,158,11,0.1)', color: tab === t ? '#fff' : 'var(--warning-text)' }}>
                       {t === 'netbanking' ? 'Net Banking' : t.toUpperCase()}
                     </button>
                   ))}
@@ -230,15 +230,15 @@ function RazorpayCheckoutPageContent() {
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: selectedCard.number === c.number ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.7)', border: `1px solid ${selectedCard.number === c.number ? 'rgba(99,102,241,0.3)' : 'rgba(245,158,11,0.15)'}` }}>
                         <input type="radio" checked={selectedCard.number === c.number} onChange={() => setSelectedCard(c)} style={{ accentColor: '#6366f1' }} />
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{c.number}</div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>{c.label} · Exp: {c.expiry} · CVV: {c.cvv}</div>
+                          <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{c.number}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.label} · Exp: {c.expiry} · CVV: {c.cvv}</div>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.result === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: c.result === 'success' ? '#10b981' : '#ef4444' }}>
                           {c.result === 'success' ? '✓ Success' : '✗ Fail'}
                         </span>
                       </label>
                     ))}
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>OTP: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#475569' }}>1234</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--text-subtle)', marginTop: 4 }}>OTP: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>1234</span></div>
                   </div>
                 )}
 
@@ -249,8 +249,8 @@ function RazorpayCheckoutPageContent() {
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: selectedUpi.vpa === u.vpa ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.7)', border: `1px solid ${selectedUpi.vpa === u.vpa ? 'rgba(99,102,241,0.3)' : 'rgba(245,158,11,0.15)'}` }}>
                         <input type="radio" checked={selectedUpi.vpa === u.vpa} onChange={() => setSelectedUpi(u)} style={{ accentColor: '#6366f1' }} />
                         <div>
-                          <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{u.vpa}</div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>{u.label}</div>
+                          <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{u.vpa}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.label}</div>
                         </div>
                       </label>
                     ))}
@@ -258,7 +258,7 @@ function RazorpayCheckoutPageContent() {
                 )}
 
                 {tab === 'netbanking' && (
-                  <div style={{ fontSize: 12, color: '#64748b', padding: '8px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: 8 }}>
                     🏦 Select any bank in the Razorpay modal → use any test credentials to complete
                   </div>
                 )}
@@ -289,13 +289,13 @@ function RazorpayCheckoutPageContent() {
             )}
 
             <button onClick={() => router.push('/plans')}
-              style={{ width: '100%', padding: '10px', borderRadius: 12, background: 'transparent', color: '#94a3b8', fontWeight: 600, fontSize: 13, border: 'none', cursor: 'pointer', marginTop: 8 }}>
+              style={{ width: '100%', padding: '10px', borderRadius: 12, background: 'transparent', color: 'var(--text-subtle)', fontWeight: 600, fontSize: 13, border: 'none', cursor: 'pointer', marginTop: 8 }}>
               ← Back to Plans
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14 }}>
               <span style={{ fontSize: 12 }}>🔒</span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>256-bit SSL encrypted · Powered by Razorpay</span>
+              <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>256-bit SSL encrypted · Powered by Razorpay</span>
             </div>
           </div>
         </div>

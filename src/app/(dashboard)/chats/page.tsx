@@ -29,7 +29,7 @@ interface Connection {
   status: string;
 }
 
-const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
+const avatarBgs = ['#f43f5e', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#eab308'];
 function avatarBg(name: string) {
   return avatarBgs[(name?.charCodeAt(0) || 0) % avatarBgs.length];
 }
@@ -314,15 +314,15 @@ export default function ChatsPage() {
   );
 
   return (
-    <div className="flex rounded-2xl overflow-hidden shadow-lg" style={{ height: 'calc(100vh - 10rem)', border: '1px solid #d0dce8', background: '#f8fafc' }}>
+    <div className="flex rounded-2xl overflow-hidden shadow-lg" style={{ height: 'calc(100vh - 10rem)', border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
 
       {/* Sidebar */}
-      <div className="w-80 flex flex-col border-r" style={{ borderColor: '#d0dce8', background: '#fff' }}>
-        <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f1f5f9' }}>
-          <div className="font-black text-lg" style={{ color: '#1d3557' }}>Messages</div>
+      <div className="w-80 flex flex-col border-r" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+        <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-soft)' }}>
+          <div className="font-black text-lg" style={{ color: 'var(--text)' }}>Messages</div>
           <button onClick={openNewChatModal}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-white hover:opacity-90 transition"
-            style={{ background: '#e63946' }}>
+            style={{ background: 'var(--accent)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
@@ -330,13 +330,13 @@ export default function ChatsPage() {
         <div className="flex-1 overflow-y-auto">
           {loadingChats ? (
             <div className="flex items-center justify-center py-12">
-              <div className="w-6 h-6 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
+              <div className="w-6 h-6 rounded-full border-2 border-[var(--link)] border-t-transparent animate-spin" />
             </div>
           ) : chats.length === 0 ? (
             <div className="py-12 text-center px-4">
               <div className="text-4xl mb-3">💬</div>
-              <div className="font-bold text-sm text-[#1d3557] mb-1">No conversations yet</div>
-              <div className="text-xs" style={{ color: '#6b7a8d' }}>Start a new chat to get going</div>
+              <div className="font-bold text-sm text-[var(--text)] mb-1">No conversations yet</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Start a new chat to get going</div>
             </div>
           ) : (
             chats.map(chat => {
@@ -344,11 +344,11 @@ export default function ChatsPage() {
               const isActive = chat.id === activeChat;
               return (
                 <button key={chat.id} onClick={() => selectChat(chat)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f8fafc] transition text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-2)] transition text-left"
                   style={{
                     background: isActive ? '#f0f4f8' : 'transparent',
-                    borderLeft: isActive ? '3px solid #1d3557' : '3px solid transparent',
-                    borderBottom: '1px solid #f1f5f9',
+                    borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                    borderBottom: '1px solid var(--border-soft)',
                   }}>
                   <div className="relative flex-shrink-0">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-black"
@@ -357,19 +357,19 @@ export default function ChatsPage() {
                     </div>
                     {chat.unread_count > 0 && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-black"
-                        style={{ background: '#e63946' }}>
+                        style={{ background: 'var(--accent)' }}>
                         {chat.unread_count > 9 ? '9+' : chat.unread_count}
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <span className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{displayName}</span>
+                      <span className="font-bold text-sm truncate" style={{ color: 'var(--text)' }}>{displayName}</span>
                       {chat.last_message_at && (
-                        <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>{timeAgo(chat.last_message_at)}</span>
+                        <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>{timeAgo(chat.last_message_at)}</span>
                       )}
                     </div>
-                    <div className="text-xs truncate" style={{ color: chat.unread_count > 0 ? '#1d3557' : '#94a3b8', fontWeight: chat.unread_count > 0 ? 600 : 400 }}>
+                    <div className="text-xs truncate" style={{ color: chat.unread_count > 0 ? 'var(--text)' : 'var(--text-subtle)', fontWeight: chat.unread_count > 0 ? 600 : 400 }}>
                       {chat.last_message || 'No messages yet'}
                     </div>
                   </div>
@@ -381,34 +381,34 @@ export default function ChatsPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col" style={{ background: '#f8fafc' }}>
+      <div className="flex-1 flex flex-col" style={{ background: 'var(--surface-2)' }}>
         {activeChat ? (
           <>
             {/* Header */}
-            <div className="px-6 py-4 flex items-center gap-4" style={{ background: '#1d3557', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="px-6 py-4 flex items-center gap-4" style={{ background: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="relative">
                 <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-black shadow-lg"
                   style={{ background: avatarBg(activeName) }}>
                   {activeName[0]?.toUpperCase()}
                 </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1d3557]" style={{ background: '#2a9d8f' }} />
+                <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[var(--primary)]" style={{ background: 'var(--success)' }} />
               </div>
               <div className="flex-1">
                 <div className="font-black text-white text-base">{activeName}</div>
                 <div className="text-xs text-white/50">
                   {typingUsers.length > 0
-                    ? <span className="font-semibold text-[#a8dadc] animate-pulse">{typingUsers.join(', ')} is typing…</span>
-                    : <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2a9d8f] animate-pulse inline-block" />Online</span>}
+                    ? <span className="font-semibold text-[#a5b4fc] animate-pulse">{typingUsers.join(', ')} is typing…</span>
+                    : <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse inline-block" />Online</span>}
                 </div>
               </div>
 
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4" style={{ background: 'linear-gradient(180deg, #f0f4f8 0%, #f8fafc 100%)' }}>
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4" style={{ background: 'linear-gradient(180deg, #f0f4f8 0%, var(--surface-2) 100%)' }}>
               {loadingMessages ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-6 h-6 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin" />
+                  <div className="w-6 h-6 rounded-full border-2 border-[var(--link)] border-t-transparent animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-20 text-center">
@@ -416,8 +416,8 @@ export default function ChatsPage() {
                     style={{ background: avatarBg(activeName) }}>
                     {activeName[0]?.toUpperCase()}
                   </div>
-                  <div className="font-black text-lg mb-1" style={{ color: '#1d3557' }}>{activeName}</div>
-                  <div className="text-sm mb-1" style={{ color: '#6b7a8d' }}>This is the beginning of your conversation</div>
+                  <div className="font-black text-lg mb-1" style={{ color: 'var(--text)' }}>{activeName}</div>
+                  <div className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>This is the beginning of your conversation</div>
                   <div className="text-2xl mt-2">👋</div>
                 </div>
               ) : (
@@ -430,9 +430,9 @@ export default function ChatsPage() {
                     <div key={m.id}>
                       {showTime && (
                         <div className="flex items-center gap-3 my-3">
-                          <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#e2e8f0', color: '#94a3b8' }}>{fmtDT(m.created_at)}</span>
-                          <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                          <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface-3)', color: 'var(--text-subtle)' }}>{fmtDT(m.created_at)}</span>
+                          <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                         </div>
                       )}
                       <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-1'}`}>
@@ -444,7 +444,7 @@ export default function ChatsPage() {
                         ) : <div className="w-9 flex-shrink-0" />}
                         <div className={`flex flex-col max-w-lg ${isMe ? 'items-end' : 'items-start'}`}>
                           {showAvatar && (
-                            <span className="text-xs font-bold mb-1 px-1" style={{ color: '#6b7a8d' }}>
+                            <span className="text-xs font-bold mb-1 px-1" style={{ color: 'var(--text-muted)' }}>
                               {isMe ? 'You' : m.sender_name}
                             </span>
                           )}
@@ -452,17 +452,17 @@ export default function ChatsPage() {
                             {isMe && (
                               <button onClick={() => deleteMessage(m.id)}
                                 className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity mb-0.5"
-                                style={{ background: '#fef2f2', color: '#e63946', border: '1px solid #fecaca' }} title="Delete">
+                                style={{ background: 'var(--danger-soft)', color: 'var(--accent)', border: '1px solid var(--danger-soft)' }} title="Delete">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
                               </button>
                             )}
                             <div className="px-4 py-2.5 text-sm leading-relaxed shadow-sm"
                               style={isMe ? {
-                                background: '#1d3557', color: '#fff',
+                                background: 'var(--primary)', color: '#fff',
                                 borderRadius: '18px 18px 4px 18px',
                               } : {
-                                background: '#fff', color: '#1d3557',
-                                border: '1px solid #e2e8f0',
+                                background: 'var(--surface)', color: 'var(--text)',
+                                border: '1px solid var(--border)',
                                 borderRadius: '18px 18px 18px 4px',
                               }}>
                               {m.content}
@@ -478,18 +478,18 @@ export default function ChatsPage() {
             </div>
 
             {/* Input */}
-            <form onSubmit={sendMessage} className="p-4 flex gap-3 bg-white" style={{ borderTop: '1px solid #d0dce8' }}>
+            <form onSubmit={sendMessage} className="p-4 flex gap-3 bg-surface" style={{ borderTop: '1px solid var(--border)' }}>
               <input
                 value={newMsg}
                 onChange={e => { setNewMsg(e.target.value); handleTyping(); }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }}
                 placeholder={`Message ${activeName}…`}
                 className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none"
-                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}
+                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
               />
               <button type="submit" disabled={sending || !newMsg.trim()}
                 className="px-5 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 disabled:opacity-40 transition"
-                style={{ background: '#1d3557' }}>
+                style={{ background: 'var(--primary)' }}>
                 {sending ? '…' : 'Send'}
               </button>
             </form>
@@ -498,11 +498,11 @@ export default function ChatsPage() {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="text-6xl mb-4">💬</div>
-              <div className="font-black text-[#1d3557] mb-2">Your Messages</div>
-              <div className="text-sm mb-4" style={{ color: '#6b7a8d' }}>Select a conversation or start a new one</div>
+              <div className="font-black text-[var(--text)] mb-2">Your Messages</div>
+              <div className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Select a conversation or start a new one</div>
               <button onClick={openNewChatModal}
                 className="px-5 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
-                style={{ background: '#e63946' }}>
+                style={{ background: 'var(--accent)' }}>
                 + New Chat
               </button>
             </div>
@@ -514,10 +514,10 @@ export default function ChatsPage() {
       {showNewModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(15,23,42,0.6)' }}
           onClick={() => setShowNewModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}
+          <div className="bg-surface rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}>
 
-            <div className="px-5 py-4 flex items-center justify-between" style={{ background: '#1d3557' }}>
+            <div className="px-5 py-4 flex items-center justify-between" style={{ background: 'var(--primary)' }}>
               <div>
                 <div className="font-black text-white">New Conversation</div>
                 <div className="text-xs text-white/50">Select a connection to chat with</div>
@@ -526,7 +526,7 @@ export default function ChatsPage() {
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition">✕</button>
             </div>
 
-            <div className="px-4 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border-soft)' }}>
               <div className="relative">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5">
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -534,7 +534,7 @@ export default function ChatsPage() {
                 <input autoFocus value={connSearch} onChange={e => setConnSearch(e.target.value)}
                   placeholder="Search by name or email…"
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm focus:outline-none"
-                  style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#1d3557' }} />
+                  style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               </div>
             </div>
 
@@ -542,34 +542,34 @@ export default function ChatsPage() {
               {connections.length === 0 ? (
                 <div className="py-12 text-center">
                   <div className="text-4xl mb-3">🔗</div>
-                  <div className="font-bold text-sm text-[#1d3557] mb-1">No connections yet</div>
-                  <div className="text-xs mb-3" style={{ color: '#6b7a8d' }}>Connect with people first</div>
+                  <div className="font-bold text-sm text-[var(--text)] mb-1">No connections yet</div>
+                  <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Connect with people first</div>
                   <button onClick={() => { setShowNewModal(false); router.push('/connections'); }}
-                    className="text-xs font-bold hover:underline" style={{ color: '#457b9d' }}>
+                    className="text-xs font-bold hover:underline" style={{ color: 'var(--link)' }}>
                     Go to Connections →
                   </button>
                 </div>
               ) : filteredConns.length === 0 ? (
-                <div className="py-10 text-center text-sm" style={{ color: '#94a3b8' }}>No results for &ldquo;{connSearch}&rdquo;</div>
+                <div className="py-10 text-center text-sm" style={{ color: 'var(--text-subtle)' }}>No results for &ldquo;{connSearch}&rdquo;</div>
               ) : (
                 filteredConns.map(conn => (
                   <button key={conn.user_id} onClick={() => startNewChat(conn.user_id)}
                     disabled={startingChat === conn.user_id}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[#f8fafc] transition disabled:opacity-50 text-left"
-                    style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[var(--surface-2)] transition disabled:opacity-50 text-left"
+                    style={{ borderBottom: '1px solid var(--border-soft)' }}>
                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black flex-shrink-0"
                       style={{ background: avatarBg(conn.name) }}>
                       {conn.name[0]?.toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm text-[#1d3557] truncate">{conn.name}</div>
-                      <div className="text-xs truncate" style={{ color: '#94a3b8' }}>{conn.email}</div>
+                      <div className="font-bold text-sm text-[var(--text)] truncate">{conn.name}</div>
+                      <div className="text-xs truncate" style={{ color: 'var(--text-subtle)' }}>{conn.email}</div>
                     </div>
                     {startingChat === conn.user_id ? (
-                      <div className="w-5 h-5 rounded-full border-2 border-[#457b9d] border-t-transparent animate-spin flex-shrink-0" />
+                      <div className="w-5 h-5 rounded-full border-2 border-[var(--link)] border-t-transparent animate-spin flex-shrink-0" />
                     ) : (
                       <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white flex-shrink-0"
-                        style={{ background: '#1d3557' }}>
+                        style={{ background: 'var(--primary)' }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>

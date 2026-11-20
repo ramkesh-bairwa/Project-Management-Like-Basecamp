@@ -10,17 +10,17 @@ interface Group { id: number; uuid: string; slug: string; name: string; descript
 interface Member { id: number; name: string; role: string; email: string }
 interface PlanInfo { plan: string; limits: { max_projects: number; max_members: number; max_tasks: number; max_groups: number; max_storage_gb: number }; usage: { projects: number; tasks: number; groups: number; members: number } }
 
-const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
+const avatarBgs = ['#f43f5e', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#eab308'];
 
 type ViewMode = 'grid' | 'list' | 'box';
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
       {(['grid','list','box'] as ViewMode[]).map(v => (
         <button key={v} onClick={() => onChange(v)}
           className="px-3 py-1.5 text-xs font-bold transition"
-          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          style={{ background: view === v ? 'var(--primary)' : 'var(--surface)', color: view === v ? '#fff' : 'var(--text-muted)' }}
           title={v.charAt(0).toUpperCase() + v.slice(1)}>
           {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
         </button>
@@ -38,7 +38,7 @@ export default function ProjectGroupsPage() {
   const [loaded, setLoaded] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', color: '#457b9d' });
+  const [form, setForm] = useState({ name: '', description: '', color: '#6366f1' });
   const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState<number | null>(null);
   const [projectMembers, setProjectMembers] = useState<Member[]>([]);
@@ -160,7 +160,7 @@ export default function ProjectGroupsPage() {
       }
       loadGroups();
       setShowForm(false);
-      setForm({ name: '', description: '', color: '#457b9d' });
+      setForm({ name: '', description: '', color: '#6366f1' });
       setSelectedMembers([]);
       setInviteEmails([]);
       setInviteInput('');
@@ -207,12 +207,12 @@ export default function ProjectGroupsPage() {
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-5" style={{ color: '#6b7a8d' }}>
-        <Link href="/projects" className="hover:text-[#1d3557]">Projects</Link>
+      <div className="flex items-center gap-2 text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/projects" className="hover:text-[var(--text)]">Projects</Link>
         <span>/</span>
-        <Link href={`/projects/${id}`} className="hover:text-[#1d3557]">Overview</Link>
+        <Link href={`/projects/${id}`} className="hover:text-[var(--text)]">Overview</Link>
         <span>/</span>
-        <span className="font-bold" style={{ color: '#1d3557' }}>Groups</span>
+        <span className="font-bold" style={{ color: 'var(--text)' }}>Groups</span>
       </div>
 
       {planInfo && <PlanLimitBanner plan={planInfo.plan} limits={planInfo.limits} usage={planInfo.usage} show={['groups']} />}
@@ -220,15 +220,15 @@ export default function ProjectGroupsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          {projectName && <div className="text-xs font-bold mb-0.5" style={{ color: '#457b9d' }}>📁 {projectName}</div>}
-          <h2 className="text-xl font-black" style={{ color: '#1d3557' }}>Groups ({groups.length})</h2>
+          {projectName && <div className="text-xs font-bold mb-0.5" style={{ color: 'var(--link)' }}>📁 {projectName}</div>}
+          <h2 className="text-xl font-black" style={{ color: 'var(--text)' }}>Groups ({groups.length})</h2>
         </div>
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
           {canManage && (
             <button onClick={() => !atGroupLimit && (setShowForm(v => !v), setSelectedMembers([]), setInviteEmails([]), setInviteInput(''))}
               className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-              style={{ background: showForm ? '#6b7a8d' : atGroupLimit ? '#94a3b8' : '#e63946', cursor: atGroupLimit ? 'not-allowed' : 'pointer' }}
+              style={{ background: showForm ? '#6b7a8d' : atGroupLimit ? '#94a3b8' : 'var(--accent)', cursor: atGroupLimit ? 'not-allowed' : 'pointer' }}
               title={atGroupLimit ? `Limit reached: ${planInfo?.usage.groups}/${planInfo?.limits.max_groups} groups` : ''}>
               {showForm ? '✕ Cancel' : '+ New Group'}
             </button>
@@ -238,8 +238,8 @@ export default function ProjectGroupsPage() {
 
       {/* Create group form */}
       {showForm && (
-        <div className="rounded-2xl p-5 mb-5" style={{ background: '#f8fafc', border: '1.5px solid #d0dce8' }}>
-          <h3 className="font-black text-base mb-4" style={{ color: '#1d3557' }}>Create New Group</h3>
+        <div className="rounded-2xl p-5 mb-5" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}>
+          <h3 className="font-black text-base mb-4" style={{ color: 'var(--text)' }}>Create New Group</h3>
           <form onSubmit={createGroup} className="space-y-4">
 
             {/* Basic fields */}
@@ -247,26 +247,26 @@ export default function ProjectGroupsPage() {
               <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
                 placeholder="Group name *" autoFocus
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 placeholder="Description (optional)"
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
-              <div className="flex items-center gap-3 rounded-xl px-4 py-2" style={{ background: '#fff', border: '1.5px solid #d0dce8' }}>
-                <label className="text-sm font-bold flex-shrink-0" style={{ color: '#6b7a8d' }}>Color</label>
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+              <div className="flex items-center gap-3 rounded-xl px-4 py-2" style={{ background: 'var(--surface)', border: '1.5px solid var(--border)' }}>
+                <label className="text-sm font-bold flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Color</label>
                 <input type="color" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))}
                   className="w-8 h-8 rounded cursor-pointer border-0 flex-shrink-0" />
-                <span className="text-xs font-mono" style={{ color: '#6b7a8d' }}>{form.color}</span>
+                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{form.color}</span>
               </div>
             </div>
 
             {/* Add members from project — custom searchable dropdown */}
             {projectMembers.filter(m => m.id !== myId).length > 0 && (
               <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>
+                <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
                   Add Members
                   {selectedMembers.length > 0 && (
-                    <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#457b9d' }}>
+                    <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--link)' }}>
                       {selectedMembers.length} selected
                     </span>
                   )}
@@ -293,7 +293,7 @@ export default function ProjectGroupsPage() {
                 <div className="relative" ref={dropRef}>
                   <div
                     className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-text"
-                    style={{ background: '#fff', border: `1.5px solid ${dropdownOpen ? '#457b9d' : '#d0dce8'}` }}
+                    style={{ background: 'var(--surface)', border: `1.5px solid ${dropdownOpen ? 'var(--link)' : 'var(--border)'}` }}
                     onClick={() => { setDropdownOpen(true); }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5">
                       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -304,20 +304,20 @@ export default function ProjectGroupsPage() {
                       onFocus={() => setDropdownOpen(true)}
                       placeholder="Search project members…"
                       className="flex-1 text-sm bg-transparent focus:outline-none"
-                      style={{ color: '#1d3557' }}
+                      style={{ color: 'var(--text)' }}
                     />
                     {memberSearch && (
                       <button type="button" onClick={() => { setMemberSearch(''); setDropdownOpen(false); }}
-                        className="text-[#94a3b8] hover:text-[#1d3557] text-base leading-none">×</button>
+                        className="text-[var(--text-subtle)] hover:text-[var(--text)] text-base leading-none">×</button>
                     )}
                   </div>
 
                   {/* Dropdown list */}
                   {dropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl z-30 overflow-hidden"
-                      style={{ border: '1.5px solid #d0dce8', maxHeight: 220, overflowY: 'auto' }}>
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-surface rounded-xl shadow-xl z-30 overflow-hidden"
+                      style={{ border: '1.5px solid var(--border)', maxHeight: 220, overflowY: 'auto' }}>
                       {filteredMembers.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-sm text-[#94a3b8]">
+                        <div className="px-4 py-6 text-center text-sm text-[var(--text-subtle)]">
                           {memberSearch ? `No members matching "${memberSearch}"` : 'All members already added'}
                         </div>
                       ) : (
@@ -325,25 +325,25 @@ export default function ProjectGroupsPage() {
                           {filteredMembers.map((m, i) => (
                             <button type="button" key={m.id}
                               onClick={() => { toggleMember(m); }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] transition text-left"
-                              style={{ borderBottom: i < filteredMembers.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--surface-2)] transition text-left"
+                              style={{ borderBottom: i < filteredMembers.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
                               <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                                 style={{ background: avatarBgs[i % avatarBgs.length] }}>
                                 {m.name[0].toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-[#1d3557] truncate">{m.name}</div>
-                                <div className="text-xs text-[#6b7a8d] truncate">{m.email}</div>
+                                <div className="text-sm font-bold text-[var(--text)] truncate">{m.name}</div>
+                                <div className="text-xs text-[var(--text-muted)] truncate">{m.email}</div>
                               </div>
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0"
-                                style={{ background: '#eff6ff', color: '#457b9d' }}>{m.role}</span>
+                                style={{ background: 'var(--info-soft)', color: 'var(--link)' }}>{m.role}</span>
                             </button>
                           ))}
-                          <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                          <div className="p-2 border-t" style={{ borderColor: 'var(--border)' }}>
                             <button type="button"
                               onClick={() => setDropdownOpen(false)}
                               className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
-                              style={{ background: '#2a9d8f', color: '#fff' }}>
+                              style={{ background: 'var(--success)', color: '#fff' }}>
                               Done
                             </button>
                           </div>
@@ -357,10 +357,10 @@ export default function ProjectGroupsPage() {
 
             {/* Invite by email */}
             <div>
-              <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>
+              <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
                 Invite by Email
                 {inviteEmails.length > 0 && (
-                  <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#2a9d8f' }}>
+                  <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--success)' }}>
                     {inviteEmails.length} invite{inviteEmails.length > 1 ? 's' : ''}
                   </span>
                 )}
@@ -371,7 +371,7 @@ export default function ProjectGroupsPage() {
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {inviteEmails.map(email => (
                     <span key={email} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                      style={{ background: '#f0fdf9', color: '#0f766e', border: '1px solid #99f6e4' }}>
+                      style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-soft)' }}>
                       ✉️ {email}
                       <button type="button" onClick={() => removeInviteEmail(email)}
                         className="opacity-60 hover:opacity-100 leading-none">×</button>
@@ -388,27 +388,27 @@ export default function ProjectGroupsPage() {
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addInviteEmail(); } }}
                   placeholder="Enter email and press Enter or Add"
                   className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                  style={{ background: '#fff', border: `1.5px solid ${inviteError ? '#e63946' : '#d0dce8'}`, color: '#1d3557' }}
+                  style={{ background: 'var(--surface)', border: `1.5px solid ${inviteError ? 'var(--accent)' : 'var(--border)'}`, color: 'var(--text)' }}
                 />
                 <button type="button" onClick={addInviteEmail}
                   className="px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition flex-shrink-0"
-                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                  style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1.5px solid var(--success-soft)' }}>
                   + Add
                 </button>
               </div>
-              {inviteError && <p className="text-xs mt-1 font-bold" style={{ color: '#e63946' }}>{inviteError}</p>}
-              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Invitations will be sent after the group is created.</p>
+              {inviteError && <p className="text-xs mt-1 font-bold" style={{ color: 'var(--accent)' }}>{inviteError}</p>}
+              <p className="text-xs mt-1" style={{ color: 'var(--text-subtle)' }}>Invitations will be sent after the group is created.</p>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
               <button type="submit" disabled={saving}
                 className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-50"
-                style={{ background: '#e63946' }}>
+                style={{ background: 'var(--accent)' }}>
                 {saving ? 'Creating…' : `Create Group${selectedMembers.length + inviteEmails.length > 0 ? ` (${selectedMembers.length + inviteEmails.length} member${selectedMembers.length + inviteEmails.length > 1 ? 's' : ''})` : ''}`}
               </button>
               <button type="button" onClick={() => { setShowForm(false); setSelectedMembers([]); setInviteEmails([]); setInviteInput(''); }}
-                className="px-4 py-2.5 rounded-xl text-sm font-bold transition hover:bg-[#e2e8f0]"
-                style={{ color: '#6b7a8d' }}>
+                className="px-4 py-2.5 rounded-xl text-sm font-bold transition hover:bg-[var(--surface-3)]"
+                style={{ color: 'var(--text-muted)' }}>
                 Cancel
               </button>
             </div>
@@ -418,36 +418,36 @@ export default function ProjectGroupsPage() {
 
       {/* Groups grid */}
       {groups.length === 0 ? (
-        <div className="rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8', background: '#fff' }}>
+        <div className="rounded-2xl p-16 text-center" style={{ border: '2px dashed var(--border)', background: 'var(--surface)' }}>
           <div className="text-5xl mb-3">🗂</div>
-          <div className="font-black text-lg mb-1" style={{ color: '#1d3557' }}>No groups yet</div>
-          <div className="text-sm mb-4" style={{ color: '#6b7a8d' }}>Groups help organize tasks by team or feature</div>
+          <div className="font-black text-lg mb-1" style={{ color: 'var(--text)' }}>No groups yet</div>
+          <div className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Groups help organize tasks by team or feature</div>
           {canManage && (
             <button onClick={() => setShowForm(true)}
               className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90"
-              style={{ background: '#e63946' }}>
+              style={{ background: 'var(--accent)' }}>
               + Create First Group
             </button>
           )}
         </div>
       ) : view === 'list' ? (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {groups.map((group, i) => (
             <div key={group.id}
               onClick={() => router.push(`/projects/${id}/groups/${group.slug || group.id}`)}
-              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
-              style={{ borderBottom: i < groups.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-2)] transition cursor-pointer"
+              style={{ borderBottom: i < groups.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
               <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: group.color }} />
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm truncate" style={{ color: '#1d3557' }}>{group.name}</div>
-                {group.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{group.description}</div>}
+                <div className="font-bold text-sm truncate" style={{ color: 'var(--text)' }}>{group.name}</div>
+                {group.description && <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{group.description}</div>}
               </div>
-              <span className="text-xs" style={{ color: '#6b7a8d' }}>{group.task_count} tasks</span>
-              <span className="text-xs" style={{ color: '#6b7a8d' }}>👥 {group.member_count}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{group.task_count} tasks</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>👥 {group.member_count}</span>
               {canManage && (
                 <button onClick={e => deleteGroup(e, group)}
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50 flex-shrink-0"
-                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                  style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
               )}
             </div>
           ))}
@@ -457,13 +457,13 @@ export default function ProjectGroupsPage() {
           {groups.map(group => (
             <div key={group.id}
               onClick={() => router.push(`/projects/${id}/groups/${group.slug || group.id}`)}
-              className="bg-white rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
-              style={{ border: '1px solid #d0dce8', borderTop: `4px solid ${group.color}` }}>
+              className="bg-surface rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all group relative"
+              style={{ border: '1px solid var(--border)', borderTop: `4px solid ${group.color}` }}>
 
               {canManage && (
                 <button onClick={e => deleteGroup(e, group)}
                   className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-xs transition hover:bg-red-50"
-                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                  style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
               )}
 
               <div className="flex items-center gap-3 mb-3">
@@ -472,21 +472,21 @@ export default function ProjectGroupsPage() {
                   {group.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-black text-base truncate" style={{ color: '#1d3557' }}>{group.name}</div>
-                  {group.description && <div className="text-xs truncate mt-0.5" style={{ color: '#6b7a8d' }}>{group.description}</div>}
+                  <div className="font-black text-base truncate" style={{ color: 'var(--text)' }}>{group.name}</div>
+                  {group.description && <div className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{group.description}</div>}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+              <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ background: group.color }} />
-                  <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{group.task_count}</span>
-                  <span className="text-xs" style={{ color: '#6b7a8d' }}>tasks</span>
+                  <span className="text-xs font-bold" style={{ color: 'var(--text)' }}>{group.task_count}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>tasks</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs" style={{ color: '#94a3b8' }}>👥</span>
-                  <span className="text-xs font-bold" style={{ color: '#1d3557' }}>{group.member_count}</span>
-                  <span className="text-xs" style={{ color: '#6b7a8d' }}>members</span>
+                  <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>👥</span>
+                  <span className="text-xs font-bold" style={{ color: 'var(--text)' }}>{group.member_count}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>members</span>
                 </div>
                 <div className="ml-auto text-xs font-bold" style={{ color: group.color }}>Open →</div>
               </div>

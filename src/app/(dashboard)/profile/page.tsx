@@ -8,11 +8,11 @@ interface User {
   plan_name: string; max_projects: number; max_members: number;
 }
 
-const avatarBgs = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#6d6875', '#e9c46a'];
+const avatarBgs = ['#f43f5e', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#eab308'];
 function avatarBg(name: string) { return avatarBgs[name.charCodeAt(0) % avatarBgs.length]; }
 
 const inputCls = 'w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none';
-const inputStyle = { border: '1.5px solid #d0dce8', color: '#1d3557' };
+const inputStyle = { border: '1.5px solid var(--border)', color: 'var(--text)' };
 const labelCls = 'block text-xs font-bold mb-1.5 uppercase tracking-wide';
 
 export default function ProfilePage() {
@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
   if (!user) return (
     <div className="flex items-center justify-center py-32">
-      <div className="w-8 h-8 rounded-full border-2 border-[#1d3557] border-t-transparent animate-spin" />
+      <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
     </div>
   );
 
@@ -105,14 +105,14 @@ export default function ProfilePage() {
 
       {msg && (
         <div className="mb-6 px-4 py-3 rounded-xl text-sm font-semibold"
-          style={{ background: msg.includes('success') ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)', color: msg.includes('success') ? '#0f766e' : '#b91c1c', border: `1px solid ${msg.includes('success') ? 'rgba(42,157,143,0.3)' : 'rgba(230,57,70,0.3)'}` }}>
+          style={{ background: msg.includes('success') ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.1)', color: msg.includes('success') ? 'var(--success-text)' : 'var(--danger-text)', border: `1px solid ${msg.includes('success') ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)'}` }}>
           {msg}
         </div>
       )}
 
       {/* Profile card */}
-      <div className="rounded-2xl overflow-hidden mb-6" style={{ border: '1.5px solid #d0dce8', boxShadow: '0 4px 20px rgba(29,53,87,0.08)' }}>
-        <div className="h-32 relative" style={{ background: 'linear-gradient(135deg, #1d3557, #457b9d)' }}>
+      <div className="rounded-2xl overflow-hidden mb-6" style={{ border: '1.5px solid var(--border)', boxShadow: '0 4px 20px rgba(15,18,34,0.08)' }}>
+        <div className="h-32 relative" style={{ background: 'linear-gradient(135deg, var(--primary), var(--link))' }}>
           <div className="absolute -bottom-12 left-8">
             {user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -126,36 +126,36 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-        <div className="bg-white pt-16 pb-6 px-8">
+        <div className="bg-surface pt-16 pb-6 px-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-black" style={{ color: '#1d3557' }}>{user.name}</h1>
-                {user.role === 'admin' && <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946' }}>Admin</span>}
-                {user.is_org && <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(42,157,143,0.1)', color: '#2a9d8f' }}>Organization</span>}
+                <h1 className="text-2xl font-black" style={{ color: 'var(--text)' }}>{user.name}</h1>
+                {user.role === 'admin' && <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(244,63,94,0.1)', color: 'var(--accent)' }}>Admin</span>}
+                {user.is_org && <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }}>Organization</span>}
               </div>
-              <div className="text-sm mt-1" style={{ color: '#6b7a8d' }}>{user.email}</div>
-              {user.mobile && <div className="text-sm mt-0.5" style={{ color: '#6b7a8d' }}>📱 {user.mobile}</div>}
-              {user.gender && <div className="text-sm mt-0.5 capitalize" style={{ color: '#6b7a8d' }}>⚧ {user.gender.replace('_', ' ')}</div>}
-              {user.bio && <p className="text-sm mt-3 max-w-lg leading-relaxed" style={{ color: '#457b9d' }}>{user.bio}</p>}
-              <div className="text-xs mt-3 font-medium" style={{ color: '#94a3b8' }}>Member since {joined}</div>
+              <div className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{user.email}</div>
+              {user.mobile && <div className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>📱 {user.mobile}</div>}
+              {user.gender && <div className="text-sm mt-0.5 capitalize" style={{ color: 'var(--text-muted)' }}>⚧ {user.gender.replace('_', ' ')}</div>}
+              {user.bio && <p className="text-sm mt-3 max-w-lg leading-relaxed" style={{ color: 'var(--link)' }}>{user.bio}</p>}
+              <div className="text-xs mt-3 font-medium" style={{ color: 'var(--text-subtle)' }}>Member since {joined}</div>
             </div>
             <button onClick={openEdit}
               className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition hover:opacity-90"
-              style={{ background: '#1d3557', color: '#fff' }}>
+              style={{ background: 'var(--primary)', color: '#fff' }}>
               ✏️ Edit Profile
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6" style={{ borderTop: '1.5px solid #f1f5f9' }}>
+          <div className="grid grid-cols-3 gap-4 mt-6 pt-6" style={{ borderTop: '1.5px solid var(--border-soft)' }}>
             {[
-              { label: 'Projects', value: stats.projects, icon: '📁', color: '#e63946' },
-              { label: 'Connections', value: stats.connections, icon: '🔗', color: '#457b9d' },
-              { label: 'Plan', value: user.plan_name || 'Free', icon: '💎', color: '#2a9d8f' },
+              { label: 'Projects', value: stats.projects, icon: '📁', color: '#f43f5e' },
+              { label: 'Connections', value: stats.connections, icon: '🔗', color: '#6366f1' },
+              { label: 'Plan', value: user.plan_name || 'Free', icon: '💎', color: '#10b981' },
             ].map(s => (
-              <div key={s.label} className="text-center py-3 rounded-xl" style={{ background: '#f8fafc' }}>
+              <div key={s.label} className="text-center py-3 rounded-xl" style={{ background: 'var(--surface-2)' }}>
                 <div className="text-xl mb-1">{s.icon}</div>
                 <div className="text-xl font-black" style={{ color: s.color }}>{s.value}</div>
-                <div className="text-xs font-semibold mt-0.5" style={{ color: '#94a3b8' }}>{s.label}</div>
+                <div className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text-subtle)' }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -164,7 +164,7 @@ export default function ProfilePage() {
 
       {/* Plan info */}
       <div className="rounded-2xl p-6 mb-6 flex items-center justify-between gap-4"
-        style={{ background: '#1d3557', border: '1.5px solid #2a4a6b' }}>
+        style={{ background: 'var(--primary)', border: '1.5px solid #2a4a6b' }}>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }}>💎</div>
           <div>
@@ -175,7 +175,7 @@ export default function ProfilePage() {
           </div>
         </div>
         <Link href="/plans" className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition hover:opacity-90"
-          style={{ background: '#e63946', color: '#fff' }}>Upgrade</Link>
+          style={{ background: 'var(--accent)', color: '#fff' }}>Upgrade</Link>
       </div>
 
       {/* Quick links */}
@@ -188,7 +188,7 @@ export default function ProfilePage() {
         ].map(l => (
           <Link key={l.href} href={l.href}
             className="flex items-center gap-3 p-4 rounded-xl font-semibold text-sm transition hover:shadow-md hover:-translate-y-0.5"
-            style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+            style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
             <span className="text-xl">{l.icon}</span> {l.label}
           </Link>
         ))}
@@ -197,10 +197,10 @@ export default function ProfilePage() {
       {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(15,23,42,0.7)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col" style={{ border: '1.5px solid #d0dce8', maxHeight: '90vh' }}>
+          <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col" style={{ border: '1.5px solid var(--border)', maxHeight: '90vh' }}>
 
             {/* Header */}
-            <div className="px-6 py-5 flex-shrink-0" style={{ background: '#1d3557' }}>
+            <div className="px-6 py-5 flex-shrink-0" style={{ background: 'var(--primary)' }}>
               <div className="font-black text-white text-lg">Edit Profile</div>
               <div className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Update your profile information</div>
             </div>
@@ -209,13 +209,13 @@ export default function ProfilePage() {
 
               {/* Avatar upload */}
               <div>
-                <label className={labelCls} style={{ color: '#6b7a8d' }}>Profile Photo</label>
+                <label className={labelCls} style={{ color: 'var(--text-muted)' }}>Profile Photo</label>
                 <div className="flex items-center gap-4">
                   <div className="relative flex-shrink-0">
                     {displayAvatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={displayAvatar} alt="avatar" className="w-20 h-20 rounded-2xl object-cover"
-                        style={{ border: '2px solid #d0dce8' }} />
+                        style={{ border: '2px solid var(--border)' }} />
                     ) : (
                       <div className="w-20 h-20 rounded-2xl flex items-center justify-center font-black text-2xl text-white"
                         style={{ background: avatarBg(form.name || user.name) }}>
@@ -232,38 +232,38 @@ export default function ProfilePage() {
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                     <button onClick={() => fileRef.current?.click()} disabled={uploading}
                       className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
-                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
+                      style={{ border: '1.5px dashed var(--link)', color: 'var(--link)', background: 'rgba(99,102,241,0.05)' }}>
                       {uploading ? 'Uploading…' : '📷 Choose Photo'}
                     </button>
-                    <p className="text-xs mt-1.5" style={{ color: '#94a3b8' }}>JPG, PNG, WebP or GIF</p>
+                    <p className="text-xs mt-1.5" style={{ color: 'var(--text-subtle)' }}>JPG, PNG, WebP or GIF</p>
                   </div>
                 </div>
               </div>
 
               {/* Name */}
               <div>
-                <label className={labelCls} style={{ color: '#6b7a8d' }}>Full Name</label>
+                <label className={labelCls} style={{ color: 'var(--text-muted)' }}>Full Name</label>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   placeholder="Your name" className={inputCls} style={inputStyle} />
               </div>
 
               {/* Email — disabled */}
               <div>
-                <label className={labelCls} style={{ color: '#6b7a8d' }}>Email <span className="normal-case font-normal">(cannot be changed)</span></label>
+                <label className={labelCls} style={{ color: 'var(--text-muted)' }}>Email <span className="normal-case font-normal">(cannot be changed)</span></label>
                 <input value={user.email} disabled className={inputCls}
-                  style={{ ...inputStyle, background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed' }} />
+                  style={{ ...inputStyle, background: 'var(--surface-2)', color: 'var(--text-subtle)', cursor: 'not-allowed' }} />
               </div>
 
               {/* Mobile */}
               <div>
-                <label className={labelCls} style={{ color: '#6b7a8d' }}>Mobile</label>
+                <label className={labelCls} style={{ color: 'var(--text-muted)' }}>Mobile</label>
                 <input value={form.mobile} onChange={e => setForm(p => ({ ...p, mobile: e.target.value }))}
                   placeholder="+1 234 567 8900" className={inputCls} style={inputStyle} />
               </div>
 
               {/* Gender */}
               <div>
-                <label className={labelCls} style={{ color: '#6b7a8d' }}>Gender</label>
+                <label className={labelCls} style={{ color: 'var(--text-muted)' }}>Gender</label>
                 <select value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))}
                   className={inputCls} style={inputStyle}>
                   <option value="">Select gender</option>
@@ -276,37 +276,37 @@ export default function ProfilePage() {
 
               {/* Bio */}
               <div>
-                <label className={labelCls} style={{ color: '#6b7a8d' }}>Bio</label>
+                <label className={labelCls} style={{ color: 'var(--text-muted)' }}>Bio</label>
                 <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
                   placeholder="Tell people a bit about yourself…" rows={2}
                   className={`${inputCls} resize-none`} style={inputStyle} />
               </div>
 
               {/* Change password */}
-              <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
-                <div className="text-xs font-black uppercase tracking-wide" style={{ color: '#6b7a8d' }}>Change Password <span className="font-normal normal-case">(leave blank to keep current)</span></div>
+              <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}>
+                <div className="text-xs font-black uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Change Password <span className="font-normal normal-case">(leave blank to keep current)</span></div>
                 <input type="password" value={pwForm.current} onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
-                  placeholder="Current password" className={inputCls} style={{ ...inputStyle, background: '#fff' }} />
+                  placeholder="Current password" className={inputCls} style={{ ...inputStyle, background: 'var(--surface)' }} />
                 <input type="password" value={pwForm.next} onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
-                  placeholder="New password" className={inputCls} style={{ ...inputStyle, background: '#fff' }} />
+                  placeholder="New password" className={inputCls} style={{ ...inputStyle, background: 'var(--surface)' }} />
                 <input type="password" value={pwForm.confirm} onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))}
-                  placeholder="Confirm new password" className={inputCls} style={{ ...inputStyle, background: '#fff' }} />
+                  placeholder="Confirm new password" className={inputCls} style={{ ...inputStyle, background: 'var(--surface)' }} />
               </div>
 
               {msg && !msg.includes('success') && (
-                <div className="px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: 'rgba(230,57,70,0.08)', color: '#b91c1c' }}>{msg}</div>
+                <div className="px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: 'rgba(244,63,94,0.08)', color: 'var(--danger-text)' }}>{msg}</div>
               )}
 
               <div className="flex gap-3 pt-1">
                 <button onClick={save} disabled={saving || uploading}
                   className="flex-1 py-2.5 rounded-xl font-black text-sm text-white transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: '#2a9d8f' }}>
+                  style={{ background: 'var(--success)' }}>
                   {saving ? 'Saving…' : '✓ Save Changes'}
                 </button>
                 <button onClick={() => { setEditing(false); setPreview(''); }}
                   disabled={saving}
                   className="flex-1 py-2.5 rounded-xl font-black text-sm transition hover:bg-gray-50"
-                  style={{ border: '1.5px solid #d0dce8', color: '#6b7a8d' }}>
+                  style={{ border: '1.5px solid var(--border)', color: 'var(--text-muted)' }}>
                   Cancel
                 </button>
               </div>

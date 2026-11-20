@@ -104,7 +104,7 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
     load();
   }
 
-  const inputStyle = { padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, color: '#0f172a', background: '#fff', outline: 'none' };
+  const inputStyle = { padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', background: 'var(--surface)', outline: 'none' };
 
   return (
     <div className="fade-in" style={{ padding: '32px 32px 48px' }}>
@@ -113,7 +113,7 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, background: '#0f172a', borderRadius: 14, padding: '16px 24px', border: '1px solid #1e293b' }}>
         <div>
           <h1 style={{ color: '#f1f5f9', fontWeight: 800, fontSize: 22, margin: 0 }}>Users</h1>
-          <p style={{ color: '#475569', fontSize: 13, margin: '4px 0 0' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0' }}>
             {total} {verified || search || role ? 'matching' : 'total'} users
             {unverified > 0 && <> · <span style={{ color: '#f87171', fontWeight: 600 }}>{unverified} {approvalMode ? 'waiting for approval' : 'unverified'}</span></>}
           </p>
@@ -127,7 +127,7 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       </div>
 
       {notice && (
-        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: notice.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: notice.ok ? '#065f46' : '#991b1b' }}>
+        <div role="status" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: notice.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', color: notice.ok ? 'var(--success-text)' : 'var(--danger-text)' }}>
           {notice.text}
         </div>
       )}
@@ -149,39 +149,39 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       </div>
 
       {/* Table */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border-soft)' }}>
                 {['User', 'Email', 'Verified', 'Role', 'Plan', 'Projects', 'Joined', 'Actions'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center' }}>
-                  <div style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                  <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
                 </td></tr>
               )}
               {!loading && users.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No users found</td></tr>
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-subtle)', fontSize: 13 }}>No users found</td></tr>
               )}
               {!loading && users.map(u => {
                 const rc = roleColor[u.role] || roleColor.user;
                 return (
-                  <tr key={u.id} className="row-hover" style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
+                  <tr key={u.id} className="row-hover" style={{ borderBottom: '1px solid var(--border-soft)', transition: 'background 0.15s' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Avatar name={u.name} size={30} />
                         <div>
-                          <div style={{ color: '#0f172a', fontWeight: 600, fontSize: 13 }}>{u.name}</div>
+                          <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{u.name}</div>
                           {u.is_org ? <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>ORG</div> : null}
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 13 }}>{u.email}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <button
                         onClick={() => updateUser(u.id, { email_verified: u.email_verified ? 0 : 1 })}
@@ -190,7 +190,7 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
                         style={{
                           fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
                           background: u.email_verified ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                          color: u.email_verified ? '#059669' : '#ef4444',
+                          color: u.email_verified ? 'var(--success-text)' : '#ef4444',
                         }}>
                         {u.email_verified ? (approvalMode ? '✓ Approved' : '✓ Verified') : (approvalMode ? '⏳ Pending · Approve' : '✗ Unverified')}
                       </button>
@@ -225,10 +225,10 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
                             </div>
                           </div>
                         );
-                      })() : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>}
+                      })() : <span style={{ color: 'var(--text-subtle)', fontSize: 12 }}>—</span>}
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 13 }}>{u.project_count}</td>
-                    <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 12, whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 13 }}>{u.project_count}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-subtle)', fontSize: 12, whiteSpace: 'nowrap' }}>
                       {new Date(u.created_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
@@ -246,13 +246,13 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid #f1f5f9' }}>
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>Page {page} of {totalPages}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border-soft)' }}>
+            <span style={{ color: 'var(--text-subtle)', fontSize: 12 }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}>← Prev</button>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}>← Prev</button>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: 12, cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}>Next →</button>
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 12, cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}>Next →</button>
             </div>
           </div>
         )}
@@ -261,11 +261,11 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       {/* Verify-all modal */}
       {confirmVerifyAll && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>{approvalMode ? 'Approve' : 'Verify'} {unverified} user{unverified === 1 ? '' : 's'}?</div>
-            <div style={{ color: '#64748b', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>They will be able to log in without confirming their email address.</div>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>{approvalMode ? 'Approve' : 'Verify'} {unverified} user{unverified === 1 ? '' : 's'}?</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>They will be able to log in without confirming their email address.</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirmVerifyAll(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setConfirmVerifyAll(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
               <button onClick={verifyAll} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#10b981', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{approvalMode ? 'Approve all' : 'Verify all'}</button>
             </div>
           </div>
@@ -275,12 +275,12 @@ export default function AdminUsersPage({ searchParams }: { searchParams: Promise
       {/* Confirm modal */}
       {confirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 340, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 28, width: 340, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
-            <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>Delete User?</div>
-            <div style={{ color: '#64748b', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>This action cannot be undone.</div>
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 8 }}>Delete User?</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>This action cannot be undone.</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => deleteUser(confirm.id)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Delete</button>
             </div>
           </div>

@@ -26,7 +26,7 @@ const statusCfg: Record<string, { label: string; bg: string; border: string; hea
   invalid:      { label: 'Invalid',      bg: '#fef2f2', border: '#fecaca', head: '#fecaca', headText: '#991b1b' },
   cancelled:    { label: 'Cancelled',    bg: '#fef2f2', border: '#fecaca', head: '#fecaca', headText: '#b91c1c' },
 };
-const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
+const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#6366f1', high: '#f59e0b', critical: '#f43f5e' };
 
 
 function fmtDT(d: string | Date): string {
@@ -296,23 +296,23 @@ export default function ProjectTasksPage() {
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-5" style={{ color: '#6b7a8d' }}>
-        <Link href="/projects" className="hover:text-[#1d3557]">Projects</Link>
+      <div className="flex items-center gap-2 text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/projects" className="hover:text-[var(--text)]">Projects</Link>
         <span>/</span>
-        <Link href={`/projects/${id}`} className="hover:text-[#1d3557]">Overview</Link>
+        <Link href={`/projects/${id}`} className="hover:text-[var(--text)]">Overview</Link>
         <span>/</span>
-        <span className="font-bold" style={{ color: '#1d3557' }}>Tasks</span>
+        <span className="font-bold" style={{ color: 'var(--text)' }}>Tasks</span>
       </div>
 
       {/* Heading */}
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          {projectName && <div className="text-xs font-black uppercase tracking-widest mb-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>📁 {projectName}</div>}
-          <h2 className="text-2xl font-black" style={{ color: '#1d3557' }}>Tasks <span className="text-base font-bold" style={{ color: '#94a3b8' }}>({filtered.length})</span></h2>
+          {projectName && <div className="text-xs font-black uppercase tracking-widest mb-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: 'var(--primary)', color: '#fff' }}>📁 {projectName}</div>}
+          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>Tasks <span className="text-base font-bold" style={{ color: 'var(--text-subtle)' }}>({filtered.length})</span></h2>
         </div>
         <Link href="/chatme" className="flex-shrink-0">
           <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition shadow-md"
-            style={{ background: '#457b9d' }}>
+            style={{ background: 'var(--link)' }}>
             💬 ChatMe
           </button>
         </Link>
@@ -322,36 +322,36 @@ export default function ProjectTasksPage() {
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
           className="rounded-xl px-3 py-2 text-sm focus:outline-none"
-          style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
           <option value="">All Groups</option>
           {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="rounded-xl px-3 py-2 text-sm focus:outline-none"
-          style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
           <option value="">All Status</option>
           {statusCols.map(s => <option key={s} value={s}>{statusCfg[s].label}</option>)}
         </select>
-        <div className="flex gap-1 p-1 rounded-xl ml-auto" style={{ background: '#e8f0f7' }}>
+        <div className="flex gap-1 p-1 rounded-xl ml-auto" style={{ background: 'var(--surface-3)' }}>
           {(['board', 'list'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               className="px-3 py-1.5 rounded-lg text-sm font-bold transition capitalize"
-              style={{ background: view === v ? '#1d3557' : 'transparent', color: view === v ? '#fff' : '#6b7a8d' }}>
+              style={{ background: view === v ? 'var(--primary)' : 'transparent', color: view === v ? '#fff' : 'var(--text-muted)' }}>
               {v}
             </button>
           ))}
         </div>
         <button onClick={() => setShowForm(v => !v)}
           className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
-          style={{ background: showForm ? '#6b7a8d' : '#e63946' }}>
+          style={{ background: showForm ? '#6b7a8d' : 'var(--accent)' }}>
           {showForm ? '✕ Cancel' : '+ New Task'}
         </button>
       </div>
 
       {/* Quick Status Drop Zones - Only show in board view */}
       {view === 'board' && (
-        <div className="mb-4 p-4 rounded-2xl" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
-          <div className="text-xs font-black mb-3" style={{ color: '#6b7a8d' }}>QUICK STATUS UPDATE - Drag tasks here</div>
+        <div className="mb-4 p-4 rounded-2xl" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}>
+          <div className="text-xs font-black mb-3" style={{ color: 'var(--text-muted)' }}>QUICK STATUS UPDATE - Drag tasks here</div>
           <div className="flex gap-2 flex-wrap">
             {statusCols.map(col => {
               const cfg = statusCfg[col];
@@ -386,18 +386,18 @@ export default function ProjectTasksPage() {
 
       {/* Inline create task form */}
       {showForm && (
-        <div className="rounded-2xl p-5 mb-5" style={{ background: '#f8fafc', border: '1.5px solid #d0dce8' }}>
-          <h3 className="font-black text-base mb-4" style={{ color: '#1d3557' }}>Create New Task</h3>
+        <div className="rounded-2xl p-5 mb-5" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}>
+          <h3 className="font-black text-base mb-4" style={{ color: 'var(--text)' }}>Create New Task</h3>
           <form onSubmit={createTask} className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required placeholder="Task title *" autoFocus
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none md:col-span-2"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 onPaste={handleTaskPaste}
                 placeholder="Description (optional) — paste image with Ctrl+V" rows={2}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none md:col-span-2"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
             </div>
 
             {/* Attachment zone — prominent */}
@@ -405,14 +405,14 @@ export default function ProjectTasksPage() {
               onDragOver={e => { e.preventDefault(); setTaskPasteDragging(true); }}
               onDragLeave={() => setTaskPasteDragging(false)}
               onDrop={handleTaskDrop}
-              style={{ border: `2px dashed ${taskPasteDragging ? '#457b9d' : '#a8dadc'}`, background: taskPasteDragging ? '#eff6ff' : '#f0fdf9', borderRadius: 16, padding: 16 }}>
+              style={{ border: `2px dashed ${taskPasteDragging ? 'var(--link)' : '#a5b4fc'}`, background: taskPasteDragging ? 'var(--info-soft)' : 'var(--success-soft)', borderRadius: 16, padding: 16 }}>
               <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="text-sm font-black" style={{ color: '#0f766e' }}>📎 Attachments</span>
-                {taskUploading && <span className="text-xs font-bold" style={{ color: '#457b9d' }}>Uploading...</span>}
+                <span className="text-sm font-black" style={{ color: 'var(--success-text)' }}>📎 Attachments</span>
+                {taskUploading && <span className="text-xs font-bold" style={{ color: 'var(--link)' }}>Uploading...</span>}
               </div>
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 <label className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold cursor-pointer hover:opacity-80 transition text-white"
-                  style={{ background: '#2a9d8f' }}>
+                  style={{ background: 'var(--success)' }}>
                   🖼️ Upload Image
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => Array.from(e.target.files || []).forEach(uploadTaskFile)} />
                 </label>
@@ -423,7 +423,7 @@ export default function ProjectTasksPage() {
                 </label>
                 <button type="button" onClick={() => setShowTaskLinkInput(v => !v)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold hover:opacity-80 transition"
-                  style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                  style={{ background: 'var(--info-soft)', color: 'var(--link)', border: '1.5px solid var(--info-soft)' }}>
                   🔗 Add Link
                 </button>
               </div>
@@ -432,7 +432,7 @@ export default function ProjectTasksPage() {
                 onPaste={handleTaskPaste}
                 onClick={e => (e.currentTarget as HTMLDivElement).focus()}
                 className="mt-2 rounded-xl text-center cursor-pointer outline-none transition flex flex-col items-center justify-center gap-2"
-                style={{ border: '2px dashed #94a3b8', color: '#94a3b8', background: '#f8fafc', minHeight: '100px', padding: '24px 16px' }}
+                style={{ border: '2px dashed #94a3b8', color: 'var(--text-subtle)', background: 'var(--surface-2)', minHeight: '100px', padding: '24px 16px' }}
               >
                 <span style={{ fontSize: 32 }}>📸</span>
                 <span className="text-sm font-bold">Click here then Ctrl+V to paste screenshot</span>
@@ -446,10 +446,10 @@ export default function ProjectTasksPage() {
                     placeholder="Paste image/video URL and press Enter..."
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                    style={{ background: '#fff', border: '1.5px solid #bfdbfe', color: '#1d3557' }} />
+                    style={{ background: 'var(--surface)', border: '1.5px solid var(--info-soft)', color: 'var(--text)' }} />
                   <button type="button" onClick={addTaskLink}
                     className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90"
-                    style={{ background: '#457b9d' }}>Add</button>
+                    style={{ background: 'var(--link)' }}>Add</button>
                 </div>
               )}
 
@@ -458,22 +458,22 @@ export default function ProjectTasksPage() {
                   {taskAttachments.map((a, i) => (
                     <div key={i} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
                       {a.type === 'image' && (
-                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid #d0dce8', display: 'block' }} />
+                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid var(--border)', display: 'block' }} />
                       )}
                       {a.type === 'video' && (
-                        <div style={{ width: 120, height: 96, background: '#1d3557', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <div style={{ width: 120, height: 96, background: 'var(--primary)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <span style={{ fontSize: 28 }}>🎥</span>
                           <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{a.name.length > 14 ? a.name.substring(0,14)+'...' : a.name}</span>
                         </div>
                       )}
                       {a.type === 'link' && (
-                        <div style={{ padding: '8px 12px', border: '1.5px solid #bfdbfe', borderRadius: 12, background: '#eff6ff' }}>
+                        <div style={{ padding: '8px 12px', border: '1.5px solid var(--info-soft)', borderRadius: 12, background: 'var(--info-soft)' }}>
                           <span>🔗</span>
-                          <span style={{ color: '#457b9d', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
+                          <span style={{ color: 'var(--link)', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
                         </div>
                       )}
                       <button type="button" onClick={() => setTaskAttachments(prev => prev.filter((_, j) => j !== i))}
-                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 99, lineHeight: 1 }}
+                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: 'var(--accent)', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 99, lineHeight: 1 }}
                       >×</button>
                     </div>
                   ))}
@@ -484,7 +484,7 @@ export default function ProjectTasksPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <select value={form.group_id} onChange={e => setForm(p => ({ ...p, group_id: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 <option value="">No Group</option>
                 {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
@@ -492,30 +492,30 @@ export default function ProjectTasksPage() {
               {/* Assignee - Project Members */}
               <select value={form.assignee_id} onChange={e => setForm(p => ({ ...p, assignee_id: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 <option value="">Unassigned</option>
                 {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
               </select>
               
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 {['low', 'medium', 'high', 'critical'].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 {statusCols.map(s => <option key={s} value={s}>{statusCfg[s].label}</option>)}
               </select>
               <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
             </div>
             
             {/* Add Members from Organizations */}
             {allOrgMembers.length > 0 && (
               <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#1d3557' }}>👥 Add Members from Organizations (Optional)</label>
+                <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>👥 Add Members from Organizations (Optional)</label>
                 <div className="relative">
                   <button type="button"
                     onClick={(e) => {
@@ -523,17 +523,17 @@ export default function ProjectTasksPage() {
                       setShowOrgMemberDropdown(!showOrgMemberDropdown);
                     }}
                     className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none text-left flex items-center justify-between"
-                    style={{ background: '#fff', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                    style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                     <span>{selectedOrgMembers.length > 0 ? `${selectedOrgMembers.length} member(s) selected to add` : 'Select members to add to project...'}</span>
                     <span>{showOrgMemberDropdown ? '▲' : '▼'}</span>
                   </button>
                   
                   {showOrgMemberDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg" style={{ border: '1.5px solid #d0dce8', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                      <div className="p-2 border-b" style={{ borderColor: '#d0dce8' }}>
+                    <div className="absolute z-10 w-full mt-1 bg-surface rounded-xl shadow-lg" style={{ border: '1.5px solid var(--border)', maxHeight: '300px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                      <div className="p-2 border-b" style={{ borderColor: 'var(--border)' }}>
                         <input type="text" placeholder="Search members..." value={orgMemberSearch} onChange={e => setOrgMemberSearch(e.target.value)}
                           className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                          style={{ background: '#f1faee', border: '1px solid #d0dce8' }}
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
                           onClick={e => e.stopPropagation()} />
                       </div>
                       <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
@@ -553,7 +553,7 @@ export default function ProjectTasksPage() {
                                   }
                                 }}
                                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition text-left"
-                                style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                style={{ borderBottom: '1px solid var(--border-soft)' }}>
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden"
                                   style={{ background: `hsl(${(member.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                                   {member.avatar ? (
@@ -563,25 +563,25 @@ export default function ProjectTasksPage() {
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-bold text-[#1d3557] truncate">{member.name}</div>
-                                  <div className="text-xs text-[#6b7a8d] truncate">{member.email} • {member.org_name}</div>
+                                  <div className="text-sm font-bold text-[var(--text)] truncate">{member.name}</div>
+                                  <div className="text-xs text-[var(--text-muted)] truncate">{member.email} • {member.org_name}</div>
                                 </div>
                                 {isSelected && (
                                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                                    style={{ background: '#2a9d8f' }}>✓</div>
+                                    style={{ background: 'var(--success)' }}>✓</div>
                                 )}
                               </button>
                             );
                           })}
                       </div>
-                      <div className="p-2 border-t" style={{ borderColor: '#d0dce8' }}>
+                      <div className="p-2 border-t" style={{ borderColor: 'var(--border)' }}>
                         <button type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowOrgMemberDropdown(false);
                           }}
                           className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90"
-                          style={{ background: '#2a9d8f', color: '#fff' }}>
+                          style={{ background: 'var(--success)', color: '#fff' }}>
                           Done
                         </button>
                       </div>
@@ -591,14 +591,14 @@ export default function ProjectTasksPage() {
                 
                 {selectedOrgMembers.length > 0 && (
                   <div className="mt-2">
-                    <div className="text-xs font-bold mb-1.5" style={{ color: '#6b7a8d' }}>Will be added to project:</div>
+                    <div className="text-xs font-bold mb-1.5" style={{ color: 'var(--text-muted)' }}>Will be added to project:</div>
                     <div className="flex flex-wrap gap-2">
                       {selectedOrgMembers.map(userId => {
                         const user = allOrgMembers.find(u => u.id === userId);
                         if (!user) return null;
                         return (
                           <div key={userId} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                            style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                            style={{ background: 'var(--info-soft)', color: 'var(--info-text)', border: '1px solid #bae6fd' }}>
                             <span>{user.name}</span>
                             <button type="button" onClick={() => setSelectedOrgMembers(prev => prev.filter(id => id !== userId))}
                               className="text-xs hover:opacity-70">✕</button>
@@ -611,10 +611,10 @@ export default function ProjectTasksPage() {
               </div>
             )}
 
-            {formError && <p className="text-xs font-bold" style={{ color: '#e63946' }}>⚠ {formError}</p>}
+            {formError && <p className="text-xs font-bold" style={{ color: 'var(--accent)' }}>⚠ {formError}</p>}
             <button type="submit" disabled={saving || taskUploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-50"
-              style={{ background: '#e63946' }}>
+              style={{ background: 'var(--accent)' }}>
               {saving ? 'Creating...' : 'Create Task'}
             </button>
           </form>
@@ -654,38 +654,38 @@ export default function ProjectTasksPage() {
                       onDragStart={() => setDragTask(task)}
                       onDragEnd={() => { setDragTask(null); setDragOverCol(null); }}
                       onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
-                      className="bg-white rounded-xl p-3 shadow-sm cursor-grab hover:shadow-md transition group relative"
+                      className="bg-surface rounded-xl p-3 shadow-sm cursor-grab hover:shadow-md transition group relative"
                       style={{ 
-                        border: '1px solid #e8f0f7', 
+                        border: '1px solid var(--border-soft)', 
                         opacity: dragTask?.id === task.id ? 0.4 : 1,
                         boxShadow: highlightTask === task.id ? `0 0 0 3px ${cfg.headText}40, 0 8px 24px ${cfg.headText}30` : undefined,
                         animation: highlightTask === task.id ? 'pulse 0.6s ease-in-out' : 'none',
                       }}>
                       {task.group_name && (
                         <span className="text-xs font-bold px-1.5 py-0.5 rounded text-white mb-1.5 inline-block"
-                          style={{ background: task.group_color || '#457b9d' }}>
+                          style={{ background: task.group_color || 'var(--link)' }}>
                           {task.group_name}
                         </span>
                       )}
-                      <div className="text-sm font-semibold leading-snug mb-2" style={{ color: '#1d3557' }}>{task.title}</div>
+                      <div className="text-sm font-semibold leading-snug mb-2" style={{ color: 'var(--text)' }}>{task.title}</div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
-                        <div className="flex items-center gap-2 text-xs" style={{ color: '#94a3b8' }}>
+                        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-subtle)' }}>
                           {task.subtask_count > 0 && <span>✅{task.subtask_count}</span>}
                           {task.comment_count > 0 && <span>💬{task.comment_count}</span>}
                           <button onClick={e => { e.stopPropagation(); setDeleteTarget(task); }}
                             className="hover:bg-red-50 rounded px-1 transition"
-                            style={{ color: '#e63946' }}>🗑</button>
+                            style={{ color: 'var(--accent)' }}>🗑</button>
                         </div>
                       </div>
-                      {task.assignee_name && <div className="text-xs mt-1.5" style={{ color: '#6b7a8d' }}>→ {task.assignee_name}</div>}
-                      {task.creator_name && <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>by {task.creator_name}</div>}
+                      {task.assignee_name && <div className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>→ {task.assignee_name}</div>}
+                      {task.creator_name && <div className="text-xs mt-0.5" style={{ color: 'var(--text-subtle)' }}>by {task.creator_name}</div>}
                     </div>
                   ))}
                   {colTasks.length === 0 && (
                     <div className="text-center py-6">
                       <div className="text-3xl mb-2">🔍</div>
-                      <div className="text-xs font-bold" style={{ color: '#94a3b8' }}>No items found</div>
+                      <div className="text-xs font-bold" style={{ color: 'var(--text-subtle)' }}>No items found</div>
                     </div>
                   )}
                 </div>
@@ -698,29 +698,29 @@ export default function ProjectTasksPage() {
 
       {/* List view */}
       {view === 'list' && (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {filtered.length === 0 ? (
-            <div className="text-center py-16 text-sm" style={{ color: '#94a3b8' }}>No tasks found</div>
+            <div className="text-center py-16 text-sm" style={{ color: 'var(--text-subtle)' }}>No tasks found</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
                   {['Title', 'Group', 'Status', 'Priority', 'Assignee', 'Due', '✅', '💬', ''].map(c => (
-                    <th key={c} className="px-4 py-3 text-left text-xs font-black" style={{ color: '#6b7a8d' }}>{c}</th>
+                    <th key={c} className="px-4 py-3 text-left text-xs font-black" style={{ color: 'var(--text-muted)' }}>{c}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(task => (
                   <tr key={task.id} onClick={() => router.push(`/projects/${id}/tasks/${task.id}`)}
-                    className="cursor-pointer hover:bg-[#f8fafc] transition" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td className="px-4 py-3 font-semibold" style={{ color: '#1d3557' }}>
+                    className="cursor-pointer hover:bg-[var(--surface-2)] transition" style={{ borderBottom: '1px solid var(--border-soft)' }}>
+                    <td className="px-4 py-3 font-semibold" style={{ color: 'var(--text)' }}>
                       <div>{task.title}</div>
-                      {task.creator_name && <div className="text-xs font-normal mt-0.5" style={{ color: '#94a3b8' }}>by {task.creator_name}</div>}
+                      {task.creator_name && <div className="text-xs font-normal mt-0.5" style={{ color: 'var(--text-subtle)' }}>by {task.creator_name}</div>}
                     </td>
                     <td className="px-4 py-3">
                       {task.group_name && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || '#457b9d' }}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: task.group_color || 'var(--link)' }}>
                           {task.group_name}
                         </span>
                       )}
@@ -732,14 +732,14 @@ export default function ProjectTasksPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: '#6b7a8d' }}>{task.assignee_name || '—'}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: '#6b7a8d' }}>{task.due_date ? fmtD(task.due_date) : '—'}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: '#94a3b8' }}>{task.subtask_count || 0}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: '#94a3b8' }}>{task.comment_count || 0}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-muted)' }}>{task.assignee_name || '—'}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-muted)' }}>{task.due_date ? fmtD(task.due_date) : '—'}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-subtle)' }}>{task.subtask_count || 0}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-subtle)' }}>{task.comment_count || 0}</td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); setDeleteTarget(task); }}
                         className="text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition"
-                        style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                        style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
                     </td>
                   </tr>
                 ))}

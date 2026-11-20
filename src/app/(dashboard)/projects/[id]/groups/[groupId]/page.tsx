@@ -31,9 +31,9 @@ interface GroupActivity {
 interface PlanInfo { plan: string; limits: { max_projects: number; max_members: number; max_tasks: number; max_groups: number; max_storage_gb: number }; usage: { projects: number; tasks: number; groups: number; members: number } }
 
 const statusOptions = ['pending', 'in_progress', 'under_review', 'qa', 'on_hold', 'completed', 'reopened', 'invalid', 'cancelled'];
-const statusColors: Record<string, string> = { pending: '#94a3b8', in_progress: '#457b9d', under_review: '#92400e', qa: '#f4a261', on_hold: '#854d0e', completed: '#2a9d8f', reopened: '#78350f', invalid: '#991b1b', cancelled: '#e63946' };
+const statusColors: Record<string, string> = { pending: '#94a3b8', in_progress: '#6366f1', under_review: '#92400e', qa: '#f59e0b', on_hold: '#854d0e', completed: '#10b981', reopened: '#78350f', invalid: '#991b1b', cancelled: '#f43f5e' };
 const statusLabels: Record<string, string> = { pending: 'Pending', in_progress: 'In Progress', under_review: 'Under Review', qa: 'QA', on_hold: 'On Hold', completed: 'Completed', reopened: 'Reopened', invalid: 'Invalid', cancelled: 'Cancelled' };
-const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#457b9d', high: '#f4a261', critical: '#e63946' };
+const priorityColors: Record<string, string> = { low: '#94a3b8', medium: '#6366f1', high: '#f59e0b', critical: '#f43f5e' };
 const priorityOptions = ['low', 'medium', 'high', 'critical'];
 
 
@@ -61,11 +61,11 @@ type ViewMode = 'grid' | 'list' | 'box';
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
       {(['grid','list','box'] as ViewMode[]).map(v => (
         <button key={v} onClick={() => onChange(v)}
           className="px-3 py-1.5 text-xs font-bold transition"
-          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          style={{ background: view === v ? 'var(--primary)' : 'var(--surface)', color: view === v ? '#fff' : 'var(--text-muted)' }}
           title={v.charAt(0).toUpperCase() + v.slice(1)}>
           {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
         </button>
@@ -526,35 +526,35 @@ export default function GroupDetailPage() {
   if (accessDenied) return (
     <div className="flex flex-col items-center justify-center py-32 text-center">
       <div className="text-5xl mb-4">🔒</div>
-      <div className="font-black text-xl text-[#1d3557] mb-2">Access Denied</div>
-      <div className="text-sm text-[#6b7a8d] mb-6">You are not a member of this project or group.</div>
+      <div className="font-black text-xl text-[var(--text)] mb-2">Access Denied</div>
+      <div className="text-sm text-[var(--text-muted)] mb-6">You are not a member of this project or group.</div>
       <button onClick={() => router.push('/projects')}
         className="px-5 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90"
-        style={{ background: '#1d3557' }}>← Back to Projects</button>
+        style={{ background: 'var(--primary)' }}>← Back to Projects</button>
     </div>
   );
 
   if (!group) return (
     <div className="flex items-center justify-center py-20">
-      <div className="text-sm" style={{ color: '#6b7a8d' }}>Loading...</div>
+      <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</div>
     </div>
   );
 
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-5" style={{ color: '#6b7a8d' }}>
-        <Link href="/projects" className="hover:text-[#1d3557]">Projects</Link>
+      <div className="flex items-center gap-2 text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/projects" className="hover:text-[var(--text)]">Projects</Link>
         <span>/</span>
-        <Link href={`/projects/${id}`} className="hover:text-[#1d3557]">Overview</Link>
+        <Link href={`/projects/${id}`} className="hover:text-[var(--text)]">Overview</Link>
         <span>/</span>
-        <Link href={`/projects/${id}/groups`} className="hover:text-[#1d3557]">Groups</Link>
+        <Link href={`/projects/${id}/groups`} className="hover:text-[var(--text)]">Groups</Link>
         <span>/</span>
-        <span className="font-bold" style={{ color: '#1d3557' }}>{group.name}</span>
+        <span className="font-bold" style={{ color: 'var(--text)' }}>{group.name}</span>
       </div>
 
       {/* Group header */}
-      <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: '1px solid #d0dce8', borderTop: `4px solid ${group.color}` }}>
+      <div className="bg-surface rounded-2xl p-5 mb-5" style={{ border: '1px solid var(--border)', borderTop: `4px solid ${group.color}` }}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-xl flex-shrink-0"
@@ -562,13 +562,13 @@ export default function GroupDetailPage() {
               {group.name[0].toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: '#1d3557' }}>{group.name}</h1>
-              {group.description && <p className="text-sm mt-0.5" style={{ color: '#6b7a8d' }}>{group.description}</p>}
-              <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: '#6b7a8d' }}>
-                {projectName && <span>📁 <strong style={{ color: '#457b9d' }}>{projectName}</strong></span>}
-                <span><strong style={{ color: '#1d3557' }}>{tasks.length}</strong> tasks</span>
-                <span><strong style={{ color: '#2a9d8f' }}>{doneTasks}</strong> done</span>
-                <span><strong style={{ color: '#1d3557' }}>{group.member_count}</strong> members</span>
+              <h1 className="text-2xl font-black" style={{ color: 'var(--text)' }}>{group.name}</h1>
+              {group.description && <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{group.description}</p>}
+              <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                {projectName && <span>📁 <strong style={{ color: 'var(--link)' }}>{projectName}</strong></span>}
+                <span><strong style={{ color: 'var(--text)' }}>{tasks.length}</strong> tasks</span>
+                <span><strong style={{ color: 'var(--success)' }}>{doneTasks}</strong> done</span>
+                <span><strong style={{ color: 'var(--text)' }}>{group.member_count}</strong> members</span>
                 {group.created_by_name && <span>by <strong>{group.created_by_name}</strong></span>}
               </div>
             </div>
@@ -576,10 +576,10 @@ export default function GroupDetailPage() {
           {/* Progress bar */}
           {tasks.length > 0 && (
             <div className="flex-shrink-0 w-32">
-              <div className="text-xs font-bold mb-1 text-right" style={{ color: '#6b7a8d' }}>
+              <div className="text-xs font-bold mb-1 text-right" style={{ color: 'var(--text-muted)' }}>
                 {Math.round((doneTasks / tasks.length) * 100)}% done
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: '#e2e8f0' }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
                 <div className="h-full rounded-full transition-all" style={{ width: `${(doneTasks / tasks.length) * 100}%`, background: group.color }} />
               </div>
             </div>
@@ -596,9 +596,9 @@ export default function GroupDetailPage() {
             <button key={s} onClick={() => setFilterStatus(s)}
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition"
               style={{
-                background: filterStatus === s ? '#1d3557' : '#fff',
-                color: filterStatus === s ? '#fff' : '#6b7a8d',
-                border: `1px solid ${filterStatus === s ? '#1d3557' : '#d0dce8'}`
+                background: filterStatus === s ? 'var(--primary)' : 'var(--surface)',
+                color: filterStatus === s ? '#fff' : 'var(--text-muted)',
+                border: `1px solid ${filterStatus === s ? 'var(--primary)' : 'var(--border)'}`
               }}>
               {s ? statusLabels[s] : `All (${tasks.length})`}
             </button>
@@ -609,7 +609,7 @@ export default function GroupDetailPage() {
           {canManage && (
             <button onClick={openMembersPanel}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition hover:opacity-90"
-              style={{ background: '#f0fdf9', color: '#2a9d8f', border: '1.5px solid #99f6e4' }}>
+              style={{ background: 'var(--success-soft)', color: 'var(--success)', border: '1.5px solid var(--success-soft)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -620,7 +620,7 @@ export default function GroupDetailPage() {
           <button onClick={() => router.push(`/projects/${id}/groups/${groupId}/chat`)}
             title="Open Chat"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition hover:opacity-90"
-            style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+            style={{ background: 'var(--info-soft)', color: 'var(--link)', border: '1.5px solid var(--info-soft)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
@@ -628,7 +628,7 @@ export default function GroupDetailPage() {
           </button>
           <button onClick={() => { setShowMeeting(true); setMeetingLink(''); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition hover:opacity-90"
-            style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>
+            style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1.5px solid var(--warning-soft)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
@@ -636,7 +636,7 @@ export default function GroupDetailPage() {
           </button>
           <button onClick={() => !atTaskLimit && setShowTaskForm(v => !v)}
             className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
-            style={{ background: showTaskForm ? '#6b7a8d' : atTaskLimit ? '#94a3b8' : '#e63946', cursor: atTaskLimit ? 'not-allowed' : 'pointer' }}
+            style={{ background: showTaskForm ? '#6b7a8d' : atTaskLimit ? '#94a3b8' : 'var(--accent)', cursor: atTaskLimit ? 'not-allowed' : 'pointer' }}
             title={atTaskLimit ? `Limit reached: ${planInfo?.usage.tasks}/${planInfo?.limits.max_tasks} tasks` : ''}>
             {showTaskForm ? '✕ Cancel' : '+ New Task'}
           </button>
@@ -645,38 +645,38 @@ export default function GroupDetailPage() {
 
       {/* Create task form */}
       {showTaskForm && (
-        <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '1.5px solid #d0dce8' }}>
-          <h3 className="font-black text-sm mb-3" style={{ color: '#1d3557' }}>New Task</h3>
+        <div className="bg-surface rounded-2xl p-5 mb-4" style={{ border: '1.5px solid var(--border)' }}>
+          <h3 className="font-black text-sm mb-3" style={{ color: 'var(--text)' }}>New Task</h3>
           <form onSubmit={createTask} className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input value={taskForm.title} onChange={e => setTaskForm(p => ({ ...p, title: e.target.value }))} required
                 placeholder="Task title *" autoFocus
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none md:col-span-2"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               <textarea value={taskForm.description} onChange={e => setTaskForm(p => ({ ...p, description: e.target.value }))}
                 onPaste={handleTaskPaste}
                 placeholder="Description (optional) — paste image with Ctrl+V" rows={2}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none md:col-span-2"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
               <select value={taskForm.assignee_id} onChange={e => setTaskForm(p => ({ ...p, assignee_id: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 <option value="">Unassigned</option>
                 {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
               </select>
               <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 {priorityOptions.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select value={taskForm.status} onChange={e => setTaskForm(p => ({ ...p, status: e.target.value }))}
                 className="rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                 {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
               </select>
               <input type="date" value={taskForm.due_date} onChange={e => setTaskForm(p => ({ ...p, due_date: e.target.value }))}
                 className="rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-                style={{ background: '#f8fafc', border: '1.5px solid #d0dce8', color: '#1d3557' }} />
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
             </div>
 
             {/* Attachment zone */}
@@ -685,29 +685,29 @@ export default function GroupDetailPage() {
               onDragLeave={() => setTaskPasteDragging(false)}
               onDrop={handleTaskDrop}
               className="rounded-xl p-3 transition-all"
-              style={{ border: `2px dashed ${taskPasteDragging ? '#457b9d' : '#d0dce8'}`, background: taskPasteDragging ? '#eff6ff' : '#f8fafc' }}>
+              style={{ border: `2px dashed ${taskPasteDragging ? 'var(--link)' : 'var(--border)'}`, background: taskPasteDragging ? 'var(--info-soft)' : 'var(--surface-2)' }}>
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>📎 Attach:</span>
+                <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📎 Attach:</span>
                 <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition"
-                  style={{ background: '#f0fdf9', color: '#0f766e', border: '1.5px solid #99f6e4' }}>
+                  style={{ background: 'var(--success-soft)', color: 'var(--success-text)', border: '1.5px solid var(--success-soft)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                   {taskUploading ? 'Uploading...' : 'Image'}
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => Array.from(e.target.files || []).forEach(uploadTaskFile)} />
                 </label>
                 <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition"
-                  style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa' }}>
+                  style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1.5px solid var(--warning-soft)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                   Video
                   <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && uploadTaskFile(e.target.files[0])} />
                 </label>
                 <button type="button" onClick={() => setShowTaskLinkInput(v => !v)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition"
-                  style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                  style={{ background: 'var(--info-soft)', color: 'var(--link)', border: '1.5px solid var(--info-soft)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                   Link
                 </button>
                 {taskAttachments.length > 0 && (
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1d3557', color: '#fff' }}>{taskAttachments.length} attached</span>
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'var(--primary)', color: '#fff' }}>{taskAttachments.length} attached</span>
                 )}
               </div>
               <div
@@ -715,7 +715,7 @@ export default function GroupDetailPage() {
                 onPaste={handleTaskPaste}
                 onClick={e => (e.currentTarget as HTMLDivElement).focus()}
                 className="mt-2 rounded-xl text-center cursor-pointer outline-none transition flex flex-col items-center justify-center gap-2"
-                style={{ border: '2px dashed #94a3b8', color: '#94a3b8', background: '#f8fafc', minHeight: '100px', padding: '24px 16px' }}
+                style={{ border: '2px dashed #94a3b8', color: 'var(--text-subtle)', background: 'var(--surface-2)', minHeight: '100px', padding: '24px 16px' }}
               >
                 <span style={{ fontSize: 32 }}>📸</span>
                 <span className="text-sm font-bold">Click here then Ctrl+V to paste screenshot</span>
@@ -727,10 +727,10 @@ export default function GroupDetailPage() {
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTaskLink())}
                     placeholder="Paste image/video URL..."
                     className="flex-1 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                    style={{ background: '#fff', border: '1.5px solid #bfdbfe', color: '#1d3557' }} />
+                    style={{ background: 'var(--surface)', border: '1.5px solid var(--info-soft)', color: 'var(--text)' }} />
                   <button type="button" onClick={addTaskLink}
                     className="px-3 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
-                    style={{ background: '#457b9d' }}>Add</button>
+                    style={{ background: 'var(--link)' }}>Add</button>
                 </div>
               )}
               {taskAttachments.length > 0 && (
@@ -738,22 +738,22 @@ export default function GroupDetailPage() {
                   {taskAttachments.map((a, i) => (
                     <div key={i} style={{ position: 'relative', paddingTop: 10, paddingRight: 10, display: 'inline-block' }}>
                       {a.type === 'image' && (
-                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid #d0dce8', display: 'block' }} />
+                        <img src={a.url} alt={a.name} style={{ width: 120, height: 96, objectFit: 'cover', borderRadius: 12, border: '2px solid var(--border)', display: 'block' }} />
                       )}
                       {a.type === 'video' && (
-                        <div style={{ width: 120, height: 96, background: '#1d3557', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <div style={{ width: 120, height: 96, background: 'var(--primary)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <span style={{ fontSize: 28 }}>🎥</span>
                           <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{a.name.length > 14 ? a.name.substring(0,14)+'...' : a.name}</span>
                         </div>
                       )}
                       {a.type === 'link' && (
-                        <div style={{ padding: '8px 12px', border: '1.5px solid #bfdbfe', borderRadius: 12, background: '#eff6ff' }}>
+                        <div style={{ padding: '8px 12px', border: '1.5px solid var(--info-soft)', borderRadius: 12, background: 'var(--info-soft)' }}>
                           <span>🔗</span>
-                          <span style={{ color: '#457b9d', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
+                          <span style={{ color: 'var(--link)', fontSize: 11, marginLeft: 4 }}>{a.url.length > 25 ? a.url.substring(0,25)+'...' : a.url}</span>
                         </div>
                       )}
                       <button type="button" onClick={() => setTaskAttachments(prev => prev.filter((_, j) => j !== i))}
-                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#e63946', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 99, lineHeight: 1 }}
+                        style={{ position: 'absolute', top: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: 'var(--accent)', color: '#fff', border: '2px solid #fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 99, lineHeight: 1 }}
                       >×</button>
                     </div>
                   ))}
@@ -763,7 +763,7 @@ export default function GroupDetailPage() {
 
             <button type="submit" disabled={taskSaving || taskUploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#e63946' }}>
+              style={{ background: 'var(--accent)' }}>
               {taskSaving ? 'Creating...' : 'Create Task'}
             </button>
           </form>
@@ -772,25 +772,25 @@ export default function GroupDetailPage() {
 
       {/* Task list */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8' }}>
+        <div className="bg-surface rounded-2xl p-16 text-center" style={{ border: '2px dashed var(--border)' }}>
           <div className="text-4xl mb-3">✅</div>
-          <div className="font-black text-base mb-1" style={{ color: '#1d3557' }}>{filterStatus ? 'No tasks with this status' : 'No tasks yet'}</div>
-          <div className="text-sm mb-4" style={{ color: '#6b7a8d' }}>Add tasks to get started</div>
-          <button onClick={() => setShowTaskForm(true)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90" style={{ background: '#e63946' }}>
+          <div className="font-black text-base mb-1" style={{ color: 'var(--text)' }}>{filterStatus ? 'No tasks with this status' : 'No tasks yet'}</div>
+          <div className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Add tasks to get started</div>
+          <button onClick={() => setShowTaskForm(true)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90" style={{ background: 'var(--accent)' }}>
             + New Task
           </button>
         </div>
       ) : taskView === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(task => (
-            <div key={task.id} className="bg-white rounded-2xl p-4 hover:shadow-md transition-all"
-              style={{ border: `1px solid #d0dce8`, borderTop: `3px solid ${statusColors[task.status]}`, opacity: updatingTask === task.id ? 0.6 : 1 }}>
+            <div key={task.id} className="bg-surface rounded-2xl p-4 hover:shadow-md transition-all"
+              style={{ border: `1px solid var(--border)`, borderTop: `3px solid ${statusColors[task.status]}`, opacity: updatingTask === task.id ? 0.6 : 1 }}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}>
-                  <div className="font-bold text-sm hover:text-[#e63946] transition truncate" style={{ color: '#1d3557' }}>{task.title}</div>
-                  <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{fmtD(task.created_at)}</div>
+                  <div className="font-bold text-sm hover:text-[var(--accent)] transition truncate" style={{ color: 'var(--text)' }}>{task.title}</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-subtle)' }}>{fmtD(task.created_at)}</div>
                 </div>
-                <button onClick={e => deleteTask(e, task.id)} className="text-xs px-1.5 py-1 rounded-lg hover:bg-red-50 flex-shrink-0" style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                <button onClick={e => deleteTask(e, task.id)} className="text-xs px-1.5 py-1 rounded-lg hover:bg-red-50 flex-shrink-0" style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
               </div>
               <div className="flex items-center gap-2 flex-wrap mt-3">
                 <select value={task.status} onClick={e => e.stopPropagation()} onChange={e => updateTask(task, { status: e.target.value })}
@@ -799,33 +799,33 @@ export default function GroupDetailPage() {
                   {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
                 </select>
                 <span className="text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
-                {task.assignee_name && <span className="text-xs" style={{ color: '#6b7a8d' }}>👤 {task.assignee_name}</span>}
+                {task.assignee_name && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>👤 {task.assignee_name}</span>}
               </div>
-              {task.due_date && <div className="text-xs mt-2" style={{ color: '#854d0e' }}>📅 {fmtD(task.due_date)}</div>}
+              {task.due_date && <div className="text-xs mt-2" style={{ color: 'var(--warning-text)' }}>📅 {fmtD(task.due_date)}</div>}
               <button onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
                 className="mt-3 w-full text-xs px-3 py-1.5 rounded-lg font-bold hover:opacity-90 transition text-white"
-                style={{ background: '#1d3557' }}>Open →</button>
+                style={{ background: 'var(--primary)' }}>Open →</button>
             </div>
           ))}
         </div>
       ) : taskView === 'box' ? (
         <div className="grid grid-cols-1 gap-3">
           {filtered.map(task => (
-            <div key={task.id} className="bg-white rounded-2xl overflow-hidden transition-all"
-              style={{ border: '1px solid #d0dce8', borderLeft: `4px solid ${statusColors[task.status]}`, opacity: updatingTask === task.id ? 0.6 : 1 }}>
+            <div key={task.id} className="bg-surface rounded-2xl overflow-hidden transition-all"
+              style={{ border: '1px solid var(--border)', borderLeft: `4px solid ${statusColors[task.status]}`, opacity: updatingTask === task.id ? 0.6 : 1 }}>
               <div className="flex items-start gap-4 p-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <div className="font-bold text-sm cursor-pointer hover:text-[#e63946] transition" style={{ color: '#1d3557' }}
+                    <div className="font-bold text-sm cursor-pointer hover:text-[var(--accent)] transition" style={{ color: 'var(--text)' }}
                       onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
                     >{task.title}</div>
                     <span className="text-xs font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
                   </div>
-                  {task.description && <p className="text-xs mb-2 line-clamp-2" style={{ color: '#6b7a8d' }}>{task.description}</p>}
-                  <div className="flex items-center gap-3 flex-wrap text-xs" style={{ color: '#94a3b8' }}>
+                  {task.description && <p className="text-xs mb-2 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{task.description}</p>}
+                  <div className="flex items-center gap-3 flex-wrap text-xs" style={{ color: 'var(--text-subtle)' }}>
                     <span>🕐 {fmtDT(task.created_at)}</span>
-                    {task.creator_name && <span>by <strong style={{ color: '#6b7a8d' }}>{task.creator_name}</strong></span>}
-                    {task.due_date && <span style={{ color: '#854d0e' }}>📅 {fmtD(task.due_date)}</span>}
+                    {task.creator_name && <span>by <strong style={{ color: 'var(--text-muted)' }}>{task.creator_name}</strong></span>}
+                    {task.due_date && <span style={{ color: 'var(--warning-text)' }}>📅 {fmtD(task.due_date)}</span>}
                     {task.assignee_name && <span>👤 {task.assignee_name}</span>}
                     {task.subtask_count > 0 && <span>✓ {task.subtask_count} subtasks</span>}
                     {task.comment_count > 0 && <span>💬 {task.comment_count}</span>}
@@ -840,10 +840,10 @@ export default function GroupDetailPage() {
                   <div className="flex gap-1.5">
                     <button onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
                       className="text-xs px-3 py-1.5 rounded-lg font-bold hover:opacity-90 transition text-white"
-                      style={{ background: '#1d3557' }}>Open →</button>
+                      style={{ background: 'var(--primary)' }}>Open →</button>
                     <button onClick={e => deleteTask(e, task.id)}
                       className="text-xs px-2 py-1.5 rounded-lg font-bold transition hover:bg-red-50"
-                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                      style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
                   </div>
                 </div>
               </div>
@@ -853,8 +853,8 @@ export default function GroupDetailPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map(task => (
-            <div key={task.id} className="bg-white rounded-2xl overflow-hidden transition-all"
-              style={{ border: '1px solid #d0dce8', opacity: updatingTask === task.id ? 0.6 : 1 }}>
+            <div key={task.id} className="bg-surface rounded-2xl overflow-hidden transition-all"
+              style={{ border: '1px solid var(--border)', opacity: updatingTask === task.id ? 0.6 : 1 }}>
 
               {/* Task row */}
               <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
@@ -863,14 +863,14 @@ export default function GroupDetailPage() {
 
                 {/* Title */}
                 <div className="flex-1 min-w-40 cursor-pointer" onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}>
-                  <div className="text-sm font-semibold hover:text-[#e63946] transition" style={{ color: '#1d3557' }}>{task.title}</div>
-                  <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>🕐 {fmtDT(task.created_at)}{task.creator_name && <> · by <strong style={{ color: '#6b7a8d' }}>{task.creator_name}</strong></>}</div>
+                  <div className="text-sm font-semibold hover:text-[var(--accent)] transition" style={{ color: 'var(--text)' }}>{task.title}</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-subtle)' }}>🕐 {fmtDT(task.created_at)}{task.creator_name && <> · by <strong style={{ color: 'var(--text-muted)' }}>{task.creator_name}</strong></>}</div>
                 </div>
 
                 {/* Due date */}
                 {task.due_date && (
                   <span className="text-xs px-2 py-0.5 rounded-full hidden md:block"
-                    style={{ background: '#fef9c3', color: '#854d0e' }}>
+                    style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}>
                     📅 {fmtD(task.due_date)}
                   </span>
                 )}
@@ -889,7 +889,7 @@ export default function GroupDetailPage() {
                   onClick={e => e.stopPropagation()}
                   onChange={e => updateTask(task, { assignee_id: e.target.value ? Number(e.target.value) : null })}
                   className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
-                  style={{ background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe', maxWidth: '130px' }}>
+                  style={{ background: 'var(--info-soft)', color: 'var(--info-text)', border: '1.5px solid var(--info-soft)', maxWidth: '130px' }}>
                   <option value="">Unassigned</option>
                   {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
@@ -903,9 +903,9 @@ export default function GroupDetailPage() {
                 <button onClick={e => { e.stopPropagation(); toggleSubtaskPanel(task.id); }}
                   className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition"
                   style={{
-                    color: openSubtaskTaskId === task.id ? '#2a9d8f' : '#94a3b8',
-                    background: openSubtaskTaskId === task.id ? '#f0fdf9' : '#f8fafc',
-                    border: `1.5px solid ${openSubtaskTaskId === task.id ? '#99f6e4' : '#e2e8f0'}`
+                    color: openSubtaskTaskId === task.id ? 'var(--success)' : 'var(--text-subtle)',
+                    background: openSubtaskTaskId === task.id ? 'var(--success-soft)' : 'var(--surface-2)',
+                    border: `1.5px solid ${openSubtaskTaskId === task.id ? 'var(--success-soft)' : 'var(--border)'}`
                   }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -917,9 +917,9 @@ export default function GroupDetailPage() {
                 {/* <button onClick={e => { e.stopPropagation(); setOpenCommentTaskId(openCommentTaskId === task.id ? null : task.id); }}
                   className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition"
                   style={{
-                    color: openCommentTaskId === task.id ? '#457b9d' : '#94a3b8',
-                    background: openCommentTaskId === task.id ? '#eff6ff' : '#f8fafc',
-                    border: `1.5px solid ${openCommentTaskId === task.id ? '#bfdbfe' : '#e2e8f0'}`
+                    color: openCommentTaskId === task.id ? 'var(--link)' : 'var(--text-subtle)',
+                    background: openCommentTaskId === task.id ? 'var(--info-soft)' : 'var(--surface-2)',
+                    border: `1.5px solid ${openCommentTaskId === task.id ? 'var(--info-soft)' : 'var(--border)'}`
                   }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -930,23 +930,23 @@ export default function GroupDetailPage() {
                 {/* Open detail */}
                 <button onClick={() => router.push(`/projects/${id}/tasks/${task.slug || task.id}`)}
                   className="text-xs px-3 py-1.5 rounded-lg font-bold hover:opacity-90 transition text-white flex-shrink-0"
-                  style={{ background: '#1d3557' }}>
+                  style={{ background: 'var(--primary)' }}>
                   Open →
                 </button>
 
                 {/* Delete */}
                 <button onClick={e => deleteTask(e, task.id)}
                   className="text-xs px-2 py-1.5 rounded-lg font-bold transition hover:bg-red-50 flex-shrink-0"
-                  style={{ color: '#e63946', border: '1px solid #fecaca' }}>
+                  style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>
                   🗑
                 </button>
               </div>
 
               {/* Subtask accordion */}
               {openSubtaskTaskId === task.id && (
-                <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid #e8f0f7', background: '#f0fdf9' }}>
+                <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid var(--border-soft)', background: 'var(--success-soft)' }}>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-black" style={{ color: '#0f766e' }}>
+                    <span className="text-xs font-black" style={{ color: 'var(--success-text)' }}>
                       Subtasks
                       {subtasks[task.id] && ` — ${subtasks[task.id].filter(s => s.status === 'done').length}/${subtasks[task.id].length} done`}
                     </span>
@@ -954,26 +954,26 @@ export default function GroupDetailPage() {
 
                   {/* Subtask list */}
                   {!subtasks[task.id] ? (
-                    <div className="text-xs py-2 mb-3" style={{ color: '#94a3b8' }}>Loading...</div>
+                    <div className="text-xs py-2 mb-3" style={{ color: 'var(--text-subtle)' }}>Loading...</div>
                   ) : subtasks[task.id].length === 0 ? (
-                    <div className="text-xs py-2 mb-3 text-center rounded-lg" style={{ color: '#94a3b8', border: '1.5px dashed #d1fae5' }}>No subtasks yet</div>
+                    <div className="text-xs py-2 mb-3 text-center rounded-lg" style={{ color: 'var(--text-subtle)', border: '1.5px dashed #d1fae5' }}>No subtasks yet</div>
                   ) : (
                     <div className="space-y-1.5 mb-3">
                       {subtasks[task.id].map(sub => (
                         <div key={sub.id} className="flex items-center gap-3 rounded-xl px-3 py-2"
-                          style={{ background: '#fff', border: '1px solid #d1fae5' }}>
+                          style={{ background: 'var(--surface)', border: '1px solid #d1fae5' }}>
                           <input type="checkbox" checked={sub.status === 'done'}
                             onChange={() => toggleSubtaskDone(sub, task.id)}
                             className="w-4 h-4 rounded accent-teal-600 cursor-pointer flex-shrink-0" />
                           <span className={`flex-1 text-xs font-medium ${sub.status === 'done' ? 'line-through' : ''}`}
-                            style={{ color: sub.status === 'done' ? '#94a3b8' : '#1d3557' }}>
+                            style={{ color: sub.status === 'done' ? 'var(--text-subtle)' : 'var(--text)' }}>
                             {sub.title}
                           </span>
                           <span className="text-xs font-bold capitalize" style={{ color: priorityColors[sub.priority] }}>{sub.priority}</span>
                           {canManage && (
                             <button onClick={() => deleteSubtask(sub.id, task.id)}
                               className="w-5 h-5 rounded flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
-                              style={{ color: '#e63946' }}>✕</button>
+                              style={{ color: 'var(--accent)' }}>✕</button>
                           )}
                         </div>
                       ))}
@@ -987,10 +987,10 @@ export default function GroupDetailPage() {
                       onKeyDown={e => e.key === 'Enter' && addSubtask(task.id)}
                       placeholder="Add subtask... (Enter to save)"
                       className="flex-1 rounded-xl px-3 py-2 text-xs focus:outline-none"
-                      style={{ background: '#fff', border: '1.5px solid #99f6e4', color: '#1d3557' }} />
+                      style={{ background: 'var(--surface)', border: '1.5px solid var(--success-soft)', color: 'var(--text)' }} />
                     <button onClick={() => addSubtask(task.id)}
                       className="px-3 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
-                      style={{ background: '#2a9d8f' }}>
+                      style={{ background: 'var(--success)' }}>
                       + Add
                     </button>
                   </div>
@@ -1058,11 +1058,11 @@ export default function GroupDetailPage() {
       {showMeeting && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,23,42,0.6)' }}
           onClick={() => { setShowMeeting(false); setMeetingLink(''); }}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1px solid #e2e8f0' }}
+          <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}>
 
             {/* Header */}
-            <div className="px-6 py-4 flex items-center justify-between" style={{ background: '#1d3557' }}>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ background: 'var(--primary)' }}>
               <div>
                 <div className="font-black text-white">📹 Create Meeting</div>
                 <div className="text-xs text-white/50 mt-0.5">{group?.name}</div>
@@ -1075,61 +1075,61 @@ export default function GroupDetailPage() {
             {meetingLink ? (
               <div className="p-6 space-y-4">
                 <div className="flex flex-col items-center text-center py-2">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-3" style={{ background: '#f0fdf9' }}>🎉</div>
-                  <div className="font-black text-[#1d3557] text-lg mb-1">Meeting Created!</div>
-                  <div className="text-sm text-[#6b7a8d]">The link has been posted in the group chat.</div>
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-3" style={{ background: 'var(--success-soft)' }}>🎉</div>
+                  <div className="font-black text-[var(--text)] text-lg mb-1">Meeting Created!</div>
+                  <div className="text-sm text-[var(--text-muted)]">The link has been posted in the group chat.</div>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
-                  <div className="text-xs font-bold text-[#6b7a8d] mb-1">Meeting Link</div>
+                <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}>
+                  <div className="text-xs font-bold text-[var(--text-muted)] mb-1">Meeting Link</div>
                   <a href={meetingLink} target="_blank" rel="noopener noreferrer"
-                    className="text-sm font-bold break-all hover:underline" style={{ color: '#457b9d' }}>
+                    className="text-sm font-bold break-all hover:underline" style={{ color: 'var(--link)' }}>
                     {meetingLink}
                   </a>
                 </div>
                 <div className="flex gap-3">
                   <a href={meetingLink} target="_blank" rel="noopener noreferrer"
                     className="flex-1 py-3 rounded-xl font-bold text-sm text-white text-center hover:opacity-90 transition"
-                    style={{ background: '#2a9d8f' }}>
+                    style={{ background: 'var(--success)' }}>
                     🚀 Join Now
                   </a>
                   <button onClick={() => router.push(`/projects/${id}/groups/${groupId}/chat`)}
                     className="flex-1 py-3 rounded-xl font-bold text-sm hover:opacity-90 transition"
-                    style={{ background: '#eff6ff', color: '#457b9d', border: '1.5px solid #bfdbfe' }}>
+                    style={{ background: 'var(--info-soft)', color: 'var(--link)', border: '1.5px solid var(--info-soft)' }}>
                     💬 Open Chat
                   </button>
                 </div>
                 <button onClick={() => { setShowMeeting(false); setMeetingLink(''); }}
-                  className="w-full py-2.5 rounded-xl text-sm font-bold text-[#6b7a8d] hover:bg-[#f8fafc] transition"
-                  style={{ border: '1.5px solid #e2e8f0' }}>Close</button>
+                  className="w-full py-2.5 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--surface-2)] transition"
+                  style={{ border: '1.5px solid var(--border)' }}>Close</button>
               </div>
             ) : (
               <form onSubmit={scheduleMeeting} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Meeting Purpose *</label>
+                  <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Meeting Purpose *</label>
                   <textarea
                     value={meetingForm.purpose}
                     onChange={e => setMeetingForm(f => ({ ...f, purpose: e.target.value }))}
                     placeholder="e.g. Weekly sync, Sprint planning, Design review…"
                     rows={3} required
-                    className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none resize-none"
-                    style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }} />
+                    className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none resize-none"
+                    style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-[#1d3557] mb-2">When?</label>
+                  <label className="block text-sm font-bold text-[var(--text)] mb-2">When?</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button type="button" onClick={() => setMeetingForm(f => ({ ...f, is_instant: true }))}
                       className="py-3 rounded-xl font-bold text-sm transition"
                       style={meetingForm.is_instant
-                        ? { background: '#1d3557', color: '#fff', border: '1.5px solid #1d3557' }
-                        : { background: '#f8fafc', color: '#1d3557', border: '1.5px solid #e2e8f0' }}>
+                        ? { background: 'var(--primary)', color: '#fff', border: '1.5px solid var(--primary)' }
+                        : { background: 'var(--surface-2)', color: 'var(--text)', border: '1.5px solid var(--border)' }}>
                       ⚡ Start Now
                     </button>
                     <button type="button" onClick={() => setMeetingForm(f => ({ ...f, is_instant: false }))}
                       className="py-3 rounded-xl font-bold text-sm transition"
                       style={!meetingForm.is_instant
-                        ? { background: '#1d3557', color: '#fff', border: '1.5px solid #1d3557' }
-                        : { background: '#f8fafc', color: '#1d3557', border: '1.5px solid #e2e8f0' }}>
+                        ? { background: 'var(--primary)', color: '#fff', border: '1.5px solid var(--primary)' }
+                        : { background: 'var(--surface-2)', color: 'var(--text)', border: '1.5px solid var(--border)' }}>
                       🗓 Schedule Later
                     </button>
                   </div>
@@ -1137,17 +1137,17 @@ export default function GroupDetailPage() {
 
                 {!meetingForm.is_instant && (
                   <div>
-                    <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Date & Time *</label>
+                    <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Date & Time *</label>
                     <input type="datetime-local" value={meetingForm.scheduled_at}
                       onChange={e => setMeetingForm(f => ({ ...f, scheduled_at: e.target.value }))}
                       required
-                      className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                      style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }} />
+                      className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none"
+                      style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)' }} />
                   </div>
                 )}
 
                 <div className="flex items-center gap-2 rounded-xl p-3 text-xs font-medium"
-                  style={{ background: '#f0fdf9', border: '1px solid #99f6e4', color: '#0f766e' }}>
+                  style={{ background: 'var(--success-soft)', border: '1px solid var(--success-soft)', color: 'var(--success-text)' }}>
                   📨 A video meeting link will be auto-posted in the group chat.
                 </div>
 
@@ -1158,8 +1158,8 @@ export default function GroupDetailPage() {
                     {meetingLoading ? 'Creating…' : '📹 Create Meeting'}
                   </button>
                   <button type="button" onClick={() => setShowMeeting(false)}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557] hover:bg-[#f8fafc] transition"
-                    style={{ border: '1.5px solid #e2e8f0' }}>Cancel</button>
+                    className="flex-1 py-3 rounded-xl font-bold text-sm text-[var(--text)] hover:bg-[var(--surface-2)] transition"
+                    style={{ border: '1.5px solid var(--border)' }}>Cancel</button>
                 </div>
               </form>
             )}
@@ -1171,11 +1171,11 @@ export default function GroupDetailPage() {
       {showMembers && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,23,42,0.6)' }}
           onClick={() => { setShowMembers(false); setShowOrgDropdown(false); }}>
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col" style={{ border: '1px solid #e2e8f0', maxHeight: '85vh' }}
+          <div className="bg-surface rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col" style={{ border: '1px solid var(--border)', maxHeight: '85vh' }}
             onClick={e => e.stopPropagation()}>
 
             {/* Header */}
-            <div className="px-5 py-4 flex items-center justify-between flex-shrink-0" style={{ background: '#1d3557' }}>
+            <div className="px-5 py-4 flex items-center justify-between flex-shrink-0" style={{ background: 'var(--primary)' }}>
               <div>
                 <div className="font-black text-white">Manage Members</div>
                 <div className="text-xs text-white/50 mt-0.5">{group.name} · {groupMembers.length} member{groupMembers.length !== 1 ? 's' : ''}</div>
@@ -1187,7 +1187,7 @@ export default function GroupDetailPage() {
             {/* Toast */}
             {memberMsg && (
               <div className="mx-4 mt-3 px-3 py-2 rounded-xl text-xs font-bold text-center flex-shrink-0"
-                style={{ background: memberMsg.includes('!') ? '#f0fdf9' : '#fef2f2', color: memberMsg.includes('!') ? '#0f766e' : '#e63946' }}>
+                style={{ background: memberMsg.includes('!') ? 'var(--success-soft)' : 'var(--danger-soft)', color: memberMsg.includes('!') ? 'var(--success-text)' : 'var(--accent)' }}>
                 {memberMsg}
               </div>
             )}
@@ -1196,7 +1196,7 @@ export default function GroupDetailPage() {
 
               {/* Search section */}
               <div className="p-4 pb-0">
-                <div className="text-xs font-black text-[#1d3557] mb-2 uppercase tracking-wide">Add Members</div>
+                <div className="text-xs font-black text-[var(--text)] mb-2 uppercase tracking-wide">Add Members</div>
                 <div className="relative mb-3">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input
@@ -1205,11 +1205,11 @@ export default function GroupDetailPage() {
                     placeholder="Search by name or email…"
                     autoFocus
                     className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none"
-                    style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#1d3557' }}
+                    style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
                   />
                   {memberSearch && (
                     <button onClick={() => setMemberSearch('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#1d3557]">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-subtle)] hover:text-[var(--text)]">
                       ✕
                     </button>
                   )}
@@ -1230,10 +1230,10 @@ export default function GroupDetailPage() {
                   });
                   const filtered = q ? allUsers.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : allUsers;
                   if (!filtered.length && q) return (
-                    <div className="text-center py-6 text-sm text-[#94a3b8]">No users found for &ldquo;{memberSearch}&rdquo;</div>
+                    <div className="text-center py-6 text-sm text-[var(--text-subtle)]">No users found for &ldquo;{memberSearch}&rdquo;</div>
                   );
                   if (!filtered.length) return (
-                    <div className="text-center py-4 text-xs text-[#94a3b8]">Type to search project members &amp; connections</div>
+                    <div className="text-center py-4 text-xs text-[var(--text-subtle)]">Type to search project members &amp; connections</div>
                   );
                   return (
                     <div className="space-y-1.5 mb-4">
@@ -1242,26 +1242,26 @@ export default function GroupDetailPage() {
                         const avatarBg = `hsl(${(u.name.charCodeAt(0) * 37) % 360}, 55%, 50%)`;
                         return (
                           <div key={u.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition"
-                            style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                             <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
                               style={{ background: avatarBg }}>
                               {u.name[0].toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-bold text-[#1d3557] truncate">{u.name}</div>
+                              <div className="text-sm font-bold text-[var(--text)] truncate">{u.name}</div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-[#6b7a8d] truncate">{u.email}</span>
+                                <span className="text-xs text-[var(--text-muted)] truncate">{u.email}</span>
                                 <span className="text-xs px-1.5 py-0.5 rounded font-bold flex-shrink-0"
-                                  style={{ background: u.source === 'project' ? '#eff6ff' : '#f0fdf9', color: u.source === 'project' ? '#1d4ed8' : '#0f766e' }}>
+                                  style={{ background: u.source === 'project' ? 'var(--info-soft)' : 'var(--success-soft)', color: u.source === 'project' ? 'var(--info-text)' : 'var(--success-text)' }}>
                                   {u.source === 'project' ? 'Project' : 'Connection'}
                                 </span>
                               </div>
                             </div>
                             {added
-                              ? <span className="text-xs font-bold px-2.5 py-1 rounded-lg flex-shrink-0" style={{ background: '#f0fdf9', color: '#2a9d8f' }}>✓ Added</span>
+                              ? <span className="text-xs font-bold px-2.5 py-1 rounded-lg flex-shrink-0" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>✓ Added</span>
                               : <button onClick={() => addFromConnection(u.id, u.name)} disabled={addingMember === u.id}
                                   className="px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 transition flex-shrink-0"
-                                  style={{ background: '#1d3557' }}>
+                                  style={{ background: 'var(--primary)' }}>
                                   {addingMember === u.id ? '…' : '+ Add'}
                                 </button>
                             }
@@ -1274,16 +1274,16 @@ export default function GroupDetailPage() {
               </div>
 
               {/* Invite by email */}
-              <div className="px-4 pb-4" style={{ borderTop: '1px solid #f1f5f9' }}>
-                <div className="text-xs font-black text-[#1d3557] mb-2 mt-4 uppercase tracking-wide">Invite by Email</div>
+              <div className="px-4 pb-4" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                <div className="text-xs font-black text-[var(--text)] mb-2 mt-4 uppercase tracking-wide">Invite by Email</div>
                 <form onSubmit={sendInvite} className="flex gap-2">
                   <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
                     placeholder="someone@example.com"
                     className="flex-1 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                    style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#1d3557' }} />
+                    style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
                   <button type="submit" disabled={inviting || !inviteEmail.trim()}
                     className="px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 transition flex-shrink-0"
-                    style={{ background: '#2a9d8f' }}>
+                    style={{ background: 'var(--success)' }}>
                     {inviting ? '…' : 'Invite'}
                   </button>
                 </form>
@@ -1291,17 +1291,17 @@ export default function GroupDetailPage() {
                 {/* Pending invitations */}
                 {invitations.filter(i => i.status === 'pending').length > 0 && (
                   <div className="mt-3 space-y-1.5">
-                    <div className="text-xs font-bold text-[#6b7a8d] mb-1">Pending invitations</div>
+                    <div className="text-xs font-bold text-[var(--text-muted)] mb-1">Pending invitations</div>
                     {invitations.filter(i => i.status === 'pending').map(inv => (
                       <div key={inv.id} className="flex items-center gap-3 px-3 py-2 rounded-xl"
-                        style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
+                        style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-soft)' }}>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-[#1d3557] truncate">{inv.email}</div>
-                          <div className="text-xs text-[#6b7a8d]">{fmtD(inv.created_at)}</div>
+                          <div className="text-xs font-bold text-[var(--text)] truncate">{inv.email}</div>
+                          <div className="text-xs text-[var(--text-muted)]">{fmtD(inv.created_at)}</div>
                         </div>
                         <button onClick={() => cancelInvite(inv.id)}
                           className="text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition flex-shrink-0"
-                          style={{ color: '#e63946', border: '1px solid #fecaca' }}>Cancel</button>
+                          style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>Cancel</button>
                       </div>
                     ))}
                   </div>
@@ -1309,30 +1309,30 @@ export default function GroupDetailPage() {
               </div>
 
               {/* Current members */}
-              <div className="px-4 pb-4" style={{ borderTop: '1px solid #f1f5f9' }}>
-                <div className="text-xs font-black text-[#1d3557] mb-2 mt-4 uppercase tracking-wide">Current Members ({groupMembers.length})</div>
+              <div className="px-4 pb-4" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                <div className="text-xs font-black text-[var(--text)] mb-2 mt-4 uppercase tracking-wide">Current Members ({groupMembers.length})</div>
                 {groupMembers.length === 0
-                  ? <div className="text-center py-6 text-sm text-[#94a3b8]">No members yet</div>
+                  ? <div className="text-center py-6 text-sm text-[var(--text-subtle)]">No members yet</div>
                   : <div className="space-y-1.5">
                       {groupMembers.map(m => (
                         <div key={m.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                             style={{ background: `hsl(${(m.name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                             {m.name[0].toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-[#1d3557] truncate">{m.name}</div>
-                            <div className="text-xs text-[#6b7a8d] truncate">{m.email}</div>
+                            <div className="text-sm font-bold text-[var(--text)] truncate">{m.name}</div>
+                            <div className="text-xs text-[var(--text-muted)] truncate">{m.email}</div>
                           </div>
                           <span className="text-xs font-bold px-2 py-0.5 rounded-lg capitalize flex-shrink-0"
-                            style={{ background: m.role === 'lead' ? '#fef2f2' : '#f1faee', color: m.role === 'lead' ? '#e63946' : '#2a9d8f' }}>
+                            style={{ background: m.role === 'lead' ? 'var(--danger-soft)' : 'var(--bg)', color: m.role === 'lead' ? 'var(--accent)' : 'var(--success)' }}>
                             {m.role}
                           </span>
                           {m.role !== 'lead' && (
                             <button onClick={() => removeMember(m.id, m.name)}
                               className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition flex-shrink-0"
-                              style={{ color: '#e63946', border: '1px solid #fecaca' }}>✕</button>
+                              style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>✕</button>
                           )}
                         </div>
                       ))}
@@ -1348,8 +1348,8 @@ export default function GroupDetailPage() {
       {groupComments.length > 0 && (
         <div className="mt-8">
           <div className="flex items-center gap-3 mb-4">
-            <h3 className="font-black text-base" style={{ color: '#1d3557' }}>⚡ Recent Activity</h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8f4ff', color: '#457b9d' }}>
+            <h3 className="font-black text-base" style={{ color: 'var(--text)' }}>⚡ Recent Activity</h3>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8f4ff', color: 'var(--link)' }}>
               {groupComments.length}
             </span>
           </div>
@@ -1369,10 +1369,10 @@ export default function GroupDetailPage() {
               return groups.map(group => (
                 <div key={group.dateLabel}>
                   <div className="flex items-center gap-3 my-4">
-                    <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                    <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                     <span className="text-xs font-black px-3 py-1 rounded-full flex-shrink-0"
-                      style={{ background: '#f1f5f9', color: '#64748b' }}>{group.dateLabel}</span>
-                    <div className="flex-1 h-px" style={{ background: '#e2e8f0' }} />
+                      style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>{group.dateLabel}</span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--surface-3)' }} />
                   </div>
                   <div className="space-y-2">
                   {group.items.map(item => {
@@ -1381,18 +1381,18 @@ export default function GroupDetailPage() {
               const relatedTask = tasks.find(t => t.id === item.task_id);
 
               const actCfg: Record<string, { icon: string; color: string }> = {
-                created:          { icon: '✦', color: '#2a9d8f' },
-                status_changed:   { icon: '⇄', color: '#457b9d' },
+                created:          { icon: '✦', color: '#10b981' },
+                status_changed:   { icon: '⇄', color: '#6366f1' },
                 closed:           { icon: '✓', color: '#0f766e' },
                 reopened:         { icon: '↺', color: '#c2410c' },
-                assigned:         { icon: '→', color: '#6d6875' },
+                assigned:         { icon: '→', color: '#8b5cf6' },
                 unassigned:       { icon: '←', color: '#94a3b8' },
-                priority_changed: { icon: '!',  color: '#f4a261' },
-                title_changed:    { icon: '✎', color: '#457b9d' },
-                deleted:          { icon: '🗑', color: '#e63946' },
-                subtask_added:    { icon: '+',  color: '#2a9d8f' },
-                comment_added:    { icon: '💬', color: '#457b9d' },
-                moved_group:      { icon: '⇢', color: '#e9c46a' },
+                priority_changed: { icon: '!',  color: '#f59e0b' },
+                title_changed:    { icon: '✎', color: '#6366f1' },
+                deleted:          { icon: '🗑', color: '#f43f5e' },
+                subtask_added:    { icon: '+',  color: '#10b981' },
+                comment_added:    { icon: '💬', color: '#6366f1' },
+                moved_group:      { icon: '⇢', color: '#eab308' },
               };
 
               const sl: Record<string, string> = { pending: 'Pending', in_progress: 'In Progress', under_review: 'Under Review', qa: 'QA', on_hold: 'On Hold', completed: 'Completed', reopened: 'Reopened', invalid: 'Invalid', cancelled: 'Cancelled' };
@@ -1419,10 +1419,10 @@ export default function GroupDetailPage() {
                 const cfg = actCfg[item.action || ''] || { icon: '•', color: '#94a3b8' };
                 const msg = buildMsg(item.action || '', item.user_name, item.old_value || null, item.new_value || null);
                 return (
-                  <div key={key} className="bg-white rounded-2xl overflow-hidden transition-all"
+                  <div key={key} className="bg-surface rounded-2xl overflow-hidden transition-all"
                     style={{ border: `1px solid ${isExpanded ? cfg.color + '50' : '#d0dce8'}` }}>
                     {/* Row */}
-                    <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                    <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[var(--surface-2)] transition"
                       onClick={() => toggleItem(key)}>
                       <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                         style={{ background: cfg.color }}>{cfg.icon}</div>
@@ -1430,8 +1430,8 @@ export default function GroupDetailPage() {
                         style={{ background: `hsl(${(item.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                         {item.user_name[0].toUpperCase()}
                       </div>
-                      <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>{msg}</span>
-                      <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
+                      <span className="flex-1 text-sm min-w-0" style={{ color: 'var(--text)' }}>{msg}</span>
+                      <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>
                         {fmtDT(item.created_at)}
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
@@ -1444,37 +1444,37 @@ export default function GroupDetailPage() {
                     {isExpanded && (
                       <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: `1px solid ${cfg.color}30`, background: '#fafbfc' }}>
                         {/* Detail */}
-                        <div className="rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                        <div className="rounded-xl p-3 flex items-center gap-3 flex-wrap" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                             style={{ background: cfg.color }}>{cfg.icon}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black mb-0.5" style={{ color: '#1d3557' }}>{item.user_name}</div>
-                            <div className="text-xs" style={{ color: '#6b7a8d' }}>{msg}</div>
+                            <div className="text-xs font-black mb-0.5" style={{ color: 'var(--text)' }}>{item.user_name}</div>
+                            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{msg}</div>
                           </div>
                           {(item.old_value || item.new_value) && (
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {item.old_value && (
-                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: '#fef2f2', color: '#b91c1c' }}>{item.old_value}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold line-through" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>{item.old_value}</span>
                               )}
-                              {item.old_value && item.new_value && <span className="text-xs" style={{ color: '#94a3b8' }}>→</span>}
+                              {item.old_value && item.new_value && <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>→</span>}
                               {item.new_value && (
-                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: '#f0fdf9', color: '#0f766e' }}>{item.new_value}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-lg font-bold" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>{item.new_value}</span>
                               )}
                             </div>
                           )}
                           {relatedTask && (
                             <button onClick={() => router.push(`/projects/${id}/tasks/${relatedTask.slug || relatedTask.id}`)}
                               className="text-xs font-bold px-2 py-1 rounded-lg hover:opacity-80 transition flex-shrink-0"
-                              style={{ background: '#1d3557', color: '#fff' }}>Open Task →</button>
+                              style={{ background: 'var(--primary)', color: '#fff' }}>Open Task →</button>
                           )}
                         </div>
                         {/* Quick update */}
                         {relatedTask && (
-                          <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-                            <div className="text-xs font-black mb-2" style={{ color: '#6b7a8d' }}>QUICK UPDATE</div>
+                          <div className="rounded-xl p-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                            <div className="text-xs font-black mb-2" style={{ color: 'var(--text-muted)' }}>QUICK UPDATE</div>
                             <div className="flex items-center gap-3 flex-wrap">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+                                <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Status</span>
                                 <select
                                   defaultValue={relatedTask.status}
                                   onChange={async e => { await updateTask(relatedTask, { status: e.target.value }); }}
@@ -1484,7 +1484,7 @@ export default function GroupDetailPage() {
                                 </select>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Priority</span>
+                                <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Priority</span>
                                 <select
                                   defaultValue={relatedTask.priority}
                                   onChange={async e => { await updateTask(relatedTask, { priority: e.target.value }); }}
@@ -1494,12 +1494,12 @@ export default function GroupDetailPage() {
                                 </select>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+                                <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Assignee</span>
                                 <select
                                   defaultValue={relatedTask.assignee_id ?? ''}
                                   onChange={async e => { await updateTask(relatedTask, { assignee_id: e.target.value ? Number(e.target.value) : null }); }}
                                   className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
-                                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                                   <option value="">Unassigned</option>
                                   {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                 </select>
@@ -1515,27 +1515,27 @@ export default function GroupDetailPage() {
 
               // Comment
               return (
-                <div key={key} className="bg-white rounded-2xl overflow-hidden"
-                  style={{ border: `1px solid ${isExpanded ? '#bfdbfe' : '#d0dce8'}` }}>
-                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#f8fafc] transition"
+                <div key={key} className="bg-surface rounded-2xl overflow-hidden"
+                  style={{ border: `1px solid ${isExpanded ? 'var(--info-soft)' : 'var(--border)'}` }}>
+                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[var(--surface-2)] transition"
                     onClick={() => toggleItem(key)}>
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                      style={{ background: '#457b9d' }}>💬</div>
+                      style={{ background: 'var(--link)' }}>💬</div>
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                       style={{ background: `hsl(${(item.user_name.charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
                       {item.user_name[0].toUpperCase()}
                     </div>
-                    <span className="flex-1 text-sm min-w-0" style={{ color: '#1d3557' }}>
+                    <span className="flex-1 text-sm min-w-0" style={{ color: 'var(--text)' }}>
                       <span className="font-bold">{item.user_name}</span>
                       {' commented on '}
-                      <span className="font-bold" style={{ color: '#457b9d' }}>{item.task_title}</span>
+                      <span className="font-bold" style={{ color: 'var(--link)' }}>{item.task_title}</span>
                       {!isExpanded && (
-                        <span style={{ color: '#6b7a8d' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>
                           {' — '}{(item.content || '').length > 60 ? (item.content || '').substring(0, 60) + '…' : item.content}
                         </span>
                       )}
                     </span>
-                    <span className="text-xs flex-shrink-0" style={{ color: '#94a3b8' }}>
+                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>
                       {fmtDT(item.created_at)}
                     </span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
@@ -1545,19 +1545,19 @@ export default function GroupDetailPage() {
                     </svg>
                   </div>
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: '1px solid #bfdbfe', background: '#f8fbff' }}>
-                      <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-                        <p className="text-sm leading-relaxed" style={{ color: '#1d3557' }}>{item.content}</p>
+                    <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: '1px solid var(--info-soft)', background: 'var(--surface-2)' }}>
+                      <div className="rounded-xl p-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{item.content}</p>
                         {item.is_resolved && (
-                          <span className="inline-block mt-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf9', color: '#0f766e' }}>✓ Resolved</span>
+                          <span className="inline-block mt-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>✓ Resolved</span>
                         )}
                       </div>
                       {relatedTask && (
-                        <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-                          <div className="text-xs font-black mb-2" style={{ color: '#6b7a8d' }}>QUICK UPDATE</div>
+                        <div className="rounded-xl p-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                          <div className="text-xs font-black mb-2" style={{ color: 'var(--text-muted)' }}>QUICK UPDATE</div>
                           <div className="flex items-center gap-3 flex-wrap">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Status</span>
+                              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Status</span>
                               <select
                                 defaultValue={relatedTask.status}
                                 onChange={async e => { await updateTask(relatedTask, { status: e.target.value }); }}
@@ -1567,19 +1567,19 @@ export default function GroupDetailPage() {
                               </select>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold" style={{ color: '#6b7a8d' }}>Assignee</span>
+                              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Assignee</span>
                               <select
                                 defaultValue={relatedTask.assignee_id ?? ''}
                                 onChange={async e => { await updateTask(relatedTask, { assignee_id: e.target.value ? Number(e.target.value) : null }); }}
                                 className="text-xs px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
-                                style={{ background: '#f1faee', border: '1.5px solid #d0dce8', color: '#1d3557' }}>
+                                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
                                 <option value="">Unassigned</option>
                                 {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                               </select>
                             </div>
                             <button onClick={() => router.push(`/projects/${id}/tasks/${relatedTask.slug || relatedTask.id}`)}
                               className="text-xs font-bold px-2 py-1.5 rounded-lg hover:opacity-80 transition ml-auto"
-                              style={{ background: '#1d3557', color: '#fff' }}>Open Task →</button>
+                              style={{ background: 'var(--primary)', color: '#fff' }}>Open Task →</button>
                           </div>
                         </div>
                       )}

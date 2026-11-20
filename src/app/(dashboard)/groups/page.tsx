@@ -6,23 +6,23 @@ import ConfirmModal from '@/components/ConfirmModal';
 interface Group { id: number; name: string; description: string; is_private: boolean; org_id: number | null; owner_id: number; image: string | null }
 
 const palette = [
-  { bg: '#457b9d', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
-  { bg: '#2a9d8f', light: '#f0fdf9', border: '#99f6e4', text: '#0f766e' },
-  { bg: '#6d6875', light: '#faf5ff', border: '#e9d5ff', text: '#7c3aed' },
-  { bg: '#e63946', light: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
-  { bg: '#f4a261', light: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
-  { bg: '#e9c46a', light: '#fefce8', border: '#fef08a', text: '#a16207' },
+  { bg: '#6366f1', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
+  { bg: '#10b981', light: '#f0fdf9', border: '#99f6e4', text: '#0f766e' },
+  { bg: '#8b5cf6', light: '#faf5ff', border: '#e9d5ff', text: '#7c3aed' },
+  { bg: '#f43f5e', light: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
+  { bg: '#f59e0b', light: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
+  { bg: '#eab308', light: '#fefce8', border: '#fef08a', text: '#a16207' },
 ];
 
 type ViewMode = 'grid' | 'list' | 'box';
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid #d0dce8' }}>
+    <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--border)' }}>
       {(['grid','list','box'] as ViewMode[]).map(v => (
         <button key={v} onClick={() => onChange(v)}
           className="px-3 py-1.5 text-xs font-bold transition"
-          style={{ background: view === v ? '#1d3557' : '#fff', color: view === v ? '#fff' : '#6b7a8d' }}
+          style={{ background: view === v ? 'var(--primary)' : 'var(--surface)', color: view === v ? '#fff' : 'var(--text-muted)' }}
           title={v.charAt(0).toUpperCase() + v.slice(1)}>
           {v === 'grid' ? '⊞' : v === 'list' ? '☰' : '▦'}
         </button>
@@ -94,18 +94,18 @@ export default function GroupsPage() {
         <ViewToggle view={view} onChange={setView} />
         <button onClick={() => setShowForm(true)}
           className="px-4 py-2 rounded-xl font-bold text-sm text-white hover:opacity-90 transition"
-          style={{ background: '#457b9d' }}>
+          style={{ background: 'var(--link)' }}>
           + New Group
         </button>
       </div>
 
       {view === 'list' ? (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #d0dce8' }}>
+        <div className="bg-surface rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {groups.map((g, i) => {
             const p = palette[i % palette.length];
             return (
-              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8fafc] transition cursor-pointer"
-                style={{ borderBottom: i < groups.length - 1 ? '1px solid #f1f5f9' : 'none' }}
+              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-2)] transition cursor-pointer"
+                style={{ borderBottom: i < groups.length - 1 ? '1px solid var(--border-soft)' : 'none' }}
                 onClick={() => router.push(`/groups/${g.id}`)}>  
                 {g.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -117,13 +117,13 @@ export default function GroupsPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm truncate" style={{ color: p.text }}>{g.name}</div>
-                  {g.description && <div className="text-xs truncate" style={{ color: '#6b7a8d' }}>{g.description}</div>}
+                  {g.description && <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{g.description}</div>}
                 </div>
-                <span className="text-xs" style={{ color: '#6b7a8d' }}>{g.is_private ? '🔒 Private' : '🌐 Public'}</span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{g.is_private ? '🔒 Private' : '🌐 Public'}</span>
                 {g.owner_id === myId && (
                   <button onClick={e => { e.stopPropagation(); setDeleteTarget(g); }}
                     className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
-                    style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                    style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
                 )}
               </div>
             );
@@ -131,8 +131,8 @@ export default function GroupsPage() {
           {groups.length === 0 && (
             <div className="p-16 text-center">
               <div className="text-5xl mb-4">👥</div>
-              <div className="font-black text-[#1d3557] mb-2">No groups yet</div>
-              <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90" style={{ background: '#457b9d' }}>Create Group</button>
+              <div className="font-black text-[var(--text)] mb-2">No groups yet</div>
+              <button onClick={() => setShowForm(true)} className="px-6 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90" style={{ background: 'var(--link)' }}>Create Group</button>
             </div>
           )}
         </div>
@@ -157,15 +157,15 @@ export default function GroupsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-black text-sm truncate" style={{ color: p.text }}>{g.name}</div>
-                    <div className="text-xs text-[#6b7a8d] mt-0.5">{g.is_private ? '🔒 Private' : '🌐 Public'}</div>
+                    <div className="text-xs text-[var(--text-muted)] mt-0.5">{g.is_private ? '🔒 Private' : '🌐 Public'}</div>
                   </div>
                   {g.owner_id === myId && (
                     <button onClick={e => { e.stopPropagation(); setDeleteTarget(g); }}
                       className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:bg-red-50 flex-shrink-0"
-                      style={{ color: '#e63946', border: '1px solid #fecaca' }}>🗑</button>
+                      style={{ color: 'var(--accent)', border: '1px solid var(--danger-soft)' }}>🗑</button>
                   )}
                 </div>
-                {g.description && <p className="text-xs text-[#6b7a8d] line-clamp-2 mb-3">{g.description}</p>}
+                {g.description && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-3">{g.description}</p>}
                 <div className="flex gap-2 pt-3" style={{ borderTop: `1px solid ${p.border}` }}>
                   <button onClick={() => router.push(`/groups/${g.id}`)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition text-white"
@@ -184,13 +184,13 @@ export default function GroupsPage() {
         })}
 
         {groups.length === 0 && (
-          <div className="col-span-3 bg-white rounded-2xl p-16 text-center" style={{ border: '2px dashed #d0dce8' }}>
+          <div className="col-span-3 bg-surface rounded-2xl p-16 text-center" style={{ border: '2px dashed var(--border)' }}>
             <div className="text-5xl mb-4">👥</div>
-            <div className="font-black text-[#1d3557] mb-2">No groups yet</div>
-            <div className="text-[#6b7a8d] text-sm mb-6">Create a group to collaborate with your team</div>
+            <div className="font-black text-[var(--text)] mb-2">No groups yet</div>
+            <div className="text-[var(--text-muted)] text-sm mb-6">Create a group to collaborate with your team</div>
             <button onClick={() => setShowForm(true)}
               className="px-6 py-2.5 rounded-xl font-bold text-sm text-white hover:opacity-90"
-              style={{ background: '#457b9d' }}>Create Group</button>
+              style={{ background: 'var(--link)' }}>Create Group</button>
           </div>
         )}
       </div>
@@ -208,62 +208,62 @@ export default function GroupsPage() {
 
       {/* Create Group Modal */}
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(29,53,87,0.5)' }}>
-          <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl" style={{ border: '1px solid #d0dce8' }}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(15,18,34,0.5)' }}>
+          <div className="bg-surface rounded-2xl p-8 w-full max-w-lg shadow-2xl" style={{ border: '1px solid var(--border)' }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-black text-[#1d3557]">New Group</h2>
+              <h2 className="text-xl font-black text-[var(--text)]">New Group</h2>
               <button onClick={() => setShowForm(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b7a8d] hover:bg-[#f1faee]">✕</button>
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--bg)]">✕</button>
             </div>
             <form onSubmit={createGroup} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Group name *</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Group name *</label>
                 <input placeholder="e.g. Design Team" value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                  className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Description</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Description</label>
                 <textarea placeholder="What is this group for?" value={form.description}
                   onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
-                  className="w-full rounded-xl px-4 py-3 text-[#1d3557] text-sm focus:outline-none resize-none"
-                  style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }} />
+                  className="w-full rounded-xl px-4 py-3 text-[var(--text)] text-sm focus:outline-none resize-none"
+                  style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1d3557] mb-1.5">Group Image</label>
+                <label className="block text-sm font-bold text-[var(--text)] mb-1.5">Group Image</label>
                 <div className="flex items-center gap-4">
                   {(imagePreview || form.image) && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imagePreview || form.image} alt="preview" className="w-20 h-20 rounded-xl object-cover"
-                      style={{ border: '2px solid #d0dce8' }} />
+                      style={{ border: '2px solid var(--border)' }} />
                   )}
                   <div className="flex-1">
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                     <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                       className="w-full py-2 rounded-lg text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
-                      style={{ border: '1.5px dashed #457b9d', color: '#457b9d', background: 'rgba(69,123,157,0.05)' }}>
+                      style={{ border: '1.5px dashed var(--link)', color: 'var(--link)', background: 'rgba(99,102,241,0.05)' }}>
                       {uploading ? 'Uploading…' : '📷 Choose Image'}
                     </button>
                   </div>
                 </div>
               </div>
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl"
-                style={{ background: '#f1faee', border: '1.5px solid #d0dce8' }}>
+                style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
                 <input type="checkbox" checked={form.is_private}
                   onChange={e => setForm(p => ({ ...p, is_private: e.target.checked }))} className="w-4 h-4" />
                 <div>
-                  <div className="text-sm font-bold text-[#1d3557]">Private group</div>
-                  <div className="text-xs text-[#6b7a8d]">Only invited members can join</div>
+                  <div className="text-sm font-bold text-[var(--text)]">Private group</div>
+                  <div className="text-xs text-[var(--text-muted)]">Only invited members can join</div>
                 </div>
               </label>
               <div className="flex gap-3 pt-2">
                 <button type="submit"
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90"
-                  style={{ background: '#457b9d' }}>Create Group</button>
+                  style={{ background: 'var(--link)' }}>Create Group</button>
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 py-3 rounded-xl font-bold text-sm text-[#1d3557]"
-                  style={{ border: '1.5px solid #d0dce8' }}>Cancel</button>
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-[var(--text)]"
+                  style={{ border: '1.5px solid var(--border)' }}>Cancel</button>
               </div>
             </form>
           </div>
